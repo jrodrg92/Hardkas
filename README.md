@@ -38,42 +38,84 @@ pnpm --filter @hardkas/cli hardkas dev
 pnpm --filter @hardkas/cli hardkas tx simulate --from alice --to bob --amount 1
 ```
 
-## Real node orchestration
+### Receipts, traces and replay
 
-The `hardkas node` commands allow you to manage a real `kaspad` or `rusty-kaspa` process locally.
+Every simulated transaction sent with `hardkas tx send` or `hardkas tx flow --send` generates local artifacts in the `.hardkas/` directory (ignored by git).
 
-- The simulated devnet does not need a real node.
-- The real-local mode requires a `kaspad` binary (provided via `--binary` or in your PATH).
-- HardKAS does not reimplement Kaspa; it orchestrates the official binaries.
-- By default, `.hardkas` is stored in the workspace root: `.hardkas/nodes/<network>`.
-- You can override this with the `--data-dir` flag.
+- **Receipts**: Stored in `.hardkas/receipts/<txId>.json`. Contains transaction details, UTXO changes, and DAA score.
+- **Traces**: Stored in `.hardkas/traces/<txId>.trace.json`. Contains the step-by-step execution phases of the transaction.
+
+#### List receipts
+```bash
+hardkas tx receipts
+```
+
+#### View receipt details
+```bash
+hardkas tx receipt <txId>
+# Use --json for raw data
+hardkas tx receipt <txId> --json
+```
+
+#### View execution trace
+```bash
+hardkas trace <txId>
+```
+
+#### Replay summary
+```bash
+hardkas replay <txId>
+```
+
+Example workflow:
+```bash
+hardkas localnet reset
+hardkas tx send --from alice --to bob --amount 1 --yes
+hardkas tx receipts
+hardkas tx receipt <txId>
+hardkas trace <txId>
+hardkas replay <txId>
+```
+
+> [!NOTE]
+> `hardkas tx simulate` does NOT generate receipts or traces as it doesn't mutate the local state. Only commands that mutate state (like `tx send` or `tx flow --send`) generate these artifacts.
+
+## Real node orchestration (Docker)
+
+HardKAS allows you to manage a real Kaspa node (using `rusty-kaspa`) inside a Docker container in `simnet` mode. This is the recommended way to run a real node for local development.
 
 ### Commands
 
 ```bash
-# Diagnose setup
-hardkas node doctor --network devnet
+# Start the node in Docker
+hardkas node start
 
-# Start a node
-hardkas node start --network devnet --binary /path/to/kaspad
+# Check container status
+hardkas node status
 
-# Check status
-hardkas node status --network devnet
+# View container logs
+hardkas node logs --tail 50
 
-# View logs
-hardkas node logs --network devnet
-
-# Stop the node
-hardkas node stop --network devnet
-
-# Clean data
-hardkas node clean --network devnet
-hardkas node clean --network devnet --yes
+# Stop and remove the container
+hardkas node stop
 ```
 
-- **Default Network**: `devnet` (uses `--devnet` flag).
-- **Default RPC**: Binds to `127.0.0.1` for safety.
-- **Data Directory**: Defaults to `<workspaceRoot>/.hardkas/nodes/<network>`.
+### Unified development environment (Node mode)
+
+You can spin up a real node as part of your dev environment:
+
+```bash
+hardkas dev --mode node
+```
+
+- **Backend**: Docker.
+- **Image**: `aspectron/kaspad` (default).
+- **Network**: `simnet`.
+- **Ports**: Automatically maps 18310 (gRPC), 18311 (Borsh), and 18312 (JSON-RPC).
+- **Data Directory**: Persistent data is stored in `.hardkas/data/docker-node`.
+
+> [!IMPORTANT]
+> This mode currently only orchestrates the node process. Real accounts, faucet, and transaction signing for the real node are not yet implemented in this phase. For stateful transaction simulation with mock accounts, use the default `simulated` mode.
 
 ## Project configuration
 
@@ -429,6 +471,43 @@ hardkas rpc info --network devnet --json
 
 - **Default Network**: `devnet`.
 - **Automatic Discovery**: Resolves the RPC URL from your `.hardkas` configuration if not provided via `--url`.
+
+## Real Kaspa RPC diagnostics
+
+HardKAS provides commands to interact with a real Kaspa node via its JSON-RPC interface. This is useful for verifying node status, DAG health, and UTXOs on a real network (like `simnet` or `devnet`).
+
+### Usage
+
+1. **Start a local node** (if not already running):
+   ```bash
+   hardkas node start
+   ```
+
+2. **Check node info**:
+   ```bash
+   hardkas rpc info
+   # Use --url for a different node
+   hardkas rpc info --url http://my-node:18210
+   ```
+
+3. **Check DAG status**:
+   ```bash
+   hardkas rpc dag
+   ```
+
+4. **List UTXOs for an address**:
+   ```bash
+   hardkas rpc utxos kaspa:p...
+   ```
+
+5. **Check mempool for a transaction**:
+   ```bash
+   hardkas rpc mempool <txId>
+   ```
+
+> [!NOTE]
+> **Requirements**: These commands require a node running with JSON-RPC enabled (usually port 18210).
+> **Phase 15 Limitations**: Real transaction broadcasting via `hardkas tx send` for real nodes is not yet exposed in the CLI. Use `simulated` mode for persistent state mutation and flow testing.
 
 ## Future Roadmap
 

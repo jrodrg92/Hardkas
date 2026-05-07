@@ -80,15 +80,20 @@ export async function runTxSend(input: TxSendRunnerInput): Promise<TxSendRunnerR
     events.push({ type: "phase.completed", phase: "send", timestamp: Date.now() });
     events.push({ type: "phase.started", phase: "apply-state", timestamp: Date.now() });
     
+    // Apply state logic is already handled by applySimulatedPayment above
+    events.push({ type: "phase.completed", phase: "apply-state", timestamp: Date.now() });
+    events.push({ type: "phase.started", phase: "save-state", timestamp: Date.now() });
+
     await saveLocalnetState(result.state);
     
-    events.push({ type: "phase.completed", phase: "apply-state", timestamp: Date.now() });
+    events.push({ type: "phase.completed", phase: "save-state", timestamp: Date.now() });
     events.push({ type: "phase.started", phase: "save-receipt", timestamp: Date.now() });
 
     const receiptPath = await saveSimulatedReceipt(result.receipt);
     
     events.push({ type: "phase.completed", phase: "save-receipt", timestamp: Date.now() });
     events.push({ type: "phase.started", phase: "save-trace", timestamp: Date.now() });
+    events.push({ type: "phase.completed", phase: "save-trace", timestamp: Date.now() });
 
     const tracePath = await saveSimulatedTrace({
       txId: result.receipt.txId,
@@ -98,8 +103,6 @@ export async function runTxSend(input: TxSendRunnerInput): Promise<TxSendRunnerR
       events,
       receiptPath
     });
-
-    events.push({ type: "phase.completed", phase: "save-trace", timestamp: Date.now() });
 
     return {
       accepted: true,

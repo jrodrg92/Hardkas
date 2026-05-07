@@ -2,9 +2,9 @@
 
 import { Command } from "commander";
 import { formatSompi, parseKasToSompi, SOMPI_PER_KAS } from "@hardkas/core";
-import { 
-  startSimulatedDevnet, 
-  resolveAccountAddress, 
+import {
+  startSimulatedDevnet,
+  resolveAccountAddress,
   createDeterministicAccounts,
   loadOrCreateLocalnetState,
   getDefaultLocalnetStatePath,
@@ -17,6 +17,18 @@ import { runTxPlan } from "./runners/tx-plan-runner.js";
 import { runTxSign } from "./runners/tx-sign-runner.js";
 import { runTxSend } from "./runners/tx-send-runner.js";
 import { runTxFlow } from "./runners/tx-flow.js";
+import { runTxReceipt } from "./runners/tx-receipt-runner.js";
+import { runTxReceipts } from "./runners/tx-receipts-runner.js";
+import { runTrace } from "./runners/trace-runner.js";
+import { runReplay } from "./runners/replay-runner.js";
+import { runNodeStart } from "./runners/node-start-runner.js";
+import { runNodeStop } from "./runners/node-stop-runner.js";
+import { runNodeStatus } from "./runners/node-status-runner.js";
+import { runNodeLogs } from "./runners/node-logs-runner.js";
+import { runRpcInfo } from "./runners/rpc-info-runner.js";
+import { runRpcDag } from "./runners/rpc-dag-runner.js";
+import { runRpcUtxos } from "./runners/rpc-utxos-runner.js";
+import { runRpcMempool } from "./runners/rpc-mempool-runner.js";
 import { bigIntReplacer } from "@hardkas/artifacts";
 
 const program = new Command();
@@ -113,18 +125,18 @@ configCmd.command("show")
     console.log(`Path: ${loaded.path || "defaults"}`);
     console.log(`Default network: ${loaded.config.defaultNetwork || "simnet"}`);
     console.log("");
-    
+
     if (loaded.config.accounts) {
-       for (const acc of Object.values(loaded.config.accounts)) {
-         if ((acc as any).privateKey) {
-           console.warn("WARNING: Do not store private keys directly in hardkas.config.ts. Use privateKeyEnv instead.");
-           break;
-         }
-       }
+      for (const acc of Object.values(loaded.config.accounts)) {
+        if ((acc as any).privateKey) {
+          console.warn("WARNING: Do not store private keys directly in hardkas.config.ts. Use privateKeyEnv instead.");
+          break;
+        }
+      }
     }
 
     console.log("Networks:");
-    
+
     const networks = loaded.config.networks || {};
     for (const [name, target] of Object.entries(networks)) {
       console.log(`  ${name}`);
@@ -158,7 +170,7 @@ accountsCmd.command("list")
   .action(async (options: { config?: string, json: boolean }) => {
     const { loadHardkasConfig } = await import("@hardkas/config");
     const { listHardkasAccounts, describeAccount } = await import("@hardkas/accounts");
-    
+
     const loaded = await loadHardkasConfig({ configPath: options.config });
     const accounts = listHardkasAccounts(loaded.config);
 
@@ -190,12 +202,12 @@ accountsCmd.command("show")
   .action(async (name: string, options: { config?: string, json: boolean }) => {
     const { loadHardkasConfig } = await import("@hardkas/config");
     const { resolveHardkasAccount, describeAccount } = await import("@hardkas/accounts");
-    
+
     const loaded = await loadHardkasConfig({ configPath: options.config });
-    
+
     try {
       const acc = resolveHardkasAccount({ nameOrAddress: name, config: loaded.config });
-      
+
       if (options.json) {
         console.log(JSON.stringify(describeAccount(acc), null, 2));
         return;
@@ -224,9 +236,9 @@ accountsCmd.command("resolve")
   .action(async (name: string, options: { config?: string }) => {
     const { loadHardkasConfig } = await import("@hardkas/config");
     const { resolveAccountAddress } = await import("@hardkas/accounts");
-    
+
     const loaded = await loadHardkasConfig({ configPath: options.config });
-    
+
     try {
       const address = resolveAccountAddress(name, loaded.config);
       console.log(address);
@@ -248,9 +260,63 @@ program
       accounts: string;
       balance: string;
     }) => {
+      if (options.mode === "node") {
+        console.log("HardKAS node devnet");
+        console.log("");
+
+        try {
+          const statusResult = await runNodeStatus({});
+          let status = statusResult.status;
+
+          if (!status.running) {
+            console.log("Starting Kaspa node in Docker...");
+            const startResult = await runNodeStart({});
+            status = startResult.status;
+          }
+
+          console.log(`Mode:      node`);
+          console.log(`Backend:   Docker / rusty-kaspa/kaspad`);
+          console.log(`Network:   ${status.network}`);
+          console.log(`Status:    ${status.running ? "running" : "stopped"}`);
+          console.log("");
+          console.log("RPC:");
+          console.log(`  gRPC:     127.0.0.1:${status.ports.rpc}`);
+          console.log(`  Borsh:    127.0.0.1:${status.ports.borshRpc}`);
+          console.log(`  JSON RPC: 127.0.0.1:${status.ports.jsonRpc}`);
+          console.log("");
+          console.log(`Consensus: ${status.running ? "running" : "stopped"}`);
+          console.log(`DAG:       real kaspad simnet`);
+          
+          if (status.running) {
+            try {
+              const rpcInfo = await runRpcInfo({ url: `http://127.0.0.1:${status.ports.jsonRpc}` });
+              const dagInfo = await runRpcDag({ url: `http://127.0.0.1:${status.ports.jsonRpc}` });
+              console.log("");
+              console.log("RPC Data:");
+              console.log(`  Network ID: ${rpcInfo.info.networkId}`);
+              console.log(`  Virtual DAA: ${dagInfo.dag.virtualDaaScore?.toString() || "unknown"}`);
+              console.log(`  Synced:     ${rpcInfo.info.isSynced ? "yes" : "no"}`);
+            } catch (e) {
+              console.log("");
+              console.log("RPC:       not ready");
+              console.log("           (node may still be initializing consensus)");
+              console.log("Suggestion: run hardkas node logs --tail 50");
+            }
+          }
+
+          console.log("");
+          console.log("Notes:");
+          console.log("  Real accounts, faucet and signing are not implemented yet.");
+          console.log("  Use simulated mode for stateful tx simulation.");
+        } catch (e) {
+          console.error(`Error managing node: ${e instanceof Error ? e.message : String(e)}`);
+          process.exitCode = 1;
+        }
+        return;
+      }
+
       if (options.mode !== "simulated") {
-        console.error("Only simulated mode is implemented in v0.1.");
-        console.error("Node mode will use rusty-kaspa/kaspad in the next phase.");
+        console.error("Invalid mode. Use 'simulated' or 'node'.");
         process.exitCode = 1;
         return;
       }
@@ -306,14 +372,14 @@ program
   .argument("<address>", "Address or account name")
   .argument("<amount>", "Amount in KAS")
   .action(async (address: string, amount: string) => {
-    const { 
-      loadOrCreateLocalnetState, 
-      saveLocalnetState, 
-      fundAddress, 
+    const {
+      loadOrCreateLocalnetState,
+      saveLocalnetState,
+      fundAddress,
       resolveAccountAddressFromState,
       getAccountBalanceSompi
     } = await import("@hardkas/localnet");
-    
+
     try {
       const state = await loadOrCreateLocalnetState();
       const resolvedAddress = resolveAccountAddressFromState(state, address);
@@ -341,6 +407,48 @@ program
   });
 
 const tx = program.command("tx").description("Transaction commands");
+
+function validateTxIdArg(txId: string): void {
+  if (txId.includes("/") || txId.includes("\\") || txId.includes("..")) {
+    throw new Error(`Invalid txId: ${txId}. Path traversal not allowed.`);
+  }
+}
+
+tx.command("receipt")
+  .description("Show details of a simulated transaction receipt")
+  .argument("<txId>", "Transaction ID")
+  .option("--json", "Output as JSON", false)
+  .action(async (txId: string, options: { json: boolean }) => {
+    try {
+      validateTxIdArg(txId);
+      const result = await runTxReceipt({ txId });
+      if (options.json) {
+        console.log(JSON.stringify(result.receipt, bigIntReplacer, 2));
+      } else {
+        console.log(result.formatted);
+      }
+    } catch (e) {
+      console.error(e instanceof Error ? `Error: ${e.message}` : String(e));
+      process.exitCode = 1;
+    }
+  });
+
+tx.command("receipts")
+  .description("List saved simulated transaction receipts")
+  .option("--json", "Output as JSON", false)
+  .action(async (options: { json: boolean }) => {
+    try {
+      const result = await runTxReceipts({});
+      if (options.json) {
+        console.log(JSON.stringify(result.receipts, bigIntReplacer, 2));
+      } else {
+        console.log(result.formatted);
+      }
+    } catch (e) {
+      console.error(e instanceof Error ? `Error: ${e.message}` : String(e));
+      process.exitCode = 1;
+    }
+  });
 
 tx.command("flow")
   .description("End-to-end transaction workflow: plan -> sign -> send")
@@ -426,9 +534,20 @@ tx.command("flow")
       // Step 3: Send
       console.log("Step 3/3: send");
       if (result.steps.send.status === "ok") {
+        const sendArtifact = result.steps.send.artifact;
         console.log("  Status: ok");
-        console.log(`  Tx ID: ${result.steps.send.artifact?.transactionId || "unknown"}`);
-        console.log(`  Accepted: ${result.steps.send.artifact?.accepted ? "yes" : "no"}`);
+        console.log(`  Tx ID: ${sendArtifact?.transactionId || "unknown"}`);
+        console.log(`  Accepted: ${sendArtifact?.accepted ? "yes" : "no"}`);
+
+        if (sendArtifact?.rpcUrl === "simulated://local" && sendArtifact.rawResponse) {
+          const receipt = sendArtifact.rawResponse;
+          if (receipt.receiptPath || receipt.tracePath) {
+            console.log("");
+            console.log("  Artifacts:");
+            if (receipt.receiptPath) console.log(`    Receipt: ${receipt.receiptPath}`);
+            if (receipt.tracePath) console.log(`    Trace:   ${receipt.tracePath}`);
+          }
+        }
       } else {
         console.log(`  Status: ${result.steps.send.status}`);
         if (result.steps.send.reason) console.log(`  Reason: ${result.steps.send.reason}`);
@@ -440,8 +559,8 @@ tx.command("flow")
 
       if (!result.ok) {
         if (result.result === "signed" && options.send && !options.yes) {
-           console.log("");
-           console.log("Re-run with --send --yes to broadcast.");
+          console.log("");
+          console.log("Re-run with --send --yes to broadcast.");
         }
         process.exitCode = 1;
       }
@@ -466,8 +585,8 @@ tx.command("simulate")
       feeRate: string;
       config?: string;
     }) => {
-      const { 
-        loadOrCreateLocalnetState, 
+      const {
+        loadOrCreateLocalnetState,
         resolveAccountAddressFromState,
         getSpendableUtxos
       } = await import("@hardkas/localnet");
@@ -475,14 +594,14 @@ tx.command("simulate")
 
       try {
         const state = await loadOrCreateLocalnetState();
-        
+
         const fromAddress = resolveAccountAddressFromState(state, options.from);
         const toAddress = resolveAccountAddressFromState(state, options.to);
         const amountSompi = parseKasToSompi(options.amount);
         const feeRateSompiPerMass = BigInt(options.feeRate);
 
         const unspent = getSpendableUtxos(state, fromAddress);
-        
+
         if (unspent.length === 0) {
           throw new Error(`No UTXOs found for ${fromAddress} in local state.`);
         }
@@ -586,7 +705,7 @@ const txPlan = tx.command("plan")
 
     try {
       const loaded = await loadHardkasConfig({ configPath: options.config });
-      
+
       const artifact = await runTxPlan({
         from: options.from,
         to: options.to,
@@ -646,7 +765,7 @@ txPlan.command("validate")
     try {
       const data = await readArtifact(filePath);
       const result = validateTxPlanArtifact(data);
-      
+
       if (options.json) {
         console.log(JSON.stringify(result, null, 2));
       } else {
@@ -685,11 +804,11 @@ txSign.command("doctor")
   .action(async (options: { config?: string }) => {
     const { loadHardkasConfig } = await import("@hardkas/config");
     const { getKaspaSigningBackendStatus } = await import("@hardkas/accounts");
-    
+
     try {
       await loadHardkasConfig({ configPath: options.config });
       const status = await getKaspaSigningBackendStatus();
-      
+
       console.log("HardKAS signing doctor");
       console.log("");
       console.log("Simulated signing:          yes");
@@ -703,7 +822,7 @@ txSign.command("doctor")
         console.log(`  - Real Kaspa signing backend is not available: ${status.error || "Package 'kaspa' missing"}`);
       }
       console.log("  - Mainnet signing is disabled by default.");
-      
+
     } catch (e) {
       console.error(e instanceof Error ? `Error: ${e.message}` : String(e));
       process.exitCode = 1;
@@ -732,7 +851,7 @@ txSign.command("plan", { isDefault: true })
     try {
       const planArtifact = await readTxPlanArtifact(filePath);
       const loaded = await loadHardkasConfig({ configPath: options.config });
-      
+
       const signedArtifact = await runTxSign({
         planArtifact,
         accountName: options.account,
@@ -762,11 +881,11 @@ txSign.command("plan", { isDefault: true })
         console.log(`Artifact: ${options.out}`);
         console.log("");
       }
-      
+
       console.log(`Status:    ${signedArtifact.status}`);
       console.log(`Broadcast: ${signedArtifact.metadata?.warning || "not performed"}`);
       console.log("");
-      
+
       console.log(formatSignedTxArtifact(signedArtifact));
 
     } catch (e) {
@@ -817,7 +936,7 @@ txSigned.command("validate")
     try {
       const data = await readArtifact(filePath);
       const result = validateSignedTxArtifact(data);
-      
+
       if (options.json) {
         console.log(JSON.stringify(result, null, 2));
       } else {
@@ -921,9 +1040,9 @@ tx.command("send")
           }, bigIntReplacer, 2));
         } else {
           if (result.rpcUrl === "simulated://local") {
-             console.log("Transaction sent in simulated localnet");
+            console.log("Transaction sent in simulated localnet");
           } else {
-             console.log("Kaspa transaction broadcast");
+            console.log("Kaspa transaction broadcast");
           }
           console.log("");
           console.log(`Artifact: ${filePath}`);
@@ -932,20 +1051,20 @@ tx.command("send")
           console.log("");
           console.log(`Accepted: ${result.accepted ? "yes" : "no"}`);
           console.log(`Tx ID:    ${result.transactionId || "unknown"}`);
-          
+
           if (result.rpcUrl === "simulated://local" && result.rawResponse) {
-             const receipt = result.rawResponse;
-             console.log(`Amount:    ${formatSompi(BigInt(receipt.amountSompi))}`);
-             console.log(`Fee:       ${formatSompi(BigInt(receipt.feeSompi))}`);
-             if (receipt.changeSompi) console.log(`Change:    ${formatSompi(BigInt(receipt.changeSompi))}`);
-             console.log(`DAA score: ${receipt.daaScore}`);
-              if (receipt.receiptPath || receipt.tracePath) {
-                 console.log("");
-                 console.log("Artifacts:");
-                 if (receipt.receiptPath) console.log(`  Receipt: ${receipt.receiptPath}`);
-                 if (receipt.tracePath) console.log(`  Trace:   ${receipt.tracePath}`);
-              }
-           }
+            const receipt = result.rawResponse;
+            console.log(`Amount:    ${formatSompi(BigInt(receipt.amountSompi))}`);
+            console.log(`Fee:       ${formatSompi(BigInt(receipt.feeSompi))}`);
+            if (receipt.changeSompi) console.log(`Change:    ${formatSompi(BigInt(receipt.changeSompi))}`);
+            console.log(`DAA score: ${receipt.daaScore}`);
+            if (receipt.receiptPath || receipt.tracePath) {
+              console.log("");
+              console.log("Artifacts:");
+              if (receipt.receiptPath) console.log(`  Receipt: ${receipt.receiptPath}`);
+              if (receipt.tracePath) console.log(`  Trace:   ${receipt.tracePath}`);
+            }
+          }
 
           if (options.verbose && result.rawResponse) {
             console.log("");
@@ -953,7 +1072,7 @@ tx.command("send")
             console.log(JSON.stringify(result.rawResponse, null, 2));
           }
         }
-      } 
+      }
       // Case B: Direct send (only for simulated/local flows usually, or as a shortcut for tx flow)
       else if (options.from && options.to && options.amount) {
         const result = await runTxFlow({
@@ -986,9 +1105,9 @@ tx.command("send")
 
         const sendResult = result.steps.send.artifact!;
         if (sendResult.rpcUrl === "simulated://local") {
-           console.log("Transaction sent in simulated localnet");
+          console.log("Transaction sent in simulated localnet");
         } else {
-           console.log("Kaspa transaction broadcast");
+          console.log("Kaspa transaction broadcast");
         }
         console.log("");
         console.log(`Network:   ${sendResult.networkName}`);
@@ -1007,12 +1126,12 @@ tx.command("send")
           console.log("State updated:");
           console.log(`  Spent UTXOs:   ${receipt.spentUtxoIds.length}`);
           console.log(`  Created UTXOs: ${receipt.createdUtxoIds.length}`);
-          
+
           if (receipt.receiptPath || receipt.tracePath) {
-             console.log("");
-             console.log("Artifacts:");
-             if (receipt.receiptPath) console.log(`  Receipt: ${receipt.receiptPath}`);
-             if (receipt.tracePath) console.log(`  Trace:   ${receipt.tracePath}`);
+            console.log("");
+            console.log("Artifacts:");
+            if (receipt.receiptPath) console.log(`  Receipt: ${receipt.receiptPath}`);
+            if (receipt.tracePath) console.log(`  Trace:   ${receipt.tracePath}`);
           }
         }
       } else {
@@ -1026,495 +1145,167 @@ tx.command("send")
     }
   });
 
-const node = program.command("node").description("Local Kaspa node management");
+const node = program.command("node").description("Local Kaspa node management (Docker-based)");
 
 node.command("start")
-  .description("Start a local Kaspa node")
-  .option("--network <network>", "Kaspa network", "devnet")
-  .option("--binary <path>", "Path to kaspad binary")
+  .description("Start a local Kaspa node in Docker (simnet)")
+  .option("--image <image>", "Docker image to use")
+  .option("--container <name>", "Container name")
   .option("--data-dir <path>", "Data directory")
-  .option("--rpc-listen <host:port>", "RPC listen address")
-  .option("--config <path>", "Path to config file")
+  .option("--json", "Output as JSON", false)
   .action(async (options: {
-    network: string;
-    binary?: string;
+    image?: string;
+    container?: string;
     dataDir?: string;
-    rpcListen?: string;
-    config?: string;
+    json: boolean;
   }) => {
-    const { startKaspaNode } = await import("@hardkas/node-orchestrator");
-    const { loadHardkasConfig, resolveNetworkTarget } = await import("@hardkas/config");
-
-    const loaded = await loadHardkasConfig({ configPath: options.config });
-    let resolvedNetwork = options.network;
-    let binaryPath = options.binary;
-    let dataDir = options.dataDir;
-    let rpcListen = options.rpcListen;
-
     try {
-      const { target } = resolveNetworkTarget({ config: loaded.config, network: options.network });
-      if (target.kind === "kaspa-node") {
-        resolvedNetwork = target.network;
-        binaryPath = binaryPath ?? target.binaryPath;
-        dataDir = dataDir ?? target.dataDir;
-        if (target.rpcUrl && !rpcListen) {
-           rpcListen = target.rpcUrl.replace("ws://", "");
-        }
-      }
-    } catch (e) {}
-
-    try {
-      await startKaspaNode({
-        network: resolvedNetwork as any,
-        binaryPath,
-        dataDir,
-        rpcListen
+      const result = await runNodeStart({
+        image: options.image,
+        containerName: options.container,
+        dataDir: options.dataDir
       });
-      console.log(`Kaspa node started on ${resolvedNetwork}`);
-    } catch (error) {
-      console.error(error instanceof Error ? error.message : String(error));
+      if (options.json) {
+        console.log(JSON.stringify(result.status, bigIntReplacer, 2));
+      } else {
+        console.log(result.formatted);
+      }
+    } catch (e) {
+      console.error(e instanceof Error ? `Error: ${e.message}` : String(e));
+      process.exitCode = 1;
+    }
+  });
+
+node.command("stop")
+  .description("Stop the local Kaspa node container")
+  .option("--container <name>", "Container name")
+  .option("--json", "Output as JSON", false)
+  .action(async (options: { container?: string, json: boolean }) => {
+    try {
+      const status = await runNodeStop({ containerName: options.container });
+      if (options.json) {
+        console.log(JSON.stringify(status, bigIntReplacer, 2));
+      } else {
+        console.log("Kaspa node stopped");
+      }
+    } catch (e) {
+      console.error(e instanceof Error ? `Error: ${e.message}` : String(e));
       process.exitCode = 1;
     }
   });
 
 node.command("status")
-  .description("Check the status of a local Kaspa node")
-  .option("--network <network>", "Kaspa network", "devnet")
-  .option("--data-dir <path>", "Data directory")
-  .option("--rpc", "Include RPC health check", false)
-  .option("--config <path>", "Path to config file")
-  .action(async (options: { network: string, dataDir?: string, rpc: boolean, config?: string }) => {
-    const { getNodeStatus } = await import("@hardkas/node-orchestrator");
-    const { loadHardkasConfig, resolveNetworkTarget } = await import("@hardkas/config");
-
-    const loaded = await loadHardkasConfig({ configPath: options.config });
-    let resolvedNetwork = options.network;
-    let dataDir = options.dataDir;
-
+  .description("Check the status of the local Kaspa node container")
+  .option("--container <name>", "Container name")
+  .option("--json", "Output as JSON", false)
+  .action(async (options: { container?: string, json: boolean }) => {
     try {
-      const { target } = resolveNetworkTarget({ config: loaded.config, network: options.network });
-      if (target.kind === "kaspa-node") {
-        resolvedNetwork = target.network;
-        dataDir = dataDir ?? target.dataDir;
+      const result = await runNodeStatus({ containerName: options.container });
+      if (options.json) {
+        console.log(JSON.stringify(result.status, bigIntReplacer, 2));
+      } else {
+        console.log(result.formatted);
       }
-    } catch (e) {}
-
-    const status = await getNodeStatus({
-      network: resolvedNetwork as any,
-      dataDir: dataDir
-    });
-
-    console.log("Kaspa node status");
-    console.log("");
-    console.log(`Network:  ${resolvedNetwork}`);
-    console.log(`Running:  ${status.running ? "yes" : "no"}`);
-    
-    if (status.running) {
-      console.log(`PID:      ${status.pid}`);
-      console.log(`RPC:      ${status.rpcUrl}`);
-    }
-    
-    console.log(`Data dir: ${status.dataDir || "not resolved"}`);
-    
-    if (status.logFile) {
-      console.log(`Log file: ${status.logFile}`);
-    }
-    
-    if (status.message) {
-      console.log(`Message:  ${status.message}`);
-    }
-
-    if (options.rpc && status.rpcUrl) {
-      const { JsonWrpcKaspaClient } = await import("@hardkas/kaspa-rpc");
-      const client = new JsonWrpcKaspaClient({ rpcUrl: status.rpcUrl });
-      const health = await client.healthCheck();
-      await client.close();
-
-      console.log("");
-      console.log("RPC health:");
-      console.log(`  Reachable: ${health.reachable ? "yes" : "no"}`);
-      if (health.reachable && health.info) {
-        console.log(`  Version:   ${health.info.serverVersion || "unknown"}`);
-        console.log(`  Network:   ${health.info.networkId || "unknown"}`);
-        console.log(`  Synced:    ${health.info.isSynced !== undefined ? (health.info.isSynced ? "yes" : "no") : "unknown"}`);
-      } else if (health.error) {
-        console.log(`  Error:     ${health.error}`);
-      }
-    }
-  });
-
-node.command("stop")
-  .description("Stop a local Kaspa node")
-  .option("--network <network>", "Kaspa network", "devnet")
-  .option("--data-dir <path>", "Data directory")
-  .option("--config <path>", "Path to config file")
-  .action(async (options: { network: string, dataDir?: string, config?: string }) => {
-    const { stopKaspaNode } = await import("@hardkas/node-orchestrator");
-    const { loadHardkasConfig, resolveNetworkTarget } = await import("@hardkas/config");
-
-    const loaded = await loadHardkasConfig({ configPath: options.config });
-    let resolvedNetwork = options.network;
-    let dataDir = options.dataDir;
-
-    try {
-      const { target } = resolveNetworkTarget({ config: loaded.config, network: options.network });
-      if (target.kind === "kaspa-node") {
-        resolvedNetwork = target.network;
-        dataDir = dataDir ?? target.dataDir;
-      }
-    } catch (e) {}
-    
-    await stopKaspaNode({
-      network: resolvedNetwork as any,
-      dataDir: dataDir
-    });
-
-    console.log("Kaspa node stopped");
-  });
-
-node.command("clean")
-  .description("Delete node data for a specific network")
-  .option("--network <network>", "Kaspa network", "devnet")
-  .option("--data-dir <path>", "Data directory")
-  .option("--yes", "Confirm deletion without prompting", false)
-  .option("--config <path>", "Path to config file")
-  .action(async (options: { network: string, dataDir?: string, yes: boolean, config?: string }) => {
-    const { cleanKaspaNodeData, resolveRuntimeConfig } = await import("@hardkas/node-orchestrator");
-    const { loadHardkasConfig, resolveNetworkTarget } = await import("@hardkas/config");
-
-    const loaded = await loadHardkasConfig({ configPath: options.config });
-    let resolvedNetwork = options.network;
-    let dataDir = options.dataDir;
-
-    try {
-      const { target } = resolveNetworkTarget({ config: loaded.config, network: options.network });
-      if (target.kind === "kaspa-node") {
-        resolvedNetwork = target.network;
-        dataDir = dataDir ?? target.dataDir;
-      }
-    } catch (e) {}
-    
-    const config = {
-      network: resolvedNetwork as any,
-      dataDir: dataDir
-    };
-
-    const runtime = resolveRuntimeConfig(config);
-
-    if (!options.yes) {
-      console.log(`This will delete node data for network "${resolvedNetwork}".`);
-      console.log(`Data dir: ${runtime.dataDir}`);
-      console.log("Re-run with --yes to confirm.");
-      return;
-    }
-
-    try {
-      await cleanKaspaNodeData(config);
-      console.log("Kaspa node data cleaned");
-    } catch (error) {
-      console.error(error instanceof Error ? error.message : String(error));
+    } catch (e) {
+      console.error(e instanceof Error ? `Error: ${e.message}` : String(e));
       process.exitCode = 1;
     }
   });
 
-node.command("doctor")
-  .description("Diagnose the local Kaspa node setup")
-  .option("--network <network>", "Kaspa network", "devnet")
-  .option("--binary <path>", "Path to kaspad binary")
-  .option("--data-dir <path>", "Data directory")
-  .option("--rpc-listen <host:port>", "RPC listen address")
-  .option("--rpc", "Include RPC health check", false)
-  .option("--config <path>", "Path to config file")
-  .action(async (options: {
-    network: string;
-    binary?: string;
-    dataDir?: string;
-    rpcListen?: string;
-    rpc: boolean;
-    config?: string;
-  }) => {
-    const { doctorKaspaNode } = await import("@hardkas/node-orchestrator");
-    const { loadHardkasConfig, resolveNetworkTarget } = await import("@hardkas/config");
-
-    const loaded = await loadHardkasConfig({ configPath: options.config });
-    let resolvedNetwork = options.network;
-    let binaryPath = options.binary;
-    let dataDir = options.dataDir;
-    let rpcListen = options.rpcListen;
-
-    try {
-      const { target } = resolveNetworkTarget({ config: loaded.config, network: options.network });
-      if (target.kind === "kaspa-node") {
-        resolvedNetwork = target.network;
-        binaryPath = binaryPath ?? target.binaryPath;
-        dataDir = dataDir ?? target.dataDir;
-        if (target.rpcUrl && !rpcListen) {
-           rpcListen = target.rpcUrl.replace("ws://", "");
-        }
-      }
-    } catch (e) {}
-    
-    const report = await doctorKaspaNode({
-      network: resolvedNetwork as any,
-      binaryPath,
-      dataDir,
-      rpcListen
-    });
-
-    console.log("Kaspa node doctor");
-    console.log("");
-    console.log(`Network:         ${report.network}`);
-    console.log(`Binary:          ${report.binaryPath}`);
-    console.log(`Binary found:    ${report.binaryFound ? "yes" : "no"}`);
-    console.log(`Data dir:        ${report.dataDir}`);
-    console.log(`Data dir exists: ${report.dataDirExists ? "yes" : "no"}`);
-    console.log(`PID file:        ${report.pidFile}`);
-    console.log(`PID file exists: ${report.pidFileExists ? "yes" : "no"}`);
-    console.log(`Running:         ${report.running ? "yes" : "no"}`);
-    if (report.pid) console.log(`PID:             ${report.pid}`);
-    console.log(`RPC:             ${report.rpcUrl}`);
-    console.log(`Log file:        ${report.logFile}`);
-    console.log(`Log file exists: ${report.logFileExists ? "yes" : "no"}`);
-
-    let rpcReachable: boolean | undefined;
-
-    if (options.rpc) {
-      const { JsonWrpcKaspaClient } = await import("@hardkas/kaspa-rpc");
-      const client = new JsonWrpcKaspaClient({ rpcUrl: report.rpcUrl });
-      const health = await client.healthCheck();
-      await client.close();
-      rpcReachable = health.reachable;
-
-      console.log(`RPC reachable:   ${health.reachable ? "yes" : "no"}`);
-    }
-
-    console.log("");
-    
-    console.log("Warnings:");
-    const finalWarnings = [...report.warnings];
-    if (options.rpc && rpcReachable === false) {
-      finalWarnings.push(`RPC is not reachable at ${report.rpcUrl}. Start the node or check --rpclisten-json.`);
-    }
-
-    if (finalWarnings.length === 0) {
-      console.log("  none");
-    } else {
-      for (const warning of finalWarnings) {
-        console.log(`  - ${warning}`);
-      }
-    }
-  });
-
 node.command("logs")
-  .description("Show logs for a local Kaspa node")
-  .option("--network <network>", "Kaspa network", "devnet")
-  .option("--data-dir <path>", "Data directory")
-  .option("--config <path>", "Path to config file")
-  .action(async (options: { network: string, dataDir?: string, config?: string }) => {
-    const { readKaspaNodeLogs } = await import("@hardkas/node-orchestrator");
-    const { loadHardkasConfig, resolveNetworkTarget } = await import("@hardkas/config");
-
-    const loaded = await loadHardkasConfig({ configPath: options.config });
-    let resolvedNetwork = options.network;
-    let dataDir = options.dataDir;
-
+  .description("Show logs from the Kaspa node container")
+  .option("--container <name>", "Container name")
+  .option("--tail <lines>", "Number of lines to show", "100")
+  .option("--json", "Output as JSON", false)
+  .action(async (options: { container?: string, tail: string, json: boolean }) => {
     try {
-      const { target } = resolveNetworkTarget({ config: loaded.config, network: options.network });
-      if (target.kind === "kaspa-node") {
-        resolvedNetwork = target.network;
-        dataDir = dataDir ?? target.dataDir;
+      const logs = await runNodeLogs({
+        containerName: options.container,
+        tail: parseInt(options.tail, 10)
+      });
+      if (options.json) {
+        console.log(JSON.stringify({ logs }, bigIntReplacer, 2));
+      } else {
+        console.log(logs);
       }
-    } catch (e) {}
-    
-    const logs = await readKaspaNodeLogs({
-      network: resolvedNetwork as any,
-      dataDir: dataDir
-    });
-
-    if (logs) {
-      console.log(logs);
-    } else {
-      console.log("No logs found");
+    } catch (e) {
+      console.error(e instanceof Error ? `Error: ${e.message}` : String(e));
+      process.exitCode = 1;
     }
   });
 
 const rpc = program.command("rpc").description("Kaspa RPC commands");
 
-rpc.command("health")
-  .description("Check the health of a Kaspa RPC endpoint")
-  .option("--url <wsUrl>", "WebSocket RPC URL")
-  .option("--network <network>", "Kaspa network", "devnet")
-  .option("--data-dir <path>", "Data directory")
-  .option("--timeout <ms>", "Timeout in milliseconds", "3000")
-  .option("--config <path>", "Path to config file")
-  .action(async (options: {
-    url?: string;
-    network: string;
-    dataDir?: string;
-    timeout: string;
-    config?: string;
-  }) => {
-    const { JsonWrpcKaspaClient } = await import("@hardkas/kaspa-rpc");
-    const { resolveRuntimeConfig } = await import("@hardkas/node-orchestrator");
-    const { loadHardkasConfig, resolveNetworkTarget } = await import("@hardkas/config");
-
-    let rpcUrl = options.url;
-    if (!rpcUrl) {
-      const loaded = await loadHardkasConfig({ configPath: options.config });
-      try {
-        const { target, name } = resolveNetworkTarget({ config: loaded.config, network: options.network });
-        
-        if (target.kind === "kaspa-rpc" || target.kind === "kaspa-node") {
-          rpcUrl = target.rpcUrl;
-        }
-
-        if (!rpcUrl) {
-          if (target.kind === "kaspa-node") {
-            const runtime = resolveRuntimeConfig({
-              network: target.network,
-              dataDir: target.dataDir ?? options.dataDir
-            });
-            rpcUrl = runtime.rpcUrl;
-          } else if (target.kind === "simulated") {
-            console.error(`Network '${name}' is simulated and has no real RPC endpoint. Use --url or select a kaspa-node/kaspa-rpc network.`);
-            process.exitCode = 1;
-            return;
-          } else if (target.kind === "igra") {
-            console.error(`Network '${name}' targets Igra L2. Use future Igra commands, not Kaspa L1 RPC.`);
-            process.exitCode = 1;
-            return;
-          }
-        }
-      } catch (e) {
-        const runtime = resolveRuntimeConfig({
-          network: options.network as any,
-          dataDir: options.dataDir
-        });
-        rpcUrl = runtime.rpcUrl;
+rpc.command("info")
+  .description("Show Kaspa node information")
+  .option("--url <url>", "JSON-RPC URL", "http://127.0.0.1:18210")
+  .option("--json", "Output as JSON", false)
+  .action(async (options: { url: string, json: boolean }) => {
+    try {
+      const result = await runRpcInfo({ url: options.url });
+      if (options.json) {
+        console.log(JSON.stringify(result.info, bigIntReplacer, 2));
+      } else {
+        console.log(result.formatted);
       }
-    }
-
-    if (!rpcUrl) {
-      console.error("Could not resolve RPC URL. Provide --url or check your config.");
-      process.exitCode = 1;
-      return;
-    }
-
-    const client = new JsonWrpcKaspaClient({
-      rpcUrl,
-      timeoutMs: parseInt(options.timeout, 10)
-    });
-
-    const health = await client.healthCheck();
-    await client.close();
-
-    console.log("Kaspa RPC health");
-    console.log("");
-    console.log(`RPC:       ${health.rpcUrl}`);
-    console.log(`Reachable: ${health.reachable ? "yes" : "no"}`);
-
-    if (health.reachable && health.info) {
-      console.log(`Version:   ${health.info.serverVersion || "unknown"}`);
-      console.log(`Network:   ${health.info.networkId || "unknown"}`);
-      console.log(`Synced:    ${health.info.isSynced !== undefined ? (health.info.isSynced ? "yes" : "no") : "unknown"}`);
-      console.log(`UTXO index: ${health.info.isUtxoIndexed !== undefined ? (health.info.isUtxoIndexed ? "yes" : "no") : "unknown"}`);
-    } else if (health.error) {
-      console.log(`Error:     ${health.error}`);
-    }
-
-    if (!health.reachable) {
+    } catch (e) {
+      console.error(e instanceof Error ? `Error: ${e.message}` : String(e));
       process.exitCode = 1;
     }
   });
 
-rpc.command("info")
-  .description("Get information from a Kaspa node via RPC")
-  .option("--url <wsUrl>", "WebSocket RPC URL")
-  .option("--network <network>", "Kaspa network", "devnet")
-  .option("--data-dir <path>", "Data directory")
-  .option("--timeout <ms>", "Timeout in milliseconds", "3000")
-  .option("--json", "Output raw JSON info", false)
-  .option("--config <path>", "Path to config file")
-  .action(async (options: {
-    url?: string;
-    network: string;
-    dataDir?: string;
-    timeout: string;
-    json: boolean;
-    config?: string;
-  }) => {
-    const { JsonWrpcKaspaClient } = await import("@hardkas/kaspa-rpc");
-    const { resolveRuntimeConfig } = await import("@hardkas/node-orchestrator");
-    const { loadHardkasConfig, resolveNetworkTarget } = await import("@hardkas/config");
-
-    let rpcUrl = options.url;
-    if (!rpcUrl) {
-      const loaded = await loadHardkasConfig({ configPath: options.config });
-      try {
-        const { target, name } = resolveNetworkTarget({ config: loaded.config, network: options.network });
-        
-        if (target.kind === "kaspa-rpc" || target.kind === "kaspa-node") {
-          rpcUrl = target.rpcUrl;
-        }
-
-        if (!rpcUrl) {
-          if (target.kind === "kaspa-node") {
-            const runtime = resolveRuntimeConfig({
-              network: target.network,
-              dataDir: target.dataDir ?? options.dataDir
-            });
-            rpcUrl = runtime.rpcUrl;
-          } else if (target.kind === "simulated") {
-            console.error(`Network '${name}' is simulated and has no real RPC endpoint. Use --url or select a kaspa-node/kaspa-rpc network.`);
-            process.exitCode = 1;
-            return;
-          } else if (target.kind === "igra") {
-            console.error(`Network '${name}' targets Igra L2. Use future Igra commands, not Kaspa L1 RPC.`);
-            process.exitCode = 1;
-            return;
-          }
-        }
-      } catch (e) {
-        const runtime = resolveRuntimeConfig({
-          network: options.network as any,
-          dataDir: options.dataDir
-        });
-        rpcUrl = runtime.rpcUrl;
-      }
-    }
-
-    if (!rpcUrl) {
-      console.error("Could not resolve RPC URL. Provide --url or check your config.");
-      process.exitCode = 1;
-      return;
-    }
-
-    const client = new JsonWrpcKaspaClient({
-      rpcUrl,
-      timeoutMs: parseInt(options.timeout, 10)
-    });
-
+rpc.command("dag")
+  .description("Show Kaspa DAG information")
+  .option("--url <url>", "JSON-RPC URL", "http://127.0.0.1:18210")
+  .option("--json", "Output as JSON", false)
+  .action(async (options: { url: string, json: boolean }) => {
     try {
-      const info = await client.getInfo();
-      await client.close();
-
+      const result = await runRpcDag({ url: options.url });
       if (options.json) {
-        console.log(JSON.stringify(info.raw, null, 2));
-        return;
+        console.log(JSON.stringify(result.dag, bigIntReplacer, 2));
+      } else {
+        console.log(result.formatted);
       }
+    } catch (e) {
+      console.error(e instanceof Error ? `Error: ${e.message}` : String(e));
+      process.exitCode = 1;
+    }
+  });
 
-      console.log("Kaspa RPC info");
-      console.log("");
-      console.log(`RPC:         ${rpcUrl}`);
-      console.log(`Version:     ${info.serverVersion || "unknown"}`);
-      console.log(`Network:     ${info.networkId || "unknown"}`);
-      console.log(`Synced:      ${info.isSynced !== undefined ? (info.isSynced ? "yes" : "no") : "unknown"}`);
-      console.log(`UTXO index:  ${info.isUtxoIndexed !== undefined ? (info.isUtxoIndexed ? "yes" : "no") : "unknown"}`);
-      console.log(`Mempool:     ${info.mempoolSize !== undefined ? info.mempoolSize : "unknown"}`);
-      console.log(`DAA score:   ${info.virtualDaaScore !== undefined ? info.virtualDaaScore : "unknown"}`);
-    } catch (error) {
-      console.error(error instanceof Error ? error.message : String(error));
-      await client.close();
+rpc.command("utxos")
+  .description("Show UTXOs for a Kaspa address")
+  .argument("<address>", "Kaspa address")
+  .option("--url <url>", "JSON-RPC URL", "http://127.0.0.1:18210")
+  .option("--json", "Output as JSON", false)
+  .action(async (address: string, options: { url: string, json: boolean }) => {
+    try {
+      const result = await runRpcUtxos({ address, url: options.url });
+      if (options.json) {
+        console.log(JSON.stringify(result.utxos, bigIntReplacer, 2));
+      } else {
+        console.log(result.formatted);
+      }
+    } catch (e) {
+      console.error(e instanceof Error ? `Error: ${e.message}` : String(e));
+      process.exitCode = 1;
+    }
+  });
+
+rpc.command("mempool")
+  .description("Check if a transaction is in the mempool")
+  .argument("<txId>", "Transaction ID")
+  .option("--url <url>", "JSON-RPC URL", "http://127.0.0.1:18210")
+  .option("--json", "Output as JSON", false)
+  .action(async (txId: string, options: { url: string, json: boolean }) => {
+    try {
+      const result = await runRpcMempool({ txId, url: options.url });
+      if (options.json) {
+        console.log(JSON.stringify(result.entry, bigIntReplacer, 2));
+      } else {
+        console.log(result.formatted);
+      }
+    } catch (e) {
+      console.error(e instanceof Error ? `Error: ${e.message}` : String(e));
       process.exitCode = 1;
     }
   });
@@ -1551,44 +1342,44 @@ program
       resolvedNetwork = name;
 
       if (target.kind === "simulated") {
-         const { loadOrCreateLocalnetState, getAddressBalanceSompi } = await import("@hardkas/localnet");
-         const localState = await loadOrCreateLocalnetState();
-         balanceSompi = getAddressBalanceSompi(localState, address);
-         mode = "simulated";
+        const { loadOrCreateLocalnetState, getAddressBalanceSompi } = await import("@hardkas/localnet");
+        const localState = await loadOrCreateLocalnetState();
+        balanceSompi = getAddressBalanceSompi(localState, address);
+        mode = "simulated";
       } else if (target.kind === "kaspa-node" || target.kind === "kaspa-rpc") {
-         const { JsonWrpcKaspaClient } = await import("@hardkas/kaspa-rpc");
-         const { resolveRuntimeConfig } = await import("@hardkas/node-orchestrator");
-         
-         rpcUrl = options.url || target.rpcUrl;
-         if (!rpcUrl && target.kind === "kaspa-node") {
-           rpcUrl = resolveRuntimeConfig({ network: target.network, dataDir: target.dataDir }).rpcUrl;
-         }
+        const { JsonWrpcKaspaClient } = await import("@hardkas/kaspa-rpc");
+        const { resolveRuntimeConfig } = await import("@hardkas/node-orchestrator");
 
-         if (!rpcUrl) throw new Error("Could not resolve RPC URL");
+        rpcUrl = options.url || target.rpcUrl;
+        if (!rpcUrl && target.kind === "kaspa-node") {
+          rpcUrl = resolveRuntimeConfig({ network: target.network, dataDir: target.dataDir }).rpcUrl;
+        }
 
-         const client = new JsonWrpcKaspaClient({ rpcUrl });
-         const balanceRes = await client.getBalanceByAddress(address);
-         await client.close();
-         balanceSompi = balanceRes.balanceSompi;
-         mode = target.kind;
+        if (!rpcUrl) throw new Error("Could not resolve RPC URL");
+
+        const client = new JsonWrpcKaspaClient({ rpcUrl });
+        const balanceRes = await client.getBalanceByAddress(address);
+        await client.close();
+        balanceSompi = balanceRes.balanceSompi;
+        mode = target.kind;
       } else if (target.kind === "igra") {
-         throw new Error(`Network '${name}' targets Igra L2. Use Igra commands for balance.`);
+        throw new Error(`Network '${name}' targets Igra L2. Use Igra commands for balance.`);
       }
     } catch (e) {
       if (options.url || options.network !== "simnet") {
-         const { JsonWrpcKaspaClient } = await import("@hardkas/kaspa-rpc");
-         const { resolveRuntimeConfig } = await import("@hardkas/node-orchestrator");
-         rpcUrl = options.url;
-         if (!rpcUrl) {
-            rpcUrl = resolveRuntimeConfig({ network: options.network as any }).rpcUrl;
-         }
-         const client = new JsonWrpcKaspaClient({ rpcUrl });
-         const balanceRes = await client.getBalanceByAddress(address);
-         await client.close();
-         balanceSompi = balanceRes.balanceSompi;
-         mode = "kaspa-rpc";
+        const { JsonWrpcKaspaClient } = await import("@hardkas/kaspa-rpc");
+        const { resolveRuntimeConfig } = await import("@hardkas/node-orchestrator");
+        rpcUrl = options.url;
+        if (!rpcUrl) {
+          rpcUrl = resolveRuntimeConfig({ network: options.network as any }).rpcUrl;
+        }
+        const client = new JsonWrpcKaspaClient({ rpcUrl });
+        const balanceRes = await client.getBalanceByAddress(address);
+        await client.close();
+        balanceSompi = balanceRes.balanceSompi;
+        mode = "kaspa-rpc";
       } else {
-         throw e;
+        throw e;
       }
     }
 
@@ -1648,50 +1439,50 @@ utxoCmd.command("list")
       resolvedNetwork = name;
 
       if (target.kind === "simulated") {
-         const { loadOrCreateLocalnetState, getSpendableUtxos } = await import("@hardkas/localnet");
-         const localState = await loadOrCreateLocalnetState();
-         const unspent = getSpendableUtxos(localState, address);
-         
-         utxos = unspent.map(u => ({
-           outpoint: { 
-             transactionId: u.id.split(":")[0], 
-             index: Number(u.id.split(":")[2]) || 0 
-           },
-           address: u.address,
-           amountSompi: BigInt(u.amountSompi),
-           raw: u
-         }));
-         mode = "simulated";
+        const { loadOrCreateLocalnetState, getSpendableUtxos } = await import("@hardkas/localnet");
+        const localState = await loadOrCreateLocalnetState();
+        const unspent = getSpendableUtxos(localState, address);
+
+        utxos = unspent.map(u => ({
+          outpoint: {
+            transactionId: u.id.split(":")[0],
+            index: Number(u.id.split(":")[2]) || 0
+          },
+          address: u.address,
+          amountSompi: BigInt(u.amountSompi),
+          raw: u
+        }));
+        mode = "simulated";
       } else if (target.kind === "kaspa-node" || target.kind === "kaspa-rpc") {
-         const { JsonWrpcKaspaClient } = await import("@hardkas/kaspa-rpc");
-         const { resolveRuntimeConfig } = await import("@hardkas/node-orchestrator");
-         
-         rpcUrl = options.url || target.rpcUrl;
-         if (!rpcUrl && target.kind === "kaspa-node") {
-           rpcUrl = resolveRuntimeConfig({ network: target.network, dataDir: target.dataDir }).rpcUrl;
-         }
+        const { JsonWrpcKaspaClient } = await import("@hardkas/kaspa-rpc");
+        const { resolveRuntimeConfig } = await import("@hardkas/node-orchestrator");
 
-         if (!rpcUrl) throw new Error("Could not resolve RPC URL");
+        rpcUrl = options.url || target.rpcUrl;
+        if (!rpcUrl && target.kind === "kaspa-node") {
+          rpcUrl = resolveRuntimeConfig({ network: target.network, dataDir: target.dataDir }).rpcUrl;
+        }
 
-         const client = new JsonWrpcKaspaClient({ rpcUrl });
-         utxos = await client.getUtxosByAddress(address);
-         await client.close();
-         mode = target.kind;
+        if (!rpcUrl) throw new Error("Could not resolve RPC URL");
+
+        const client = new JsonWrpcKaspaClient({ rpcUrl });
+        utxos = await client.getUtxosByAddress(address);
+        await client.close();
+        mode = target.kind;
       }
     } catch (e) {
-       if (options.url || options.network !== "simnet") {
-         const { JsonWrpcKaspaClient } = await import("@hardkas/kaspa-rpc");
-         const { resolveRuntimeConfig } = await import("@hardkas/node-orchestrator");
-         rpcUrl = options.url;
-         if (!rpcUrl) {
-            rpcUrl = resolveRuntimeConfig({ network: options.network as any }).rpcUrl;
-         }
-         const client = new JsonWrpcKaspaClient({ rpcUrl });
-         utxos = await client.getUtxosByAddress(address);
-         await client.close();
-         mode = "kaspa-rpc";
+      if (options.url || options.network !== "simnet") {
+        const { JsonWrpcKaspaClient } = await import("@hardkas/kaspa-rpc");
+        const { resolveRuntimeConfig } = await import("@hardkas/node-orchestrator");
+        rpcUrl = options.url;
+        if (!rpcUrl) {
+          rpcUrl = resolveRuntimeConfig({ network: options.network as any }).rpcUrl;
+        }
+        const client = new JsonWrpcKaspaClient({ rpcUrl });
+        utxos = await client.getUtxosByAddress(address);
+        await client.close();
+        mode = "kaspa-rpc";
       } else {
-         throw e;
+        throw e;
       }
     }
 
@@ -1828,7 +1619,7 @@ accountsCmd
   .action(async (options: any) => {
     const { loadOrCreateLocalnetState, getAddressBalanceSompi } = await import("@hardkas/localnet");
     const state = await loadOrCreateLocalnetState();
-    
+
     console.log("HardKAS local accounts");
     console.log("");
     console.log(`State: ${getDefaultLocalnetStatePath()}`);
@@ -1868,18 +1659,42 @@ program
 
 program
   .command("trace")
-  .description("Trace commands")
-  .argument("[txId]", "Transaction id")
-  .action(async (txId?: string) => {
-    console.log(`Trace placeholder${txId ? ` for ${txId}` : ""}`);
+  .description("Show the execution trace of a simulated transaction")
+  .argument("<txId>", "Transaction ID")
+  .option("--json", "Output as JSON", false)
+  .action(async (txId: string, options: { json: boolean }) => {
+    try {
+      validateTxIdArg(txId);
+      const result = await runTrace({ txId });
+      if (options.json) {
+        console.log(JSON.stringify(result.trace, bigIntReplacer, 2));
+      } else {
+        console.log(result.formatted);
+      }
+    } catch (e) {
+      console.error(e instanceof Error ? `Error: ${e.message}` : String(e));
+      process.exitCode = 1;
+    }
   });
 
 program
   .command("replay")
-  .description("Replay a saved HardKAS trace")
-  .argument("<traceFile>", "Trace JSON file")
-  .action(async (traceFile: string) => {
-    console.log(`Replay placeholder for ${traceFile}`);
+  .description("Show a summary replay of a simulated transaction")
+  .argument("<txId>", "Transaction ID")
+  .option("--json", "Output as JSON", false)
+  .action(async (txId: string, options: { json: boolean }) => {
+    try {
+      validateTxIdArg(txId);
+      const result = await runReplay({ txId });
+      if (options.json) {
+        console.log(JSON.stringify(result.replay, bigIntReplacer, 2));
+      } else {
+        console.log(result.formatted);
+      }
+    } catch (e) {
+      console.error(e instanceof Error ? `Error: ${e.message}` : String(e));
+      process.exitCode = 1;
+    }
   });
 
 await program.parseAsync(process.argv);

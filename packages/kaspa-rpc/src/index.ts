@@ -393,3 +393,5 @@ export class MockKaspaRpcClient implements KaspaRpcClient {
 
   async close(): Promise<void> {}
 }
+
+export * from "./json-rpc-client.js";

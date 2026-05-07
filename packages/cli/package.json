@@ -20,6 +20,7 @@
     "@hardkas/kaspa-rpc": "workspace:*",
     "@hardkas/localnet": "workspace:*",
     "@hardkas/node-orchestrator": "workspace:*",
+    "@hardkas/node-runner": "workspace:*",
     "@hardkas/simulator": "workspace:*",
     "@hardkas/tx-builder": "workspace:*",
     "commander": "^12.1.0",
