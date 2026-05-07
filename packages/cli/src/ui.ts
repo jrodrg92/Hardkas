@@ -46,21 +46,32 @@ export const UI = {
 
 export function handleError(e: unknown, context?: string) {
   const msg = e instanceof Error ? e.message : String(e);
+  const errorObj = e as any;
   
-  let suggestion: string | undefined;
+  let reason = errorObj.reason;
+  let suggestion = errorObj.suggestion;
 
-  if (msg.includes("Localnet state not found")) {
-    suggestion = "Run 'hardkas localnet reset' to initialize the simulated environment.";
-  } else if (msg.includes("Insufficient funds")) {
-    suggestion = "Use 'hardkas faucet <address> <amount>' to add funds to your account.";
-  } else if (msg.includes("Account not found")) {
-    suggestion = "Check your 'hardkas.config.ts' or use a full Kaspa address.";
-  } else if (msg.includes("Docker") || msg.includes("container")) {
-    suggestion = "Ensure Docker is running and you have permissions to manage containers.";
-  } else if (msg.includes("RPC") || msg.includes("Connection refused")) {
-    suggestion = "The Kaspa node might still be starting. Try 'hardkas rpc health --wait'.";
-  } else if (msg.includes("submitTransaction is not exposed")) {
-    suggestion = "HardKAS v0.1-dev only supports transaction broadcasting in 'simulated' mode.";
+  if (msg === "Real transaction signing is not available") {
+    console.error(`\n${msg}`);
+    if (reason) console.error(`\nReason:\n  ${reason}`);
+    if (suggestion) console.error(`\nSuggestion:\n  ${suggestion}\n  No artifact was written.`);
+    return;
+  }
+
+  if (!suggestion) {
+    if (msg.includes("Localnet state not found")) {
+      suggestion = "Run 'hardkas localnet reset' to initialize the simulated environment.";
+    } else if (msg.includes("Insufficient funds")) {
+      suggestion = "Use 'hardkas faucet <address> <amount>' to add funds to your account.";
+    } else if (msg.includes("Account not found")) {
+      suggestion = "Check your 'hardkas.config.ts' or use a full Kaspa address.";
+    } else if (msg.includes("Docker") || msg.includes("container")) {
+      suggestion = "Ensure Docker is running and you have permissions to manage containers.";
+    } else if (msg.includes("RPC") || msg.includes("Connection refused")) {
+      suggestion = "The Kaspa node might still be starting. Try 'hardkas rpc health --wait'.";
+    } else if (msg.includes("submitTransaction is not exposed")) {
+      suggestion = "HardKAS v0.1-dev only supports transaction broadcasting in 'simulated' mode.";
+    }
   }
 
   UI.error(context ? `${context}: ${msg}` : msg, suggestion);

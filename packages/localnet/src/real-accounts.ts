@@ -160,3 +160,25 @@ export function listRealDevAccounts(
 ): readonly RealDevAccount[] {
   return store.accounts;
 }
+
+/**
+ * Resolves a name (alias) or a direct Kaspa address.
+ */
+export function resolveRealAccountOrAddress(
+  store: RealAccountStore | null,
+  nameOrAddress: string
+): { address: string; name?: string } {
+  // 1. Try to find as account name
+  const account = store ? getRealDevAccount(store, nameOrAddress) : null;
+  if (account) {
+    return { address: account.address, name: account.name };
+  }
+
+  // 2. Otherwise assume it's a direct address
+  try {
+    validateAddressPrefix(nameOrAddress);
+    return { address: nameOrAddress };
+  } catch (e) {
+    throw new Error(`'${nameOrAddress}' is not a registered real account name and is not a valid Kaspa address.`);
+  }
+}

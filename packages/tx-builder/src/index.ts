@@ -128,4 +128,4 @@ export function createMockUtxo(input: {
     amountSompi: input.amountSompi,
     scriptPublicKey: "mock-script"
   };
-  }
+}

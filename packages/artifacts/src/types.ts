@@ -1,6 +1,108 @@
 export type HardkasArtifactSchema =
   | "hardkas.txPlan"
-  | "hardkas.signedTx";
+  | "hardkas.signedTx"
+  | "hardkas.realTxPlan"
+  | "hardkas.realSignedTx"
+  | "hardkas.realTxSubmitReceipt";
+
+export interface UtxoArtifact {
+  readonly outpoint: {
+    readonly transactionId: string;
+    readonly index: number;
+  };
+  readonly address: string;
+  readonly amountSompi: string;
+  readonly scriptPublicKey: string;
+  readonly blockDaaScore?: string;
+  readonly isCoinbase?: boolean;
+}
+
+export interface TxOutputArtifact {
+  readonly address: string;
+  readonly amountSompi: string;
+}
+
+export interface RealTxPlanArtifact extends HardkasArtifactBase {
+  readonly kind: "hardkas.realTxPlan";
+  readonly schema: "hardkas.realTxPlan";
+  readonly version: 1;
+  readonly status: "built";
+  
+  readonly mode: "node" | "rpc";
+  readonly networkId: string;
+  readonly planId: string;
+  
+  readonly from: {
+    readonly accountName?: string;
+    readonly address: string;
+  };
+  
+  readonly to: {
+    readonly address: string;
+  };
+  
+  readonly amountSompi: string;
+  readonly feeRateSompiPerMass: string;
+  
+  readonly selectedUtxos: readonly UtxoArtifact[];
+  readonly outputs: readonly TxOutputArtifact[];
+  readonly change?: TxOutputArtifact;
+  
+  readonly estimatedMass: string;
+  readonly estimatedFeeSompi: string;
+}
+
+export interface RealSignedTxArtifact extends HardkasArtifactBase {
+  readonly kind: "hardkas.realSignedTx";
+  readonly schema: "hardkas.realSignedTx";
+  readonly version: 1;
+  readonly status: "signed";
+  
+  readonly mode: "rpc" | "node";
+  readonly networkId: string;
+  readonly createdAt: string;
+  readonly signedId: string;
+  readonly sourcePlanId: string;
+  readonly sourcePlanPath?: string;
+  
+  readonly from: {
+    readonly accountName?: string;
+    readonly address: string;
+  };
+  
+  readonly to: {
+    readonly address: string;
+  };
+  
+  readonly amountSompi: string;
+  readonly feeSompi: string;
+  readonly changeSompi?: string;
+  
+  readonly selectedUtxos: readonly UtxoArtifact[];
+  
+  readonly signedTransaction: {
+    readonly format: "kaspa-sdk" | "hex" | "json" | "unknown";
+    readonly payload: string;
+  };
+  
+  readonly txId?: string;
+}
+
+export interface RealTxSubmitReceipt extends HardkasArtifactBase {
+  readonly kind: "hardkas.realTxSubmitReceipt";
+  readonly schema: "hardkas.realTxSubmitReceipt";
+  readonly version: 1;
+  readonly status: "submitted";
+  
+  readonly networkId: string;
+  readonly mode: "rpc" | "node";
+  readonly txId: string;
+  readonly sourceSignedId: string;
+  readonly sourceSignedPath?: string;
+  readonly submittedAt: string;
+  readonly rpcUrl: string;
+  readonly signedTransactionFormat: string;
+}
 
 export interface HardkasArtifactBase {
   kind: string;

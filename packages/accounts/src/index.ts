@@ -6,3 +6,5 @@ export * from "./redact";
 export * from "./signer";
 export * from "./signer-backend";
 export * from "./kaspa-wasm-signer";
+export * from "./real-signer";
+export * from "./kaspa-sdk-real-signer";

@@ -1,0 +1,114 @@
+import { 
+  RealTxSigner, 
+  RealTxSigningInput, 
+  RealTxSigningResult 
+} from "./real-signer.js";
+import { loadKaspaWasm } from "./signer-backend.js";
+
+export interface KaspaSdkRealTxSignerOptions {
+  readonly sdkLoader?: () => Promise<any>;
+}
+
+export class KaspaSdkRealTxSigner implements RealTxSigner {
+  private readonly sdkLoader: () => Promise<any>;
+
+  constructor(options?: KaspaSdkRealTxSignerOptions) {
+    this.sdkLoader = options?.sdkLoader || loadKaspaWasm;
+  }
+
+  async sign(input: RealTxSigningInput): Promise<RealTxSigningResult> {
+    const { plan, account } = input;
+    
+    let sdk;
+    try {
+      sdk = await this.sdkLoader();
+    } catch (e) {
+      throw new Error("Kaspa SDK real transaction signer dependency is not installed. Install/configure the supported Kaspa WASM SDK adapter.");
+    }
+
+    if (!sdk) {
+      throw new Error("Kaspa SDK real transaction signer dependency is not installed. Install/configure the supported Kaspa WASM SDK adapter.");
+    }
+
+    // Safety checks (redundant with runner but good to have)
+    if (!account.privateKey) {
+      throw new Error("Account has no private key available for signing.");
+    }
+
+    if (plan.from.address !== account.address) {
+      throw new Error(`Address mismatch: Plan requires ${plan.from.address}, but account has ${account.address}.`);
+    }
+
+    try {
+      // 1. Prepare Private Key
+      const privateKey = new sdk.PrivateKey(account.privateKey);
+
+      // 2. Prepare UTXOs
+      const utxos = plan.selectedUtxos.map(u => {
+        // Validation: SDK requires scriptPublicKey for signing
+        if (!u.scriptPublicKey) {
+          throw new Error(`UTXO from ${u.outpoint.transactionId}:${u.outpoint.index} is missing scriptPublicKey. Signing requires it.`);
+        }
+
+        return new sdk.UtxoEntry(
+          BigInt(u.amountSompi),
+          u.scriptPublicKey,
+          u.outpoint.transactionId,
+          u.outpoint.index,
+          u.address
+        );
+      });
+
+      // 3. Prepare Outputs
+      const outputs = [
+        new sdk.PaymentOutput(
+          new sdk.Address(plan.to.address),
+          BigInt(plan.amountSompi)
+        )
+      ];
+
+      // 4. Prepare Change
+      const changeAddress = plan.change 
+        ? new sdk.Address(plan.change.address)
+        : undefined;
+
+      // 5. Build and Sign
+      // Using createTransaction -> signTransaction pattern (standard for Kaspa WASM)
+      // Note: priorityFee in SDK usually covers the whole fee if using createTransaction manual mode
+      const priorityFee = BigInt(plan.estimatedFeeSompi);
+
+      // We use the helper createTransaction if available, otherwise we might need manual construction
+      // Most versions of Kaspa WASM expose this high-level helper
+      const unsignedTx = sdk.createTransaction(
+        utxos,
+        outputs,
+        changeAddress,
+        priorityFee
+      );
+
+      // Sign (3rd param is true to automatically complete the tx)
+      const signedTx = sdk.signTransaction(unsignedTx, [privateKey], true);
+
+      // 6. Serialize result
+      // Format can be hex or RPC-compatible JSON
+      const payload = signedTx.serialize ? signedTx.serialize() : JSON.stringify(signedTx.toRpcTransaction());
+      const txId = signedTx.id;
+
+      return {
+        signedTransaction: {
+          format: "kaspa-sdk",
+          payload
+        },
+        txId
+      };
+
+    } catch (e) {
+      // Improve error message if it's an SDK mismatch or missing primitives
+      const msg = e instanceof Error ? e.message : String(e);
+      if (msg.includes("is not a constructor") || msg.includes("is not a function")) {
+        throw new Error(`Kaspa SDK signer adapter could not find required transaction signing primitives: ${msg}`);
+      }
+      throw new Error(`Real transaction signing failed in Kaspa SDK: ${msg}`);
+    }
+  }
+}

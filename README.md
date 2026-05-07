@@ -85,10 +85,31 @@ hardkas tx send --from alice --to bob --amount 10 --yes
 
 ## Roadmap
 
-- [ ] **v0.2**: Encrypted keystores and BIP39 support.
+- [x] **v0.1-dev**: Persistent localnet, basic transaction flow, RPC diagnostics, account management.
+- [ ] **v0.2**: Real transaction signing and broadcasting, encrypted keystores, and BIP39 support.
 - [ ] **v0.3**: Integrated L2 (SilverScripts/Igra) simulation.
-- [ ] **v0.4**: Advanced BlockDAG visualizer.
-- [ ] **v1.0**: Stable release with full mainnet support.
+
+### Real Transaction Support
+HardKAS has started laying the foundation for real Kaspa network transactions.
+- **Artifact Prepared**: `RealTxPlanArtifact` schema is defined for node/rpc modes.
+- **Validation**: Strict schema and financial data validation are in place.
+- **Account Queries**: Inspect real on-chain state for your dev accounts.
+  ```bash
+  # Check balance and UTXOs on a real node/simnet
+  hardkas accounts real balance alice
+  hardkas accounts real utxos alice
+
+  # Build a real transaction plan artifact
+  hardkas tx real build --from alice --to kaspa:... --amount 1
+
+  # Sign a real transaction plan (requires 'kaspa' package installed)
+  hardkas tx real sign plans/realplan_....real.plan.json --account alice
+  ```
+- **Status**: **Real signing is supported via Kaspa SDK adapter. Submission is NOT implemented yet.** 
+  - To enable real signing, install the official SDK: `pnpm add kaspa` (as an optional peer dependency).
+  - The signing command will produce a valid signed transaction payload in the artifact.
+  - Never use plaintext development keys for significant amounts on mainnet.
+  - Use `simulated` mode for end-to-end local testing.
 
 ## License
 

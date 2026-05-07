@@ -34,8 +34,12 @@ import { runAccountsRealInit } from "./runners/accounts-real-init-runner.js";
 import { runAccountsRealImport } from "./runners/accounts-real-import-runner.js";
 import { runAccountsRealList } from "./runners/accounts-real-list-runner.js";
 import { runAccountsRealShow } from "./runners/accounts-real-show-runner.js";
-import { runAccountsRealRemove } from "./runners/accounts-real-remove-runner.js";
 import { runAccountsRealGenerate } from "./runners/accounts-real-generate-runner.js";
+import { runAccountsRealRemove } from "./runners/accounts-real-remove-runner.js";
+import { runAccountsRealBalance } from "./runners/accounts-real-balance-runner.js";
+import { runAccountsRealUtxos } from "./runners/accounts-real-utxos-runner.js";
+import { runTxRealBuild } from "./runners/tx-real-build-runner.js";
+import { runTxRealSign } from "./runners/tx-real-sign-runner.js";
 import { bigIntReplacer } from "@hardkas/artifacts";
 import { UI, handleError } from "./ui.js";
 
@@ -387,6 +391,44 @@ realAccountsCmd.command("remove")
       }
     } catch (e) {
       console.error(e instanceof Error ? `Error: ${e.message}` : String(e));
+      process.exitCode = 1;
+    }
+  });
+
+realAccountsCmd.command("balance")
+  .description("Show the real on-chain balance of a dev account")
+  .argument("<nameOrAddress>", "Account name or Kaspa address")
+  .option("--url <url>", "Kaspa RPC URL", "http://127.0.0.1:18210")
+  .option("--json", "Output as JSON", false)
+  .action(async (nameOrAddress: string, options: { url: string, json: boolean }) => {
+    try {
+      const result = await runAccountsRealBalance({ nameOrAddress, url: options.url });
+      if (options.json) {
+        console.log(JSON.stringify(result, bigIntReplacer, 2));
+      } else {
+        console.log(result.formatted);
+      }
+    } catch (e) {
+      handleError(e, "Real balance query failed");
+      process.exitCode = 1;
+    }
+  });
+
+realAccountsCmd.command("utxos")
+  .description("Show the real on-chain UTXOs of a dev account")
+  .argument("<nameOrAddress>", "Account name or Kaspa address")
+  .option("--url <url>", "Kaspa RPC URL", "http://127.0.0.1:18210")
+  .option("--json", "Output as JSON", false)
+  .action(async (nameOrAddress: string, options: { url: string, json: boolean }) => {
+    try {
+      const result = await runAccountsRealUtxos({ nameOrAddress, url: options.url });
+      if (options.json) {
+        console.log(JSON.stringify(result, bigIntReplacer, 2));
+      } else {
+        console.log(result.formatted);
+      }
+    } catch (e) {
+      handleError(e, "Real UTXOs query failed");
       process.exitCode = 1;
     }
   });
@@ -822,6 +864,85 @@ tx.command("simulate")
       }
     }
   );
+
+const txReal = tx.command("real").description("Real transaction commands (node/rpc modes)");
+
+txReal.command("build")
+  .description("Build a transaction plan using real on-chain UTXOs")
+  .requiredOption("--from <accountOrAddress>", "Sender account name or address")
+  .requiredOption("--to <address>", "Recipient address")
+  .requiredOption("--amount <kas>", "Amount in KAS")
+  .option("--fee-rate <sompiPerMass>", "Fee rate in sompi per mass", "1")
+  .option("--url <url>", "Kaspa RPC URL", "http://127.0.0.1:18210")
+  .option("--out-dir <dir>", "Output directory for plan artifact", "plans")
+  .option("--json", "Output as JSON", false)
+  .action(async (options: {
+    from: string;
+    to: string;
+    amount: string;
+    feeRate: string;
+    url: string;
+    outDir: string;
+    json: boolean;
+  }) => {
+    try {
+      const result = await runTxRealBuild({
+        from: options.from,
+        to: options.to,
+        amount: options.amount,
+        feeRate: options.feeRate,
+        url: options.url,
+        outDir: options.outDir
+      });
+
+      if (options.json) {
+        console.log(JSON.stringify({
+          planId: result.planId,
+          artifactPath: result.artifactPath,
+          artifact: result.artifact
+        }, bigIntReplacer, 2));
+      } else {
+        console.log(result.formatted);
+      }
+    } catch (e) {
+      handleError(e, "Real transaction build failed");
+      process.exitCode = 1;
+    }
+  });
+
+txReal.command("sign")
+  .description("Sign a real transaction plan artifact")
+  .argument("<planPath>", "Path to real transaction plan artifact")
+  .requiredOption("--account <name>", "Account name to sign with")
+  .option("--out-dir <dir>", "Output directory for signed artifact", "signed")
+  .option("--json", "Output as JSON", false)
+  .action(async (planPath: string, options: {
+    account: string;
+    outDir: string;
+    json: boolean;
+  }) => {
+    try {
+      const result = await runTxRealSign({
+        planPath,
+        accountName: options.account,
+        outDir: options.outDir
+      });
+
+      if (options.json) {
+        console.log(JSON.stringify({
+          signedId: result.signedId,
+          artifactPath: result.artifactPath,
+          artifact: result.artifact
+        }, bigIntReplacer, 2));
+      } else {
+        console.log(result.formatted);
+      }
+    } catch (e) {
+      handleError(e, "Real transaction signing failed");
+      process.exitCode = 1;
+    }
+  });
+
 
 const txPlan = tx.command("plan")
   .description("Manage Kaspa transaction plans")

@@ -32,9 +32,11 @@ describe("getBroadcastableSignedTransaction", () => {
     expect(result.rawTransaction).toBe("raw-tx-hex");
   });
 
-  it("should fail for simulated artifacts", () => {
+  it("should allow simulated artifacts", () => {
     const simulated = { ...baseArtifact, mode: "simulated" as any };
-    expect(() => getBroadcastableSignedTransaction(simulated)).toThrow(/Simulated signed artifacts cannot be broadcast/);
+    const result = getBroadcastableSignedTransaction(simulated);
+    expect(result.mode).toBe("simulated");
+    expect(result.rawTransaction).toBe("raw-tx-hex");
   });
 
   it("should fail if signature kind is not kaspa", () => {
