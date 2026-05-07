@@ -5,16 +5,18 @@
 export function assertBroadcastNetworkAllowed(input: {
   artifactNetwork: string;
   selectedNetwork: string;
-  allowMainnet?: boolean;
 }): void {
   const isMainnetArtifact = isMainnetLike(input.artifactNetwork);
   const isMainnetSelected = isMainnetLike(input.selectedNetwork);
 
   // Mainnet block
-  if ((isMainnetArtifact || isMainnetSelected) && !input.allowMainnet) {
+  if (isMainnetArtifact || isMainnetSelected) {
     throw new Error(
-      "Mainnet broadcast is disabled by default. " +
-      "Re-run with --allow-mainnet-broadcast only if you understand the risks."
+      "Mainnet broadcast is disabled in HardKAS v0.1-dev.\n\n" +
+      "Reason:\n" +
+      "  Production transaction submission is intentionally unavailable in this development release.\n\n" +
+      "Use:\n" +
+      "  simnet or testnet for real transaction testing."
     );
   }
 

@@ -1,20 +1,23 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { runTxRealSend } from "../src/runners/tx-real-send-runner.js";
 import * as artifacts from "@hardkas/artifacts";
-import { MockKaspaRpcClient, KaspaJsonRpcClient } from "@hardkas/kaspa-rpc";
+import { MockKaspaRpcClient } from "@hardkas/kaspa-rpc";
 import fs from "node:fs/promises";
+import path from "node:path";
 
-// Mock artifacts
+// Mock @hardkas/artifacts
 vi.mock("@hardkas/artifacts", async () => {
   const actual = await vi.importActual("@hardkas/artifacts");
   return {
     ...actual,
     readArtifact: vi.fn(),
-    writeArtifact: vi.fn()
+    writeArtifact: vi.fn(),
+    assertValidRealSignedTxArtifact: vi.fn(),
+    assertValidRealTxSubmitReceipt: vi.fn(),
   };
 });
 
-// Mock Kaspa RPC
+// Mock @hardkas/kaspa-rpc
 vi.mock("@hardkas/kaspa-rpc", async () => {
   const actual = await vi.importActual("@hardkas/kaspa-rpc");
   return {
@@ -23,93 +26,118 @@ vi.mock("@hardkas/kaspa-rpc", async () => {
   };
 });
 
-// Mock fs
-vi.mock("node:fs/promises", async () => {
-  return {
-    default: {
-      mkdir: vi.fn().mockResolvedValue(undefined)
-    }
-  };
-});
+// Mock node:fs/promises
+vi.mock("node:fs/promises", () => ({
+  default: {
+    mkdir: vi.fn().mockResolvedValue(undefined),
+    writeFile: vi.fn().mockResolvedValue(undefined),
+  }
+}));
 
-describe("Real Transaction Send Runner", () => {
-  const mockSignedArtifact: artifacts.RealSignedTxArtifact = {
-    schema: artifacts.ARTIFACT_SCHEMAS.REAL_SIGNED_TX,
-    hardkasVersion: artifacts.HARDKAS_VERSION,
+describe("runTxRealSend", () => {
+  const mockUrl = "http://127.0.0.1:18210";
+  const mockSignedPath = "signed/test.json";
+  
+  const mockArtifact = {
+    schema: "hardkas.realSignedTx.v1",
+    hardkasVersion: "0.1.0-dev",
     status: "signed",
-    createdAt: new Date().toISOString(),
-    signedId: "signed123",
-    sourcePlanId: "plan123",
     networkId: "simnet",
-    mode: "rpc",
-    from: { address: "kaspasim:alice123" },
-    to: { address: "kaspasim:bob456" },
+    mode: "node",
+    signedTransaction: {
+      encoding: "kaspa-raw",
+      value: "mock-raw-tx-payload"
+    },
+    from: { input: "alice", address: "kaspa:alice" },
+    to: { input: "bob", address: "kaspa:bob" },
+    amount: "1 KAS",
     amountSompi: "100000000",
-    feeSompi: "500",
-    selectedUtxos: [],
-    signedTransaction: { format: "kaspa-sdk", payload: "signedhex123" }
+    signedId: "mock-signed-id"
   };
-
-  const mockRpc = new MockKaspaRpcClient("simnet");
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(artifacts.readArtifact).mockResolvedValue(mockSignedArtifact);
-    vi.mocked(KaspaJsonRpcClient).mockImplementation(() => mockRpc as any);
-  });
-
-  it("should submit a real signed tx successfully with --yes", async () => {
-    const result = await runTxRealSend({
-      signedPath: "signed/signed123.json",
-      url: "mock://local",
-      yes: true
-    });
-
-    expect(result.txId).toBe("mock-txid");
-    expect(result.receipt.status).toBe("submitted");
-    expect(vi.mocked(artifacts.writeArtifact)).toHaveBeenCalled();
-    expect(result.formatted).toContain("Real transaction submitted");
   });
 
   it("should fail if --yes is missing", async () => {
     await expect(runTxRealSend({
-      signedPath: "signed/signed123.json",
-      url: "mock://local",
+      signedPath: mockSignedPath,
+      url: mockUrl,
       yes: false
-    })).rejects.toThrow(/without --yes/);
+    })).rejects.toThrow("Refusing to submit real transaction without --yes.");
   });
 
-  it("should fail on mainnet signed artifact", async () => {
-    const signedMainnet = { ...mockSignedArtifact, networkId: "mainnet" };
-    vi.mocked(artifacts.readArtifact).mockResolvedValue(signedMainnet);
+  it("should fail if network mismatch", async () => {
+    const { readArtifact } = await import("@hardkas/artifacts");
+    const { KaspaJsonRpcClient } = await import("@hardkas/kaspa-rpc");
+
+    (readArtifact as any).mockResolvedValue(mockArtifact);
+    
+    (KaspaJsonRpcClient as any).mockImplementation(() => ({
+      getServerInfo: vi.fn().mockResolvedValue({ networkId: "mainnet" }),
+      submitTransaction: vi.fn()
+    }));
 
     await expect(runTxRealSend({
-      signedPath: "signed/signed123.json",
-      url: "mock://local",
+      signedPath: mockSignedPath,
+      url: mockUrl,
       yes: true
-    })).rejects.toThrow(/Mainnet real transaction submission is disabled/);
+    })).rejects.toThrow("Network mismatch: Artifact is for 'simnet' but the node at http://127.0.0.1:18210 is on 'mainnet'.");
   });
 
-  it("should fail if artifact status is not signed", async () => {
-    const signedWrongStatus = { ...mockSignedArtifact, status: "built" };
-    vi.mocked(artifacts.readArtifact).mockResolvedValue(signedWrongStatus as any);
+  it("should fail if mainnet is attempted (always rejected in v0.1-dev)", async () => {
+    const { readArtifact } = await import("@hardkas/artifacts");
+    (readArtifact as any).mockResolvedValue({
+      ...mockArtifact,
+      networkId: "mainnet"
+    });
 
     await expect(runTxRealSend({
-      signedPath: "signed/signed123.json",
-      url: "mock://local",
+      signedPath: mockSignedPath,
+      url: mockUrl,
       yes: true
-    })).rejects.toThrow(/status: expected 'signed'/);
+    })).rejects.toThrow("Mainnet broadcast is disabled in HardKAS v0.1-dev.");
   });
 
-  it("should provide suggestion on connection failure", async () => {
-    vi.mocked(KaspaJsonRpcClient).mockImplementation(() => ({
-      submitTransaction: vi.fn().mockRejectedValue(new Error("ECONNREFUSED"))
-    } as any));
+  it("should succeed and create receipt in happy path", async () => {
+    const { readArtifact, writeArtifact } = await import("@hardkas/artifacts");
+    const { KaspaJsonRpcClient } = await import("@hardkas/kaspa-rpc");
+
+    (readArtifact as any).mockResolvedValue(mockArtifact);
+    
+    const mockSubmitResult = { transactionId: "real-tx-123", accepted: true };
+    (KaspaJsonRpcClient as any).mockImplementation(() => ({
+      getServerInfo: vi.fn().mockResolvedValue({ networkId: "simnet" }),
+      submitTransaction: vi.fn().mockResolvedValue(mockSubmitResult)
+    }));
+
+    const result = await runTxRealSend({
+      signedPath: mockSignedPath,
+      url: mockUrl,
+      yes: true
+    });
+
+    expect(result.txId).toBe("real-tx-123");
+    expect(result.receipt.status).toBe("submitted");
+    expect(writeArtifact).toHaveBeenCalled();
+    expect(result.formatted).toContain("Real transaction submitted");
+    expect(result.formatted).toContain("real-tx-123");
+  });
+
+  it("should fail if node connection fails", async () => {
+    const { readArtifact } = await import("@hardkas/artifacts");
+    const { KaspaJsonRpcClient } = await import("@hardkas/kaspa-rpc");
+
+    (readArtifact as any).mockResolvedValue(mockArtifact);
+    
+    (KaspaJsonRpcClient as any).mockImplementation(() => ({
+      getServerInfo: vi.fn().mockRejectedValue(new Error("ECONNREFUSED"))
+    }));
 
     await expect(runTxRealSend({
-      signedPath: "signed/signed123.json",
-      url: "mock://local",
+      signedPath: mockSignedPath,
+      url: mockUrl,
       yes: true
-    })).rejects.toThrow(/Cannot connect to Kaspa RPC/);
+    })).rejects.toThrow("Cannot connect to Kaspa RPC");
   });
 });

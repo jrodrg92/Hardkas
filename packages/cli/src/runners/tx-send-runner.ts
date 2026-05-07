@@ -28,7 +28,6 @@ export interface TxSendRunnerInput {
   network?: string;
   config: HardkasConfig;
   url?: string;
-  allowMainnetBroadcast?: boolean;
 }
 
 export interface TxSendRunnerResult {
@@ -43,7 +42,7 @@ export interface TxSendRunnerResult {
  * Reusable logic for transaction broadcasting.
  */
 export async function runTxSend(input: TxSendRunnerInput): Promise<TxSendRunnerResult> {
-  const { signedArtifact, network, config, url, allowMainnetBroadcast } = input;
+  const { signedArtifact, network, config, url } = input;
   
   const broadcastable = getBroadcastableSignedTransaction(signedArtifact);
   const networkName = network || broadcastable.network;
@@ -127,8 +126,7 @@ export async function runTxSend(input: TxSendRunnerInput): Promise<TxSendRunnerR
 
   assertBroadcastNetworkAllowed({
     artifactNetwork: broadcastable.network,
-    selectedNetwork: networkName,
-    allowMainnet: allowMainnetBroadcast
+    selectedNetwork: networkName
   });
 
   const rpcUrl = url || target.rpcUrl;

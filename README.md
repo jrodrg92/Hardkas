@@ -109,6 +109,13 @@ HardKAS has started laying the foundation for real Kaspa network transactions.
   hardkas tx real send signed/signed_....real.signed.json --yes
   ```
 
+## Mainnet Broadcast Disabled
+
+> [!IMPORTANT]
+> **Mainnet broadcast is disabled in v0.1-dev.**
+> Production transaction submission is intentionally unavailable in this development release.
+> Use `simnet` or `testnet-10` for real transaction testing.
+
 ## Artifact Schemas
 
 HardKAS uses a canonical, versioned schema for all persistent artifacts.
@@ -132,7 +139,7 @@ Example of a Real Transaction Plan (`plans/*.json`):
 - **mode**: The backend used (`simulated`, `node`, `rpc`).
 - **createdAt**: ISO 8601 creation timestamp.
 
-- **Status**: **Guarded submission is supported for simnet/testnet. Mainnet is BLOCKED.** 
+- **Status**: **Guarded submission is supported for simnet/testnet. Mainnet broadcast is DISABLED.** 
   - Submitting real transactions requires the `--yes` flag.
   - Receipts are saved in `.hardkas/real-receipts/`.
   - Check the mempool after submission: `hardkas rpc mempool <txId>`.

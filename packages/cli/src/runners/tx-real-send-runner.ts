@@ -37,24 +37,30 @@ export async function runTxRealSend(options: TxRealSendOptions): Promise<TxRealS
   assertValidRealSignedTxArtifact(signedData);
 
   // 3. More Guardrails
-  if (signedData.networkId === "mainnet") {
-    throw new Error("Mainnet real transaction submission is disabled in this development release.");
+  if (signedData.networkId === "mainnet" || signedData.networkId === "kaspa") {
+    throw new Error(
+      "Mainnet broadcast is disabled in HardKAS v0.1-dev.\n\n" +
+      "Reason:\n" +
+      "  Production transaction submission is intentionally unavailable in this development release.\n\n" +
+      "Use:\n" +
+      "  simnet or testnet for real transaction testing."
+    );
   }
 
   if (signedData.status !== "signed") {
     throw new Error(`Invalid artifact status: expected 'signed', got '${signedData.status}'.`);
   }
 
-  if (!signedData.signedTransaction.payload) {
+  if (!signedData.signedTransaction?.value) {
     throw new Error("Signed transaction payload is empty.");
   }
 
-  // 4. Submit to RPC
+  // 4. Connect and Verify Network
   const client = new KaspaJsonRpcClient({ url: options.url });
   
-  let submitResult;
+  let serverInfo;
   try {
-    submitResult = await client.submitTransaction(signedData.signedTransaction.payload);
+    serverInfo = await client.getServerInfo();
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     if (msg.includes("Connection refused") || msg.includes("ECONNREFUSED")) {
@@ -62,7 +68,20 @@ export async function runTxRealSend(options: TxRealSendOptions): Promise<TxRealS
       (error as any).suggestion = "The Kaspa node might still be starting. Try 'hardkas rpc health --wait --timeout 60'.";
       throw error;
     }
-    throw e;
+    throw new Error(`Failed to connect to Kaspa node at ${options.url}: ${msg}`);
+  }
+
+  // Verify network mismatch
+  if (serverInfo.networkId !== signedData.networkId) {
+     throw new Error(`Network mismatch: Artifact is for '${signedData.networkId}' but the node at ${options.url} is on '${serverInfo.networkId}'.`);
+  }
+
+  // 5. Submit to RPC
+  let submitResult;
+  try {
+    submitResult = await client.submitTransaction(signedData.signedTransaction.value);
+  } catch (e) {
+    throw new Error(`RPC submission failed: ${e instanceof Error ? e.message : String(e)}`);
   }
 
   if (!submitResult.transactionId) {

@@ -662,7 +662,6 @@ tx.command("flow")
   .option("--name <name>", "Base name for artifacts")
   .option("--json", "Output results as JSON", false)
   .option("--allow-mainnet-signing", "Allow signing for mainnet", false)
-  .option("--allow-mainnet-broadcast", "Allow broadcasting to mainnet", false)
   .action(async (options: {
     from: string;
     to: string;
@@ -679,7 +678,6 @@ tx.command("flow")
     name?: string;
     json: boolean;
     allowMainnetSigning: boolean;
-    allowMainnetBroadcast: boolean;
   }) => {
     const { loadHardkasConfig } = await import("@hardkas/config");
     const { formatTxPlanArtifact, formatSignedTxArtifact } = await import("@hardkas/artifacts");
@@ -1285,7 +1283,6 @@ tx.command("send")
   .option("--url <wsUrl>", "Direct RPC WebSocket URL")
   .option("--yes", "Confirm broadcast without prompt", false)
   .option("--json", "Output as JSON", false)
-  .option("--allow-mainnet-broadcast", "Allow broadcasting to mainnet (DANGEROUS)", false)
   .option("--verbose", "Show verbose response", false)
   .action(async (filePath: string | undefined, options: {
     from?: string;
@@ -1297,7 +1294,6 @@ tx.command("send")
     url?: string;
     yes: boolean;
     json: boolean;
-    allowMainnetBroadcast: boolean;
     verbose: boolean;
   }) => {
     const { readSignedTxArtifact, getBroadcastableSignedTransaction } = await import("@hardkas/artifacts");
@@ -1331,8 +1327,7 @@ tx.command("send")
           signedArtifact: artifact,
           network: options.network,
           config: loaded.config,
-          url: options.url,
-          allowMainnetBroadcast: options.allowMainnetBroadcast
+          url: options.url
         });
 
         if (options.json) {
@@ -1391,8 +1386,7 @@ tx.command("send")
           config: loaded.config,
           url: options.url,
           send: true,
-          yes: options.yes,
-          allowMainnetBroadcast: options.allowMainnetBroadcast
+          yes: options.yes
         });
 
         if (options.json) {

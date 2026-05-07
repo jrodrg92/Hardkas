@@ -35,7 +35,6 @@ export interface TxFlowInput {
   name?: string;
   
   allowMainnetSigning?: boolean;
-  allowMainnetBroadcast?: boolean;
 }
 
 export interface TxFlowStepResult<T> {
@@ -66,7 +65,7 @@ export async function runTxFlow(input: TxFlowInput): Promise<TxFlowResult> {
     from, to, amount, network, config, url, feeRate,
     planOnly, sign, send, yes,
     outDir, name,
-    allowMainnetSigning, allowMainnetBroadcast
+    allowMainnetSigning
   } = input;
 
   // Validation
@@ -149,8 +148,7 @@ export async function runTxFlow(input: TxFlowInput): Promise<TxFlowResult> {
           const sendResult = await runTxSend({
             signedArtifact,
             config,
-            url,
-            allowMainnetBroadcast
+            url
           });
           flowResult.steps.send = { status: "ok", artifact: sendResult };
           flowResult.result = "broadcast";
