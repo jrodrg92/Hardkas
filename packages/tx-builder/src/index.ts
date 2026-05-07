@@ -17,6 +17,8 @@ export interface Utxo {
 export interface TxOutput {
   readonly address: string;
   readonly amountSompi: Sompi;
+  /** Future: Silverscript / custom script support */
+  readonly scriptPublicKey?: string;
 }
 
 export interface TxBuildRequest {
@@ -31,7 +33,7 @@ export interface TxBuildRequest {
 export interface TxPlan {
   readonly inputs: readonly Utxo[];
   readonly outputs: readonly TxOutput[];
-  readonly change?: TxOutput;
+  readonly change?: TxOutput | undefined;
   readonly estimatedMass: bigint;
   readonly estimatedFeeSompi: bigint;
 }

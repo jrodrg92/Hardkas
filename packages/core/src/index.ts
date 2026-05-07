@@ -66,6 +66,9 @@ export function parseKasToSompi(input: string): bigint {
   }
 
   const [whole, fractional = ""] = trimmed.split(".");
+  if (whole === undefined) {
+    throw new HardkasError("AMOUNT_INVALID", `Invalid KAS amount: ${input}`);
+  }
 
   return BigInt(whole) * SOMPI_PER_KAS + BigInt(fractional.padEnd(8, "0"));
 }

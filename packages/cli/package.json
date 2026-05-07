@@ -1,0 +1,32 @@
+{
+  "name": "@hardkas/cli",
+  "version": "0.1.0",
+  "type": "module",
+  "bin": {
+    "hardkas": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --clean",
+    "dev": "tsx src/index.ts",
+    "hardkas": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@hardkas/accounts": "workspace:*",
+    "@hardkas/config": "workspace:*",
+    "@hardkas/core": "workspace:*",
+    "@hardkas/kaspa-rpc": "workspace:*",
+    "@hardkas/localnet": "workspace:*",
+    "@hardkas/node-orchestrator": "workspace:*",
+    "@hardkas/simulator": "workspace:*",
+    "@hardkas/tx-builder": "workspace:*",
+    "commander": "^12.1.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "tsup": "^8.3.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

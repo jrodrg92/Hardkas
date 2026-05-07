@@ -9,9 +9,9 @@ export interface HardkasDevnet {
 }
 
 export async function startSimulatedDevnet(input?: {
-  readonly accounts?: number;
-  readonly initialBalanceSompi?: bigint;
-}): Promise<HardkasDevnet> {
+  readonly accounts?: number | undefined;
+  readonly initialBalanceSompi?: bigint | undefined;
+} | undefined): Promise<HardkasDevnet> {
   const accounts = createDeterministicAccounts({
     count: input?.accounts,
     initialBalanceSompi: input?.initialBalanceSompi

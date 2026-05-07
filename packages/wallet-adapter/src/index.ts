@@ -9,7 +9,7 @@ export type WalletFeature =
 
 export interface KaspaWalletAccount {
   readonly address: string;
-  readonly publicKey?: Uint8Array;
+  readonly publicKey?: Uint8Array | undefined;
   readonly networkId: KaspaNetworkId;
 }
 
@@ -17,7 +17,7 @@ export interface KaspaUnsignedTransaction {
   readonly version: number;
   readonly inputs: readonly unknown[];
   readonly outputs: readonly unknown[];
-  readonly payload?: Uint8Array;
+  readonly payload?: Uint8Array | undefined;
 }
 
 export interface KaspaSignedTransaction {
@@ -32,7 +32,7 @@ export interface KaspaWalletAdapter {
   readonly installed: boolean;
   readonly features: readonly WalletFeature[];
 
-  connect(options?: { networkId?: KaspaNetworkId }): Promise<KaspaWalletAccount>;
+  connect(options?: { networkId?: KaspaNetworkId | undefined } | undefined): Promise<KaspaWalletAccount>;
   disconnect(): Promise<void>;
 
   getAccount(): Promise<KaspaWalletAccount | null>;
