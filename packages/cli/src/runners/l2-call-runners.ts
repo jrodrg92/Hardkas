@@ -48,8 +48,10 @@ export async function runL2Call(options: L2CallRunnerOptions): Promise<void> {
 
   if (options.json) {
     console.log(JSON.stringify({
-      network: networkName,
-      url: rpcUrl,
+      networkId: profile.name,
+      l2Network: networkName,
+      chainId: profile.chainId,
+      rpcUrl,
       block: blockTag,
       request,
       result
@@ -88,8 +90,10 @@ export async function runL2EstimateGas(options: L2CallRunnerOptions): Promise<vo
 
   if (options.json) {
     console.log(JSON.stringify({
-      network: networkName,
-      url: rpcUrl,
+      networkId: profile.name,
+      l2Network: networkName,
+      chainId: profile.chainId,
+      rpcUrl,
       block: blockTag,
       request,
       gas: gas.toString()

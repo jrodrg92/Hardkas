@@ -6,3 +6,4 @@ export * from "./formatters.js";
 export * from "./igra-signer.js";
 export * from "./viem-igra-signer.js";
 export * from "./evm-receipts.js";
+export * from "./bridge.js";

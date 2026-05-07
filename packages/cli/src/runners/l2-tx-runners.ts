@@ -138,6 +138,9 @@ export async function runL2TxBuild(options: L2TxBuildOptions): Promise<void> {
   // 5. Output
   if (options.json) {
     console.log(JSON.stringify({
+      networkId: profile.name,
+      l2Network: networkName,
+      chainId,
       planId,
       artifactPath,
       artifact
@@ -273,6 +276,9 @@ export async function runL2TxSign(options: L2TxSignOptions): Promise<void> {
   // 6. Output
   if (options.json) {
     console.log(JSON.stringify({
+      networkId: plan.networkId,
+      l2Network: plan.l2Network,
+      chainId: plan.chainId,
       signedId,
       artifactPath,
       artifact
@@ -400,7 +406,12 @@ export async function runL2TxSend(options: L2TxSendOptions): Promise<void> {
   // 6. Output
   if (options.json) {
     console.log(JSON.stringify({
+      networkId: artifact.networkId,
+      l2Network: networkName,
+      chainId: artifact.chainId,
+      rpcUrl,
       txHash,
+      artifactPath: options.signedPath,
       receiptPath,
       receipt
     }, (key, value) => typeof value === "bigint" ? value.toString() : value, 2));
@@ -461,9 +472,14 @@ export async function runL2TxReceipt(options: L2TxReceiptOptions): Promise<void>
 
   if (options.json) {
     console.log(JSON.stringify({
+      networkId: localReceipt?.networkId ?? "igra",
+      l2Network: networkName,
+      chainId: localReceipt?.chainId,
+      rpcUrl,
+      txHash: options.txHash,
+      status,
       local: localReceipt,
-      remote: remoteReceipt,
-      status
+      remote: remoteReceipt
     }, (key, value) => typeof value === "bigint" ? value.toString() : value, 2));
     return;
   }
@@ -546,8 +562,10 @@ export async function runL2TxStatus(options: L2TxStatusOptions): Promise<void> {
 
   if (options.json) {
     console.log(JSON.stringify({
+      networkId: profile?.name ?? networkName,
+      l2Network: networkName,
+      rpcUrl,
       txHash: options.txHash,
-      network: networkName,
       status,
       remote: remoteReceipt
     }, (key, value) => typeof value === "bigint" ? value.toString() : value, 2));

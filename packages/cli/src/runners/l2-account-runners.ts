@@ -37,7 +37,10 @@ export async function runL2Balance(address: string, options: L2AccountOptions): 
 
   if (options.json) {
     console.log(JSON.stringify({
-      network: networkName,
+      networkId: profile.name,
+      l2Network: networkName,
+      chainId: profile.chainId,
+      rpcUrl: profile.rpcUrl,
       address,
       block: blockTag,
       balanceWei: balanceWei.toString(),
@@ -67,7 +70,10 @@ export async function runL2Nonce(address: string, options: L2AccountOptions): Pr
 
   if (options.json) {
     console.log(JSON.stringify({
-      network: networkName,
+      networkId: profile.name,
+      l2Network: networkName,
+      chainId: profile.chainId,
+      rpcUrl: profile.rpcUrl,
       address,
       block: blockTag,
       nonce: nonce.toString()

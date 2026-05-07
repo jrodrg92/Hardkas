@@ -61,6 +61,7 @@ import {
 import { runL2Balance, runL2Nonce } from "./runners/l2-account-runners.js";
 import { runL2Call, runL2EstimateGas } from "./runners/l2-call-runners.js";
 import { runL2TxBuild, runL2TxSign, runL2TxSend, runL2TxReceipt, runL2TxReceipts, runL2TxStatus } from "./runners/l2-tx-runners.js";
+import { runL2BridgeStatus, runL2BridgeAssumptions } from "./runners/l2-bridge-runners.js";
 import { bigIntReplacer } from "@hardkas/artifacts";
 import { UI, handleError } from "./ui.js";
 
@@ -2087,7 +2088,7 @@ program
   
   
   
-  const l2tx = l2.command("tx").description("L2 transaction management");
+  const l2tx = l2.command("tx").description("Igra L2 EVM transaction management");
 
   l2tx.command("build")
     .description("Build an L2 EVM transaction plan artifact")
@@ -2138,7 +2139,7 @@ program
     });
 
   l2tx.command("receipt <txHash>")
-    .description("Get an L2 transaction receipt")
+    .description("Get an Igra L2 EVM transaction receipt")
     .option("--network <name>", "L2 network name", "igra")
     .option("--url <url>", "RPC URL")
     .option("--json", "Output results in JSON format")
@@ -2162,7 +2163,7 @@ program
     });
 
   l2tx.command("status <txHash>")
-    .description("Check L2 transaction status via RPC")
+    .description("Check Igra L2 EVM transaction status via RPC")
     .option("--network <name>", "L2 network name", "igra")
     .option("--url <url>", "RPC URL")
     .option("--json", "Output results in JSON format")
@@ -2174,8 +2175,35 @@ program
       }
     });
 
+  const l2bridge = l2.command("bridge")
+    .description("Igra L2 bridge awareness and assumptions");
+
+  l2bridge.command("status")
+    .description("Show bridge security status and risks")
+    .option("--network <name>", "L2 network name", "igra")
+    .option("--json", "Output results in JSON format")
+    .action(async (options) => {
+      try {
+        await runL2BridgeStatus(options);
+      } catch (e) {
+        handleError(e);
+      }
+    });
+
+  l2bridge.command("assumptions")
+    .description("Show detailed bridge security assumptions")
+    .option("--network <name>", "L2 network name", "igra")
+    .option("--json", "Output results in JSON format")
+    .action(async (options) => {
+      try {
+        await runL2BridgeAssumptions(options);
+      } catch (e) {
+        handleError(e);
+      }
+    });
+
   l2.command("call")
-    .description("Perform a read-only L2 EVM call")
+    .description("Perform a read-only Igra L2 EVM call (preflight)")
     .option("--network <name>", "L2 network name", "igra")
     .option("--url <url>", "RPC URL")
     .option("--from <address>", "From address")
@@ -2193,7 +2221,7 @@ program
     });
 
   l2.command("estimate-gas")
-    .description("Estimate gas for an L2 EVM call")
+    .description("Estimate gas for an Igra L2 EVM call")
     .option("--network <name>", "L2 network name", "igra")
     .option("--url <url>", "RPC URL")
     .option("--from <address>", "From address")
@@ -2211,7 +2239,7 @@ program
     });
 
   l2.command("balance <address>")
-    .description("Check L2 balance for an address")
+    .description("Check Igra L2 EVM account balance")
     .option("--network <name>", "L2 network name", "igra")
     .option("--url <url>", "RPC URL")
     .option("--block <tag>", "Block tag (latest|pending)", "latest")
@@ -2225,7 +2253,7 @@ program
     });
 
   l2.command("nonce <address>")
-    .description("Check L2 nonce for an address")
+    .description("Check Igra L2 EVM account nonce (transaction count)")
     .option("--network <name>", "L2 network name", "igra")
     .option("--url <url>", "RPC URL")
     .option("--block <tag>", "Block tag (latest|pending)", "latest")
@@ -2238,10 +2266,10 @@ program
       }
     });
 
-  const l2Rpc = l2.command("rpc").description("L2 RPC diagnostics");
+  const l2Rpc = l2.command("rpc").description("Igra L2 EVM JSON-RPC diagnostics");
 
   l2Rpc.command("health")
-    .description("Check health of an L2 RPC endpoint")
+    .description("Check health of an Igra L2 RPC endpoint")
     .option("--network <name>", "L2 network name", "igra")
     .option("--url <url>", "RPC URL")
     .option("--wait", "Wait for RPC to be ready")
@@ -2257,7 +2285,7 @@ program
     });
 
   l2Rpc.command("chain-id")
-    .description("Get L2 chain ID")
+    .description("Get Igra L2 EVM chain ID")
     .option("--network <name>", "L2 network name", "igra")
     .option("--url <url>", "RPC URL")
     .option("--json", "Output results in JSON format")

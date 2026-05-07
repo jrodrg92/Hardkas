@@ -254,13 +254,30 @@ hardkas l2 tx status 0x... --network igra --url <rpcUrl>
 > [!NOTE]
 > - **Local receipts** are stored as artifacts in `.hardkas/l2-receipts/`.
 > - **Remote status** is queried directly from the L2 EVM node via `eth_getTransactionReceipt`.
-> - These commands only track Igra L2 transaction execution; they do not imply Kaspa L1 bridge finality or ZK exit completion.
+- These commands only track Igra L2 transaction execution; they do not imply Kaspa L1 bridge finality or ZK exit completion.
 
-### Architecture Rules
-- **Kaspa L1 does NOT execute EVM**: Kaspa provides sequencing, data availability (DA), and state commitment anchoring.
-- **Igra execution occurs on L2**: Full EVM execution happens within the Igra L2 network.
-- **Bridge Security**: Security is phase-dependent: `pre-ZK` -> `MPC` -> `ZK`.
-- **Trustless Exit**: Guaranteed exit functionality is only available in the `ZK` phase.
+### Igra bridge awareness
+HardKAS models bridge assumptions but does **not** perform bridge operations (deposit/withdraw/claim) in v0.1-dev. Bridge security is phase-dependent.
+
+```bash
+# Show bridge security status and risks
+hardkas l2 bridge status --network igra
+
+# Show detailed bridge security assumptions
+hardkas l2 bridge assumptions --network igra
+```
+
+> [!WARNING]
+> - **Trustless exit** is available only in the **ZK phase**.
+> - pre-ZK and MPC phases involve stronger trust assumptions regarding bridge custody and validators.
+> - Always verify the current bridge implementation on the live network before moving significant funds.
+
+### Architecture Guardrails
+- **Strict Separation**: Igra L2 EVM operations are entirely decoupled from Kaspa L1 UTXO logic.
+- **Kaspa L1 Role**: Kaspa provides sequencing, data availability (DA), and state anchoring. It does **not** execute EVM.
+- **Igra L2 Role**: Full EVM execution and account-based state management occur on L2.
+- **Bridge Security**: Security is phase-dependent (`pre-ZK` -> `MPC` -> `ZK`). Trustless exit exists **only** in the ZK phase.
+- **Safety First**: Mainnet broadcasting is blocked in v0.1-dev. All L2 commands require explicit network/RPC configuration.
 
 ### CLI Usage
 ```bash
@@ -304,6 +321,11 @@ Example of a Transaction Plan (`plans/*.json`):
 - `hardkas.realTxPlan.v1`: Plan artifact specific to real Kaspa nodes.
 - `hardkas.realSignedTx.v1`: Signed artifact specific to real Kaspa nodes.
 - `hardkas.realTxSubmitReceipt.v1`: Receipt for transactions submitted to real nodes.
+- `hardkas.igraTxPlan.v1`: Igra L2 EVM transaction plan.
+- `hardkas.igraSignedTx.v1`: Igra L2 signed EVM transaction.
+- `hardkas.igraTxReceipt.v1`: Igra L2 local submission receipt.
+- `hardkas.l2Profile.v1`: Igra L2 network profile and security metadata.
+- `hardkas.l2BridgeAssumptions.v1`: Igra bridge security and risk profile.
 
 - **Status**: **Mainnet broadcast is DISABLED in v0.1-dev.**
   - Submitting real transactions requires the `--yes` flag.
