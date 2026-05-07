@@ -8,12 +8,13 @@
     ".": "./dist/index.js"
   },
   "scripts": {
-    "build": "tsup src/index.ts --format esm --dts --clean",
+    "build": "tsup src/index.ts --format esm --dts --clean --external kaspa",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "lint": "eslint ."
   },
   "dependencies": {
+    "@hardkas/artifacts": "workspace:*",
     "@hardkas/core": "workspace:*",
     "@hardkas/tx-builder": "workspace:*"
   },

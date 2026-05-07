@@ -7,6 +7,7 @@ import {
 } from "@hardkas/localnet";
 import { runTxFlow } from "../src/runners/tx-flow";
 import { HardkasConfig } from "@hardkas/config";
+import * as artifacts from "@hardkas/artifacts";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -70,7 +71,7 @@ describe("E2E Simulated Happy Path", () => {
     const receipts = await listSimulatedReceipts();
     expect(receipts.length).toBe(1);
     expect(receipts[0].txId).toBe(txId);
-    expect(receipts[0].kind).toBe("hardkas.simulatedTxReceipt");
+    expect(receipts[0].schema).toBe(artifacts.ARTIFACT_SCHEMAS.SIMULATED_TX_RECEIPT);
   });
 
   it("should fail if insufficient funds", async () => {

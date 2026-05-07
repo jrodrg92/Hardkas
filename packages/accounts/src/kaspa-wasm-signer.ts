@@ -35,7 +35,7 @@ export class KaspaWasmPrivateKeySigner implements HardkasTxPlanSigner {
 
     // 2. Mainnet guard
     assertSigningNetworkAllowed({
-      network: plan.network,
+      network: plan.networkId,
       mode: plan.mode,
       allowMainnet: this.options.allowMainnet
     });
@@ -102,10 +102,10 @@ export class KaspaWasmPrivateKeySigner implements HardkasTxPlanSigner {
 
       return {
         signatureKind: "kaspa",
-        signerAddress: account.address || privateKey.toAddress(plan.network).toString(),
+        signerAddress: account.address || privateKey.toAddress(plan.networkId).toString(),
         signedTransaction: {
-          encoding: "kaspa-raw",
-          value: rawTx
+          format: "hex",
+          payload: rawTx
         },
         signature: {
           // We use the txid as the signature identifier in the artifact

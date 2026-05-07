@@ -122,8 +122,8 @@ export async function runTxPlan(input: TxPlanRunnerInput): Promise<TxPlanArtifac
   });
 
   const artifact = createTxPlanArtifact({
-    network: resolvedNetwork,
-    mode,
+    networkId: resolvedNetwork,
+    mode: mode === "kaspa-node" ? "node" : mode === "kaspa-rpc" ? "rpc" : "simulated",
     rpcUrl,
     from: { input: from, address: fromAddress },
     to: { input: to, address: toAddress },

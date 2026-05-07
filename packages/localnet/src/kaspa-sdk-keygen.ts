@@ -18,13 +18,14 @@ export class KaspaSdkKeyGenerator implements KaspaKeyGenerator {
 
   constructor(options?: KaspaSdkKeyGeneratorOptions) {
     this.networkId = options?.networkId || "simnet";
-    this.sdkLoader = options?.sdkLoader || (async () => {
+    const rawLoader = options?.sdkLoader || (async () => {
+      // @ts-ignore
+      return await import("kaspa");
+    });
+
+    this.sdkLoader = async () => {
       try {
-        // Try to load the official Kaspa WASM SDK
-        // Note: The actual package name might vary depending on installation (e.g. '@kaspa/core-lib' or 'kaspa-wasm')
-        // We attempt a few common ones or fail with a clear message.
-        // @ts-ignore
-        return await import("kaspa"); 
+        return await rawLoader();
       } catch (e) {
         throw new Error(
           "Kaspa SDK key generation dependency is not installed. " +
@@ -32,7 +33,7 @@ export class KaspaSdkKeyGenerator implements KaspaKeyGenerator {
           "Use 'hardkas accounts real import' to add accounts manually for now."
         );
       }
-    });
+    };
   }
 
   async generateAccount(options?: {

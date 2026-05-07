@@ -53,9 +53,9 @@ export interface SignTxPlanInput {
 export interface SignTxPlanResult {
   signatureKind: "simulated" | "kaspa";
   signerAddress?: string;
-  signedTransaction: {
-    encoding: "simulated" | "kaspa-raw";
-    value: string;
+  signedTransaction?: {
+    format: "hex" | "json" | "simulated" | "unknown";
+    payload: string;
   };
   signature?: {
     value: string;

@@ -12,6 +12,8 @@ import {
   RealAccountStore
 } from "../src/real-accounts";
 
+import { ARTIFACT_SCHEMAS } from "@hardkas/artifacts";
+
 describe("Real Account Store", () => {
   let tempDir: string;
   let storePath: string;
@@ -27,7 +29,7 @@ describe("Real Account Store", () => {
 
   it("should create an empty account store", () => {
     const store = createEmptyRealAccountStore();
-    expect(store.version).toBe(1);
+    expect(store.schema).toBe(ARTIFACT_SCHEMAS.REAL_ACCOUNT_STORE);
     expect(store.networkId).toBe("simnet");
     expect(store.accounts).toHaveLength(0);
   });

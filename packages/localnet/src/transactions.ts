@@ -145,8 +145,7 @@ export function applySimulatedPayment(
     changeSompi: changeSompiStr,
     spentUtxoIds,
     createdUtxoIds,
-    daaScore: nextDaaScore,
-    createdAt: new Date().toISOString()
+    daaScore: nextDaaScore
   };
 
   return {

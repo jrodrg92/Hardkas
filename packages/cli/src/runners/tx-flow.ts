@@ -98,7 +98,7 @@ export async function runTxFlow(input: TxFlowInput): Promise<TxFlowResult> {
     });
     
     flowResult.mode = planArtifact.mode;
-    flowResult.network = planArtifact.network;
+    flowResult.network = planArtifact.networkId;
     flowResult.steps.plan = { status: "ok", artifact: planArtifact };
 
     if (outDir) {

@@ -34,9 +34,8 @@ vi.mock("node:fs/promises", async () => {
 
 describe("Real Transaction Send Runner", () => {
   const mockSignedArtifact: artifacts.RealSignedTxArtifact = {
-    kind: "hardkas.realSignedTx",
-    schema: "hardkas.realSignedTx",
-    version: 1,
+    schema: artifacts.ARTIFACT_SCHEMAS.REAL_SIGNED_TX,
+    hardkasVersion: artifacts.HARDKAS_VERSION,
     status: "signed",
     createdAt: new Date().toISOString(),
     signedId: "signed123",

@@ -42,17 +42,17 @@ describe("Real Transaction Sign Runner", () => {
   };
 
   const mockStore: localnet.RealAccountStore = {
-    version: 1,
-    kind: "hardkas.realAccountStore",
+    schema: artifacts.ARTIFACT_SCHEMAS.REAL_ACCOUNT_STORE,
+    hardkasVersion: artifacts.HARDKAS_VERSION,
+    createdAt: new Date().toISOString(),
     networkId: "simnet",
     warning: "test",
     accounts: [mockAccount]
   };
 
   const mockPlan: artifacts.RealTxPlanArtifact = {
-    kind: "hardkas.realTxPlan",
-    schema: "hardkas.realTxPlan",
-    version: 1,
+    schema: artifacts.ARTIFACT_SCHEMAS.REAL_TX_PLAN,
+    hardkasVersion: artifacts.HARDKAS_VERSION,
     status: "built",
     createdAt: new Date().toISOString(),
     planId: "plan123",

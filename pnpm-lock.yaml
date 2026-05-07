@@ -191,6 +191,9 @@ importers:
 
   packages/localnet:
     dependencies:
+      '@hardkas/artifacts':
+        specifier: workspace:*
+        version: link:../artifacts
       '@hardkas/core':
         specifier: workspace:*
         version: link:../core

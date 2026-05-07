@@ -1,8 +1,10 @@
 import { 
   TxPlanArtifact, 
-  SignedTxArtifact, 
+  SignedTxArtifact,
   createSimulatedSignedTxArtifact,
-  hashTxPlanArtifact
+  hashTxPlanArtifact,
+  HARDKAS_VERSION,
+  ARTIFACT_SCHEMAS
 } from "@hardkas/artifacts";
 import { HardkasAccount, HardkasTxPlanSigner, SignTxPlanInput, SignTxPlanResult, HardkasSignerKind, HardkasKaspaPrivateKeyAccount } from "./types.js";
 import { HardkasConfig } from "@hardkas/config";
@@ -24,8 +26,8 @@ export class SimulatedTxPlanSigner implements HardkasTxPlanSigner {
       signatureKind: "simulated",
       signerAddress: plan.from.address,
       signedTransaction: {
-        encoding: "simulated",
-        value: `simulated-signed-tx:${planHash}`
+        format: "hex",
+        payload: `simulated-signed-tx:${planHash}`
       },
       signature: {
         value: `simulated:${input.accountName}:${planHash}`
@@ -78,7 +80,8 @@ export async function signTxPlanArtifact(input: {
   }
 
   // Block mainnet by default for safety
-  if ((planArtifact.network === "mainnet" || planArtifact.network === "kaspa") && !input.allowMainnet) {
+  // Block mainnet by default for safety
+  if ((planArtifact.networkId === "mainnet" || planArtifact.networkId === "kaspa") && !input.allowMainnet) {
      throw new Error("Mainnet signing is disabled by default. Use --allow-mainnet-signing only if you understand the risks.");
   }
 
@@ -108,17 +111,15 @@ export async function signTxPlanArtifact(input: {
     });
 
     return {
-      kind: "hardkas.signedTx",
-      schema: "hardkas.signedTx",
-      version: 1,
+      schema: ARTIFACT_SCHEMAS.SIGNED_TX,
+      hardkasVersion: HARDKAS_VERSION,
       status: "signed",
       createdAt: new Date().toISOString(),
       source: {
-        schema: "hardkas.txPlan",
-        version: 1,
+        schema: ARTIFACT_SCHEMAS.TX_PLAN,
         planHash: hashTxPlanArtifact(planArtifact)
       },
-      network: planArtifact.network,
+      networkId: planArtifact.networkId,
       mode: planArtifact.mode,
       from: planArtifact.from,
       to: planArtifact.to,
@@ -137,13 +138,16 @@ export async function signTxPlanArtifact(input: {
         signerAddress: result.signerAddress,
         value: result.signature?.value || "unknown"
       },
-      signedTransaction: result.signedTransaction,
+      signedTransaction: result.signedTransaction ? {
+        encoding: result.signedTransaction.format === "hex" ? "kaspa-raw" : "unknown",
+        value: result.signedTransaction.payload
+      } : undefined,
       metadata: {
-        hardkasVersion: "0.1.0",
+        hardkasVersion: HARDKAS_VERSION,
         signingBackend: status.name,
         warning: "Broadcast not performed"
       }
-    };
+    } as any;
   }
 
   if (account.kind === "external-wallet") {
