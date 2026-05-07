@@ -79,14 +79,15 @@ export function signedTxArtifactToJson(artifact: SignedTxArtifact): string {
 }
 
 export interface BroadcastableSignedTx {
-  network: string;
-  mode: "kaspa-node" | "kaspa-rpc";
-  rawTransaction: string;
+  readonly network: string;
+  readonly mode: "kaspa-node" | "kaspa-rpc" | "simulated";
+  readonly rawTransaction: string;
 }
 
 /**
  * Extracts and validates a broadcastable transaction from a signed artifact.
- * Throws error if the artifact is simulated or lacks a real raw transaction.
+ * For real networks, it extracts the raw transaction.
+ * For simulated networks, it allows the artifact but returns a placeholder.
  */
 export function getBroadcastableSignedTransaction(
   artifact: SignedTxArtifact
@@ -96,7 +97,11 @@ export function getBroadcastableSignedTransaction(
   }
 
   if (artifact.mode === "simulated") {
-    throw new Error("Simulated signed artifacts cannot be broadcast to a real Kaspa network.");
+    return {
+      network: artifact.network,
+      mode: "simulated",
+      rawTransaction: artifact.signedTransaction?.value || "simulated-tx-placeholder"
+    };
   }
 
   if (artifact.signature.kind !== "kaspa") {

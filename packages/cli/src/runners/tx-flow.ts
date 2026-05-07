@@ -145,8 +145,6 @@ export async function runTxFlow(input: TxFlowInput): Promise<TxFlowResult> {
           flowResult.steps.send = { status: "blocked", reason: "--yes is required to broadcast" };
           flowResult.result = "signed";
           flowResult.ok = false;
-        } else if (planArtifact.mode === "simulated") {
-          flowResult.steps.send = { status: "skipped", reason: "simulated mode has no real broadcast" };
         } else {
           const sendResult = await runTxSend({
             signedArtifact,

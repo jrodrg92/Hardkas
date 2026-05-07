@@ -2,7 +2,15 @@
 
 import { Command } from "commander";
 import { formatSompi, parseKasToSompi, SOMPI_PER_KAS } from "@hardkas/core";
-import { startSimulatedDevnet, resolveAccountAddress, createDeterministicAccounts } from "@hardkas/localnet";
+import { 
+  startSimulatedDevnet, 
+  resolveAccountAddress, 
+  createDeterministicAccounts,
+  loadOrCreateLocalnetState,
+  getDefaultLocalnetStatePath,
+  getAccountBalanceSompi,
+  getAddressBalanceSompi
+} from "@hardkas/localnet";
 import { TxSimulator } from "@hardkas/simulator";
 import { buildPaymentPlan, createMockUtxo } from "@hardkas/tx-builder";
 import { runTxPlan } from "./runners/tx-plan-runner.js";
@@ -257,24 +265,28 @@ program
 
       const initialBalanceSompi = BigInt(options.balance) * SOMPI_PER_KAS;
 
-      const devnet = await startSimulatedDevnet({
+      const localState = await loadOrCreateLocalnetState({
         accounts: accountCount,
         initialBalanceSompi
       });
 
-      console.log("HardKAS simulated devnet");
+      console.log("HardKAS local devnet");
       console.log("");
-      console.log(`Mode:      ${devnet.mode}`);
-      console.log(`RPC:       simulated://local`);
+      console.log(`Mode:      ${localState.mode}`);
+      console.log(`Network:   ${localState.networkId}`);
+      console.log(`State:     ${getDefaultLocalnetStatePath()}`);
+      console.log(`DAA score: ${localState.daaScore}`);
+      console.log("");
       console.log(`Consensus: not running`);
       console.log(`DAG:       not simulated`);
       console.log("");
       console.log("Accounts:");
 
-      for (const account of devnet.accounts) {
+      for (const account of localState.accounts) {
+        const balanceSompi = getAddressBalanceSompi(localState, account.address);
         console.log(
           `  ${account.name.padEnd(8)} ${account.address.padEnd(24)} ${formatSompi(
-            account.balanceSompi
+            balanceSompi
           )}`
         );
       }
@@ -294,23 +306,38 @@ program
   .argument("<address>", "Address or account name")
   .argument("<amount>", "Amount in KAS")
   .action(async (address: string, amount: string) => {
-    const { resolveAccountAddress } = await import("@hardkas/accounts");
-    const { loadHardkasConfig } = await import("@hardkas/config");
+    const { 
+      loadOrCreateLocalnetState, 
+      saveLocalnetState, 
+      fundAddress, 
+      resolveAccountAddressFromState,
+      getAccountBalanceSompi
+    } = await import("@hardkas/localnet");
     
-    const loaded = await loadHardkasConfig();
-    let resolvedAddress: string;
     try {
-      resolvedAddress = resolveAccountAddress(address, loaded.config);
-    } catch (e) {
-      resolvedAddress = address; // Fallback if not found as account
-    }
+      const state = await loadOrCreateLocalnetState();
+      const resolvedAddress = resolveAccountAddressFromState(state, address);
+      const amountSompi = parseKasToSompi(amount);
 
-    console.log(`Funding ${resolvedAddress} (${address}) with ${amount} KAS`);
-    console.log("");
-    console.log("v0.1 note:");
-    console.log(
-      "Persistent localnet state is not implemented yet, so this command is currently a placeholder."
-    );
+      const nextState = fundAddress(state, {
+        address: resolvedAddress,
+        amountSompi
+      });
+
+      await saveLocalnetState(nextState);
+
+      const newBalanceSompi = getAccountBalanceSompi(nextState, resolvedAddress);
+
+      console.log("HardKAS faucet");
+      console.log("");
+      console.log(`Address:     ${resolvedAddress}${address !== resolvedAddress ? ` (${address})` : ""}`);
+      console.log(`Funded:      ${amount} KAS`);
+      console.log(`New balance: ${formatSompi(newBalanceSompi)}`);
+      console.log(`DAA score:   ${nextState.daaScore}`);
+    } catch (e) {
+      console.error(e instanceof Error ? `Error: ${e.message}` : String(e));
+      process.exitCode = 1;
+    }
   });
 
 const tx = program.command("tx").description("Transaction commands");
@@ -439,82 +466,88 @@ tx.command("simulate")
       feeRate: string;
       config?: string;
     }) => {
-      const { resolveAccountAddress } = await import("@hardkas/accounts");
-      const { loadHardkasConfig } = await import("@hardkas/config");
+      const { 
+        loadOrCreateLocalnetState, 
+        resolveAccountAddressFromState,
+        getSpendableUtxos
+      } = await import("@hardkas/localnet");
       const { TxSimulator } = await import("@hardkas/simulator");
 
-      const loaded = await loadHardkasConfig({ configPath: options.config });
-      
-      const fromAddress = resolveAccountAddress(options.from, loaded.config);
-      const toAddress = resolveAccountAddress(options.to, loaded.config);
-      const amountSompi = parseKasToSompi(options.amount);
-      const feeRateSompiPerMass = BigInt(options.feeRate);
+      try {
+        const state = await loadOrCreateLocalnetState();
+        
+        const fromAddress = resolveAccountAddressFromState(state, options.from);
+        const toAddress = resolveAccountAddressFromState(state, options.to);
+        const amountSompi = parseKasToSompi(options.amount);
+        const feeRateSompiPerMass = BigInt(options.feeRate);
 
-      // Simulation mode always uses deterministic accounts
-      const accounts = createDeterministicAccounts();
-      const account = accounts.find(a => a.address === fromAddress);
-      
-      const availableUtxos = account 
-        ? [createMockUtxo({ address: account.address, amountSompi: account.balanceSompi, index: 0 })]
-        : [createMockUtxo({ address: fromAddress, amountSompi: 1000n * SOMPI_PER_KAS, index: 0 })];
-
-      const plan = buildPaymentPlan({
-        fromAddress,
-        outputs: [
-          {
-            address: toAddress,
-            amountSompi
-          }
-        ],
-        availableUtxos,
-        feeRateSompiPerMass
-      });
-
-      const simulator = new TxSimulator();
-      const result = await simulator.simulate([
-        "resolve-account",
-        "resolve-utxos",
-        "select-utxos",
-        "estimate-mass",
-        "estimate-fee",
-        "build",
-        "validate-local"
-      ]);
-
-      if (!result.ok) {
-        console.error("Simulation failed");
-        process.exitCode = 1;
-        return;
-      }
-
-      console.log("Simulation OK");
-      console.log("");
-      console.log(`From:   ${fromAddress} (${options.from})`);
-      console.log(`To:     ${toAddress} (${options.to})`);
-      console.log(`Amount: ${formatSompi(amountSompi)}`);
-      console.log("");
-      console.log("Selected UTXOs:");
-      for (const input of plan.inputs) {
-        console.log(`  - ${input.outpoint.transactionId}:${input.outpoint.index}  ${formatSompi(input.amountSompi)}`);
-      }
-      console.log("");
-      console.log("Outputs:");
-      for (const output of plan.outputs) {
-        console.log(`  - ${output.address.padEnd(24)} ${formatSompi(output.amountSompi)}`);
-      }
-      if (plan.change) {
-        console.log(`  - ${plan.change.address.padEnd(24)} ${formatSompi(plan.change.amountSompi)} change`);
-      }
-      console.log("");
-      console.log(`Estimated mass: ${plan.estimatedMass}`);
-      console.log(`Estimated fee:  ${formatSompi(plan.estimatedFeeSompi)}`);
-      console.log(`Change:         ${plan.change ? formatSompi(plan.change.amountSompi) : "0.00000000 KAS"}`);
-      console.log("");
-      console.log("Trace:");
-      for (const event of result.events) {
-        if (event.type === "phase.completed") {
-          console.log(`✓ ${event.phase}`);
+        const unspent = getSpendableUtxos(state, fromAddress);
+        
+        if (unspent.length === 0) {
+          throw new Error(`No UTXOs found for ${fromAddress} in local state.`);
         }
+
+        const availableUtxos = unspent.map(u => ({
+          outpoint: {
+            transactionId: u.id.split(":")[0],
+            index: Number(u.id.split(":")[2]) || 0
+          },
+          address: u.address,
+          amountSompi: BigInt(u.amountSompi),
+          scriptPublicKey: "mock-script"
+        }));
+
+        const plan = buildPaymentPlan({
+          fromAddress,
+          outputs: [
+            {
+              address: toAddress,
+              amountSompi
+            }
+          ],
+          availableUtxos,
+          feeRateSompiPerMass
+        });
+
+        const simulator = new TxSimulator();
+        const result = await simulator.simulate([
+          "resolve-account",
+          "resolve-utxos",
+          "select-utxos",
+          "estimate-mass",
+          "estimate-fee",
+          "build",
+          "validate-local"
+        ]);
+
+        if (!result.ok) {
+          console.error("Simulation failed");
+          process.exitCode = 1;
+          return;
+        }
+
+        console.log("Simulation OK");
+        console.log("");
+        console.log(`From:   ${fromAddress} (${options.from})`);
+        console.log(`To:     ${toAddress} (${options.to})`);
+        console.log(`Amount: ${formatSompi(amountSompi)}`);
+        console.log("");
+        console.log(`Selected UTXOs: ${plan.inputs.length}`);
+        console.log(`Outputs:        ${plan.outputs.length + (plan.change ? 1 : 0)}`);
+        console.log("");
+        console.log(`Estimated mass: ${plan.estimatedMass}`);
+        console.log(`Estimated fee:  ${formatSompi(plan.estimatedFeeSompi)}`);
+        console.log(`Change:         ${plan.change ? formatSompi(plan.change.amountSompi) : "0.00000000 KAS"}`);
+        console.log("");
+        console.log("Trace:");
+        for (const event of result.events) {
+          if (event.type === "phase.completed") {
+            console.log(`✓ ${event.phase}`);
+          }
+        }
+      } catch (e) {
+        console.error(e instanceof Error ? `Error: ${e.message}` : String(e));
+        process.exitCode = 1;
       }
     }
   );
@@ -815,16 +848,24 @@ txSigned.command("validate")
   });
 
 tx.command("send")
-  .description("Broadcast a signed transaction artifact to the network")
-  .argument("<path>", "Path to signed artifact JSON")
-  .option("--network <name>", "Network name (defaults to artifact network)")
+  .description("Broadcast a signed transaction artifact or send directly in simulated mode")
+  .argument("[path]", "Path to signed artifact JSON")
+  .option("--from <address>", "Sender address or alias")
+  .option("--to <address>", "Recipient address or alias")
+  .option("--amount <kas>", "Amount in KAS")
+  .option("--fee-rate <sompiPerMass>", "Fee rate in sompi per mass", "1")
+  .option("--network <name>", "Network name (defaults to artifact network or simnet)")
   .option("--config <path>", "Path to config file")
   .option("--url <wsUrl>", "Direct RPC WebSocket URL")
   .option("--yes", "Confirm broadcast without prompt", false)
   .option("--json", "Output as JSON", false)
   .option("--allow-mainnet-broadcast", "Allow broadcasting to mainnet (DANGEROUS)", false)
-  .option("--verbose", "Show verbose RPC response", false)
-  .action(async (filePath: string, options: {
+  .option("--verbose", "Show verbose response", false)
+  .action(async (filePath: string | undefined, options: {
+    from?: string;
+    to?: string;
+    amount?: string;
+    feeRate: string;
     network?: string;
     config?: string;
     url?: string;
@@ -837,59 +878,146 @@ tx.command("send")
     const { loadHardkasConfig } = await import("@hardkas/config");
 
     try {
-      const artifact = await readSignedTxArtifact(filePath);
       const loaded = await loadHardkasConfig({ configPath: options.config });
 
-      if (!options.yes) {
-        const broadcastable = getBroadcastableSignedTransaction(artifact);
-        console.log("This will broadcast a signed Kaspa transaction.");
-        console.log("");
-        console.log(`Artifact: ${filePath}`);
-        console.log(`Network:  ${options.network || broadcastable.network}`);
-        console.log(`Mode:     ${artifact.mode}`);
-        console.log("");
-        console.log(`From:     ${artifact.from.address} (${artifact.from.input})`);
-        console.log(`To:       ${artifact.to.address} (${artifact.to.input})`);
-        console.log(`Amount:   ${artifact.amount}`);
-        console.log(`Fee:      ${artifact.estimatedFee}`);
-        console.log("");
-        console.log("Re-run with --yes to broadcast.");
-        return;
-      }
+      // Case A: Broadcast from artifact
+      if (filePath) {
+        const artifact = await readSignedTxArtifact(filePath);
 
-      const result = await runTxSend({
-        signedArtifact: artifact,
-        network: options.network,
-        config: loaded.config,
-        url: options.url,
-        allowMainnetBroadcast: options.allowMainnetBroadcast
-      });
-
-      if (options.json) {
-        console.log(JSON.stringify({
-          ok: true,
-          artifact: filePath,
-          network: result.networkName,
-          rpcUrl: result.rpcUrl,
-          accepted: result.accepted,
-          transactionId: result.transactionId,
-          raw: options.verbose ? result.rawResponse : undefined
-        }, bigIntReplacer, 2));
-      } else {
-        console.log("Kaspa transaction broadcast");
-        console.log("");
-        console.log(`Artifact: ${filePath}`);
-        console.log(`Network:  ${result.networkName}`);
-        console.log(`RPC:      ${result.rpcUrl}`);
-        console.log("");
-        console.log(`Accepted: ${result.accepted ? "yes" : "no"}`);
-        console.log(`Tx ID:    ${result.transactionId || "unknown"}`);
-        
-        if (options.verbose && result.rawResponse) {
+        if (!options.yes) {
+          const broadcastable = getBroadcastableSignedTransaction(artifact);
+          console.log("This will broadcast a signed Kaspa transaction.");
           console.log("");
-          console.log("Raw Response:");
-          console.log(JSON.stringify(result.rawResponse, null, 2));
+          console.log(`Artifact: ${filePath}`);
+          console.log(`Network:  ${options.network || broadcastable.network}`);
+          console.log(`Mode:     ${artifact.mode}`);
+          console.log("");
+          console.log(`From:     ${artifact.from.address} (${artifact.from.input})`);
+          console.log(`To:       ${artifact.to.address} (${artifact.to.input})`);
+          console.log(`Amount:   ${artifact.amount}`);
+          console.log(`Fee:      ${artifact.estimatedFee}`);
+          console.log("");
+          console.log("Re-run with --yes to broadcast.");
+          return;
         }
+
+        const result = await runTxSend({
+          signedArtifact: artifact,
+          network: options.network,
+          config: loaded.config,
+          url: options.url,
+          allowMainnetBroadcast: options.allowMainnetBroadcast
+        });
+
+        if (options.json) {
+          console.log(JSON.stringify({
+            ok: true,
+            artifact: filePath,
+            network: result.networkName,
+            rpcUrl: result.rpcUrl,
+            accepted: result.accepted,
+            transactionId: result.transactionId,
+            raw: options.verbose ? result.rawResponse : undefined
+          }, bigIntReplacer, 2));
+        } else {
+          if (result.rpcUrl === "simulated://local") {
+             console.log("Transaction sent in simulated localnet");
+          } else {
+             console.log("Kaspa transaction broadcast");
+          }
+          console.log("");
+          console.log(`Artifact: ${filePath}`);
+          console.log(`Network:  ${result.networkName}`);
+          console.log(`RPC:      ${result.rpcUrl}`);
+          console.log("");
+          console.log(`Accepted: ${result.accepted ? "yes" : "no"}`);
+          console.log(`Tx ID:    ${result.transactionId || "unknown"}`);
+          
+          if (result.rpcUrl === "simulated://local" && result.rawResponse) {
+             const receipt = result.rawResponse;
+             console.log(`Amount:    ${formatSompi(BigInt(receipt.amountSompi))}`);
+             console.log(`Fee:       ${formatSompi(BigInt(receipt.feeSompi))}`);
+             if (receipt.changeSompi) console.log(`Change:    ${formatSompi(BigInt(receipt.changeSompi))}`);
+             console.log(`DAA score: ${receipt.daaScore}`);
+              if (receipt.receiptPath || receipt.tracePath) {
+                 console.log("");
+                 console.log("Artifacts:");
+                 if (receipt.receiptPath) console.log(`  Receipt: ${receipt.receiptPath}`);
+                 if (receipt.tracePath) console.log(`  Trace:   ${receipt.tracePath}`);
+              }
+           }
+
+          if (options.verbose && result.rawResponse) {
+            console.log("");
+            console.log("Raw Response:");
+            console.log(JSON.stringify(result.rawResponse, null, 2));
+          }
+        }
+      } 
+      // Case B: Direct send (only for simulated/local flows usually, or as a shortcut for tx flow)
+      else if (options.from && options.to && options.amount) {
+        const result = await runTxFlow({
+          from: options.from,
+          to: options.to,
+          amount: options.amount,
+          feeRate: options.feeRate,
+          network: options.network,
+          config: loaded.config,
+          url: options.url,
+          send: true,
+          yes: options.yes,
+          allowMainnetBroadcast: options.allowMainnetBroadcast
+        });
+
+        if (options.json) {
+          console.log(JSON.stringify(result, bigIntReplacer, 2));
+          if (!result.ok) process.exitCode = 1;
+          return;
+        }
+
+        if (!result.ok) {
+          console.error(`Transaction failed: ${result.result}`);
+          if (result.steps.plan.error) console.error(`Plan Error: ${result.steps.plan.error}`);
+          if (result.steps.sign.error) console.error(`Sign Error: ${result.steps.sign.error}`);
+          if (result.steps.send.error) console.error(`Send Error: ${result.steps.send.error}`);
+          process.exitCode = 1;
+          return;
+        }
+
+        const sendResult = result.steps.send.artifact!;
+        if (sendResult.rpcUrl === "simulated://local") {
+           console.log("Transaction sent in simulated localnet");
+        } else {
+           console.log("Kaspa transaction broadcast");
+        }
+        console.log("");
+        console.log(`Network:   ${sendResult.networkName}`);
+        console.log(`From:      ${options.from}`);
+        console.log(`To:        ${options.to}`);
+        console.log(`Amount:    ${options.amount} KAS`);
+        console.log(`Accepted:  ${sendResult.accepted ? "yes" : "no"}`);
+        console.log(`Tx ID:     ${sendResult.transactionId || "unknown"}`);
+
+        if (sendResult.rpcUrl === "simulated://local" && sendResult.rawResponse) {
+          const receipt = sendResult.rawResponse;
+          console.log(`Fee:       ${formatSompi(BigInt(receipt.feeSompi))}`);
+          if (receipt.changeSompi) console.log(`Change:    ${formatSompi(BigInt(receipt.changeSompi))}`);
+          console.log(`DAA score: ${receipt.daaScore}`);
+          console.log("");
+          console.log("State updated:");
+          console.log(`  Spent UTXOs:   ${receipt.spentUtxoIds.length}`);
+          console.log(`  Created UTXOs: ${receipt.createdUtxoIds.length}`);
+          
+          if (receipt.receiptPath || receipt.tracePath) {
+             console.log("");
+             console.log("Artifacts:");
+             if (receipt.receiptPath) console.log(`  Receipt: ${receipt.receiptPath}`);
+             if (receipt.tracePath) console.log(`  Trace:   ${receipt.tracePath}`);
+          }
+        }
+      } else {
+        console.error("Provide a path to a signed artifact OR --from, --to, and --amount.");
+        process.exitCode = 1;
       }
 
     } catch (e) {
@@ -1423,10 +1551,9 @@ program
       resolvedNetwork = name;
 
       if (target.kind === "simulated") {
-         const { createDeterministicAccounts } = await import("@hardkas/localnet");
-         const detAccounts = createDeterministicAccounts();
-         const det = detAccounts.find(a => a.address === address);
-         balanceSompi = det ? det.balanceSompi : 0n;
+         const { loadOrCreateLocalnetState, getAddressBalanceSompi } = await import("@hardkas/localnet");
+         const localState = await loadOrCreateLocalnetState();
+         balanceSompi = getAddressBalanceSompi(localState, address);
          mode = "simulated";
       } else if (target.kind === "kaspa-node" || target.kind === "kaspa-rpc") {
          const { JsonWrpcKaspaClient } = await import("@hardkas/kaspa-rpc");
@@ -1521,17 +1648,19 @@ utxoCmd.command("list")
       resolvedNetwork = name;
 
       if (target.kind === "simulated") {
-         const { createDeterministicAccounts } = await import("@hardkas/localnet");
-         const { createMockUtxo } = await import("@hardkas/tx-builder");
-         const detAccounts = createDeterministicAccounts();
-         const det = detAccounts.find(a => a.address === address);
-         if (det) {
-           utxos = [{
-             outpoint: { transactionId: `mock-${det.address}-0`, index: 0 },
-             address: det.address,
-             amountSompi: det.balanceSompi
-           }];
-         }
+         const { loadOrCreateLocalnetState, getSpendableUtxos } = await import("@hardkas/localnet");
+         const localState = await loadOrCreateLocalnetState();
+         const unspent = getSpendableUtxos(localState, address);
+         
+         utxos = unspent.map(u => ({
+           outpoint: { 
+             transactionId: u.id.split(":")[0], 
+             index: Number(u.id.split(":")[2]) || 0 
+           },
+           address: u.address,
+           amountSompi: BigInt(u.amountSompi),
+           raw: u
+         }));
          mode = "simulated";
       } else if (target.kind === "kaspa-node" || target.kind === "kaspa-rpc") {
          const { JsonWrpcKaspaClient } = await import("@hardkas/kaspa-rpc");
@@ -1610,6 +1739,109 @@ utxoCmd.command("list")
     console.log("");
     console.log(`Total: ${formatSompi(totalSompi)}`);
     console.log(`Count: ${utxos.length}`);
+  });
+
+const localnetCmd = program.command("localnet").description("Manage local simulated network state");
+
+localnetCmd.command("reset")
+  .description("Reset the local simulated network to initial state")
+  .option("--accounts <count>", "Number of deterministic accounts", "5")
+  .option("--balance <kas>", "Initial account balance in KAS", "1000")
+  .action(async (options: { accounts: string, balance: string }) => {
+    const { resetLocalnetState, getDefaultLocalnetStatePath } = await import("@hardkas/localnet");
+    const accountCount = Number.parseInt(options.accounts, 10);
+    const initialBalanceSompi = BigInt(options.balance) * SOMPI_PER_KAS;
+
+    await resetLocalnetState({
+      accounts: accountCount,
+      initialBalanceSompi
+    });
+
+    console.log("Localnet state reset");
+    console.log(`State: ${getDefaultLocalnetStatePath()}`);
+  });
+
+localnetCmd.command("status")
+  .description("Show status of the local simulated network")
+  .action(async () => {
+    const { loadLocalnetState, getDefaultLocalnetStatePath, getAddressBalanceSompi } = await import("@hardkas/localnet");
+    const path = getDefaultLocalnetStatePath();
+    const state = await loadLocalnetState();
+
+    if (!state) {
+      console.log("Localnet state not initialized.");
+      console.log(`Run 'hardkas localnet reset' or 'hardkas dev' to initialize at: ${path}`);
+      return;
+    }
+
+    const unspent = state.utxos.filter(u => !u.spent);
+
+    console.log("HardKAS localnet status");
+    console.log("");
+    console.log(`Mode:           ${state.mode}`);
+    console.log(`Network:        ${state.networkId}`);
+    console.log(`DAA score:      ${state.daaScore}`);
+    console.log(`Accounts:       ${state.accounts.length}`);
+    console.log(`Total UTXOs:    ${state.utxos.length}`);
+    console.log(`Unspent UTXOs:  ${unspent.length}`);
+    console.log(`Snapshots:      ${(state.snapshots || []).length}`);
+    console.log(`State file:     ${path}`);
+  });
+
+localnetCmd.command("snapshot")
+  .description("Create a point-in-time snapshot of the local network state")
+  .argument("[name]", "Optional snapshot name")
+  .action(async (name?: string) => {
+    const { loadOrCreateLocalnetState, saveLocalnetState, createLocalnetSnapshot } = await import("@hardkas/localnet");
+    const state = await loadOrCreateLocalnetState();
+    const nextState = createLocalnetSnapshot(state, name);
+    await saveLocalnetState(nextState);
+    const snap = nextState.snapshots![nextState.snapshots!.length - 1];
+    console.log(`Snapshot created: ${snap.id}${name ? ` (${name})` : ""}`);
+  });
+
+localnetCmd.command("restore")
+  .description("Restore the local network to a previous snapshot")
+  .argument("<idOrName>", "Snapshot ID or name")
+  .action(async (idOrName: string) => {
+    const { loadLocalnetState, saveLocalnetState, restoreLocalnetSnapshot } = await import("@hardkas/localnet");
+    const state = await loadLocalnetState();
+    if (!state) {
+      console.error("Localnet state not found.");
+      process.exitCode = 1;
+      return;
+    }
+
+    try {
+      const nextState = restoreLocalnetSnapshot(state, idOrName);
+      await saveLocalnetState(nextState);
+      console.log(`State restored to snapshot: ${idOrName}`);
+      console.log(`DAA score: ${nextState.daaScore}`);
+    } catch (e) {
+      console.error(e instanceof Error ? e.message : String(e));
+      process.exitCode = 1;
+    }
+  });
+
+// Update accounts command to support showing balances from localnet state
+accountsCmd
+  .action(async (options: any) => {
+    const { loadOrCreateLocalnetState, getAddressBalanceSompi } = await import("@hardkas/localnet");
+    const state = await loadOrCreateLocalnetState();
+    
+    console.log("HardKAS local accounts");
+    console.log("");
+    console.log(`State: ${getDefaultLocalnetStatePath()}`);
+    console.log("");
+
+    for (const account of state.accounts) {
+      const balanceSompi = getAddressBalanceSompi(state, account.address);
+      console.log(
+        `  ${account.name.padEnd(8)} ${account.address.padEnd(24)} ${formatSompi(
+          balanceSompi
+        )}`
+      );
+    }
   });
 
 program

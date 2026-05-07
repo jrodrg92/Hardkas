@@ -6,4 +6,13 @@ dist
 coverage
 .DS_Store
 *.log
-.hardkas
+.hardkas/
+plans/
+signed/
+runs/
+*.local.json
+*.plan.local.json
+*.signed.local.json
+.env
+.env.local
+.env.*

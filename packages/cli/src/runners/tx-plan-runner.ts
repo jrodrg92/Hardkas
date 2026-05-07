@@ -48,12 +48,20 @@ export async function runTxPlan(input: TxPlanRunnerInput): Promise<TxPlanArtifac
     resolvedNetwork = name;
 
     if (target.kind === "simulated") {
-      const { createDeterministicAccounts } = await import("@hardkas/localnet");
-      const detAccounts = createDeterministicAccounts();
-      const det = detAccounts.find(a => a.address === fromAddress);
-      if (det) {
-        availableUtxos = [createMockUtxo({ address: det.address, amountSompi: det.balanceSompi, index: 0 })];
-      }
+      const { loadOrCreateLocalnetState, getSpendableUtxos } = await import("@hardkas/localnet");
+      const localState = await loadOrCreateLocalnetState();
+      const unspent = getSpendableUtxos(localState, fromAddress);
+      
+      availableUtxos = unspent.map(u => ({
+        outpoint: {
+          transactionId: u.id.split(":")[0],
+          index: Number(u.id.split(":")[2]) || 0
+        },
+        address: u.address,
+        amountSompi: BigInt(u.amountSompi),
+        scriptPublicKey: "mock-script"
+      }));
+
       mode = "simulated";
     } else if (target.kind === "kaspa-node" || target.kind === "kaspa-rpc") {
       const { JsonWrpcKaspaClient } = await import("@hardkas/kaspa-rpc");

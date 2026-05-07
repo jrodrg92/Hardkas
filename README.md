@@ -180,8 +180,38 @@ hardkas balance alice
 hardkas utxo list alice
 ```
 
-- **Simulated Mode**: Queries the local in-memory state.
+- **Simulated Mode**: Queries the local state (usually `.hardkas/localnet.json`).
 - **Real Mode**: Connects to a Kaspa node via wRPC JSON.
+
+## Simulated localnet send
+
+In simulated mode (`simnet`), HardKAS supports persistent state mutation. This allows you to simulate a real network where transactions actually change account balances and move UTXOs.
+
+```bash
+# Reset the network state
+hardkas localnet reset
+
+# Check initial balances
+hardkas balance alice
+hardkas balance bob
+
+# Simulate a transaction (read-only, does NOT change balances)
+hardkas tx simulate --from alice --to bob --amount 1
+
+# Send a transaction (state-mutating, UPDATES balances)
+hardkas tx send --from alice --to bob --amount 1 --yes
+
+# Verify updated balances
+hardkas balance alice
+hardkas balance bob
+
+# Check network status (DAA score and UTXOs)
+hardkas localnet status
+```
+
+- **tx simulate**: Only plans and traces the transaction. It is safe and does not modify the state.
+- **tx send**: In simulated mode, it applies the transaction plan to `.hardkas/localnet.json`, spending inputs, creating new outputs (including change), and advancing the DAA score.
+- **Persistence**: All state changes are saved to disk, so you can restart your development session and keep your balances.
 
 ## Transaction planning
 
