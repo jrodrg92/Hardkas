@@ -8,3 +8,6 @@ export * from "./signer-backend";
 export * from "./kaspa-wasm-signer";
 export * from "./real-signer";
 export * from "./kaspa-sdk-real-signer";
+export * from "./real-accounts";
+export * from "./real-keygen";
+export * from "./kaspa-sdk-keygen";

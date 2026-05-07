@@ -1,6 +1,11 @@
 import type { HardkasConfig } from "@hardkas/config";
 import { createDeterministicAccounts } from "@hardkas/localnet";
-import type { HardkasAccount, HardkasAccountKind } from "./types";
+import type { HardkasAccount } from "./types";
+import { 
+  loadRealAccountStoreSync, 
+  getRealDevAccount, 
+  listRealDevAccounts 
+} from "./real-accounts";
 
 export interface ResolveAccountOptions {
   nameOrAddress: string;
@@ -12,8 +17,8 @@ export function resolveHardkasAccount(
 ): HardkasAccount {
   const { nameOrAddress, config } = options;
 
-  // 1. If it starts with "kaspa:", it's a direct address
-  if (nameOrAddress.startsWith("kaspa:")) {
+  // 1. If it starts with "kaspa:", "kaspatest:", "kaspasim:", it's a direct address
+  if (nameOrAddress.startsWith("kaspa:") || nameOrAddress.startsWith("kaspatest:") || nameOrAddress.startsWith("kaspasim:")) {
     return {
       name: nameOrAddress,
       kind: "external-wallet",
@@ -30,7 +35,18 @@ export function resolveHardkasAccount(
     } as HardkasAccount;
   }
 
-  // 3. Fallback to deterministic accounts
+  // 3. Check real account store
+  const realStore = loadRealAccountStoreSync();
+  const realAcc = realStore ? getRealDevAccount(realStore, nameOrAddress) : null;
+  if (realAcc) {
+    return {
+      name: realAcc.name,
+      kind: "kaspa-private-key", // Assuming Kaspa for now, could be extensible
+      address: realAcc.address
+    };
+  }
+
+  // 4. Fallback to deterministic accounts
   const detAccounts = createDeterministicAccounts();
   const det = detAccounts.find(a => a.name === nameOrAddress);
   if (det) {
@@ -41,7 +57,7 @@ export function resolveHardkasAccount(
     };
   }
 
-  // 4. Not found
+  // 5. Not found
   const available = listHardkasAccounts(config).map(a => a.name).join(", ");
   throw new Error(`Unknown HardKAS account '${nameOrAddress}'. Available accounts: ${available}`);
 }
@@ -57,6 +73,18 @@ export function listHardkasAccounts(config?: HardkasConfig): HardkasAccount[] {
       kind: "simulated",
       address: det.address
     });
+  }
+
+  // Add from real account store
+  const realStore = loadRealAccountStoreSync();
+  if (realStore) {
+    for (const realAcc of listRealDevAccounts(realStore)) {
+      accounts.set(realAcc.name, {
+        name: realAcc.name,
+        kind: "kaspa-private-key",
+        address: realAcc.address
+      });
+    }
   }
 
   // Override/Add from config
@@ -76,7 +104,7 @@ export function resolveAccountAddress(
   accountOrAddress: string,
   config?: HardkasConfig
 ): string {
-  if (accountOrAddress.startsWith("kaspa:")) {
+  if (accountOrAddress.startsWith("kaspa:") || accountOrAddress.startsWith("kaspatest:") || accountOrAddress.startsWith("kaspasim:")) {
     return accountOrAddress;
   }
 

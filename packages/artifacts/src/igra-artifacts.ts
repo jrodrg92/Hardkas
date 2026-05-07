@@ -20,6 +20,7 @@ export interface IgraTxPlanArtifact {
   readonly planId: string;
   readonly l2Network: string;
   readonly chainId: number;
+  readonly txType?: "call" | "contract-deploy";
   readonly request: IgraTxRequestArtifact;
   readonly estimatedGas?: string;
   readonly estimatedFeeWei?: string;
@@ -80,7 +81,13 @@ export function validateIgraTxPlanArtifact(value: unknown): ArtifactValidationRe
   } else {
     const r = v.request;
     if (r.from) assertEvmAddress(r.from, "request.from", errors);
-    if (r.to) assertEvmAddress(r.to, "request.to", errors);
+    if (v.txType === "contract-deploy") {
+      if (r.to !== undefined && r.to !== null) {
+        errors.push("request.to must be empty for contract-deploy");
+      }
+    } else {
+      if (r.to) assertEvmAddress(r.to, "request.to", errors);
+    }
     assertHexData(r.data, "request.data", errors);
     assertDecimalBigIntString(r.valueWei, "request.valueWei", errors);
     if (r.gasLimit) assertDecimalBigIntString(r.gasLimit, "request.gasLimit", errors);
@@ -186,4 +193,8 @@ export function createIgraPlanId(): string {
 
 export function createIgraSignedId(): string {
   return `igra-signed-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+}
+
+export function createIgraDeployPlanId(): string {
+  return `igradeploy_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
 }

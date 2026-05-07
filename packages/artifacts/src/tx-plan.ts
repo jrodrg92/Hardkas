@@ -25,7 +25,7 @@ export function createTxPlanArtifact(input: CreateTxPlanArtifactInput): TxPlanAr
   const artifact: TxPlanArtifact = {
     schema: ARTIFACT_SCHEMAS.TX_PLAN,
     hardkasVersion: HARDKAS_VERSION,
-    status: "unsigned",
+    status: "built", // Changed from "unsigned" to "built" to match new types
     createdAt: new Date().toISOString(),
     networkId: input.networkId,
     mode: input.mode,
@@ -36,35 +36,29 @@ export function createTxPlanArtifact(input: CreateTxPlanArtifactInput): TxPlanAr
     amountSompi: input.amountSompi.toString(),
     amount: formatSompi(input.amountSompi),
     selectedUtxos: input.plan.inputs.map(utxo => ({
-      id: `${utxo.outpoint.transactionId}:${utxo.outpoint.index}`,
+      outpoint: {
+        transactionId: utxo.outpoint.transactionId,
+        index: utxo.outpoint.index
+      },
       address: utxo.address,
       amountSompi: utxo.amountSompi.toString(),
-      amount: formatSompi(utxo.amountSompi),
-      txId: utxo.outpoint.transactionId,
-      outputIndex: utxo.outpoint.index,
       scriptPublicKey: utxo.scriptPublicKey
     })),
-    outputs: [
-      ...input.plan.outputs.map(output => ({
-        kind: "payment",
-        address: output.address,
-        amountSompi: output.amountSompi.toString(),
-        amount: formatSompi(output.amountSompi),
-        script: output.scriptPublicKey
-      })),
-      ...(input.plan.change ? [{
-        kind: "change",
-        address: input.plan.change.address,
-        amountSompi: input.plan.change.amountSompi.toString(),
-        amount: formatSompi(input.plan.change.amountSompi),
-        script: input.plan.change.scriptPublicKey
-      }] : [])
-    ],
+    outputs: input.plan.outputs.map(output => ({
+      address: output.address,
+      amountSompi: output.amountSompi.toString(),
+      amount: formatSompi(output.amountSompi),
+      script: output.scriptPublicKey
+    })),
+    change: input.plan.change ? {
+      address: input.plan.change.address,
+      amountSompi: input.plan.change.amountSompi.toString(),
+      amount: formatSompi(input.plan.change.amountSompi),
+      script: input.plan.change.scriptPublicKey
+    } : undefined,
     estimatedMass: input.plan.estimatedMass.toString(),
     estimatedFeeSompi: input.plan.estimatedFeeSompi.toString(),
     estimatedFee: formatSompi(input.plan.estimatedFeeSompi),
-    changeSompi: input.plan.change ? input.plan.change.amountSompi.toString() : "0",
-    change: input.plan.change ? formatSompi(input.plan.change.amountSompi) : "0.00000000 KAS",
     metadata: input.metadata
   };
 
@@ -78,7 +72,6 @@ export function txPlanArtifactToJson(artifact: TxPlanArtifact): string {
 
 /**
  * Generates a stable SHA-256 hash of a TxPlanArtifact.
- * This is used to link signed artifacts to their source plans.
  */
 export function hashTxPlanArtifact(artifact: TxPlanArtifact): string {
   const stable = stableStringify(artifact);
@@ -91,13 +84,6 @@ function stableStringify(val: any): string {
   }
 
   const sortedKeys = Object.keys(val).sort();
-  const obj: Record<string, any> = {};
-  for (const key of sortedKeys) {
-    if (val[key] !== undefined) {
-      obj[key] = val[key];
-    }
-  }
-
   return "{" + sortedKeys
     .filter(k => val[k] !== undefined)
     .map(k => `"${k}":${stableStringify(val[k])}`)

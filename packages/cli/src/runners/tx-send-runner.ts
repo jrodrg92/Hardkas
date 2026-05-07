@@ -1,6 +1,7 @@
 import { 
   getBroadcastableSignedTransaction, 
   SignedTxArtifact,
+  TxReceiptArtifact,
   HARDKAS_VERSION,
   ARTIFACT_SCHEMAS
 } from "@hardkas/artifacts";
@@ -9,8 +10,7 @@ import {
   HardkasConfig 
 } from "@hardkas/config";
 import { 
-  JsonWrpcKaspaClient, 
-  KaspaSubmitTransactionResult 
+  JsonWrpcKaspaClient
 } from "@hardkas/kaspa-rpc";
 import { 
   loadOrCreateLocalnetState, 
@@ -20,7 +20,6 @@ import {
   saveSimulatedTrace,
   StoredTraceEvent
 } from "@hardkas/localnet";
-import { parseKasToSompi } from "@hardkas/core";
 import { assertBroadcastNetworkAllowed } from "../broadcast-guard.js";
 
 export interface TxSendRunnerInput {
@@ -32,117 +31,124 @@ export interface TxSendRunnerInput {
 
 export interface TxSendRunnerResult {
   accepted: boolean;
-  transactionId?: string;
+  txId: string;
   rpcUrl: string;
   networkName: string;
-  rawResponse?: any;
+  receipt: TxReceiptArtifact;
+  receiptPath?: string;
+  formatted: string;
 }
 
 /**
- * Reusable logic for transaction broadcasting.
+ * Reusable logic for transaction broadcasting (Unified L1).
  */
 export async function runTxSend(input: TxSendRunnerInput): Promise<TxSendRunnerResult> {
   const { signedArtifact, network, config, url } = input;
   
   const broadcastable = getBroadcastableSignedTransaction(signedArtifact);
-  const networkName = network || broadcastable.networkId;
+  const networkName = network || signedArtifact.networkId;
   const { name: resolvedName, target } = resolveNetworkTarget({ network: networkName, config });
 
-  // Security Guards
+  // 1. Simulated Mode
   if (target.kind === "simulated") {
-    // Phase 12: Simulated state mutation
     const state = await loadOrCreateLocalnetState();
     
-    // Phase 13: Tracing initialization
     const startTime = Date.now();
     const events: StoredTraceEvent[] = [
-      { type: "phase.started", phase: "resolve-account", timestamp: startTime },
-      { type: "phase.completed", phase: "resolve-account", timestamp: Date.now() },
-      { type: "phase.started", phase: "resolve-utxos", timestamp: Date.now() },
-      { type: "phase.completed", phase: "resolve-utxos", timestamp: Date.now() },
-      { type: "phase.started", phase: "select-utxos", timestamp: Date.now() },
-      { type: "phase.completed", phase: "select-utxos", timestamp: Date.now() },
-      { type: "phase.started", phase: "estimate-mass", timestamp: Date.now() },
-      { type: "phase.completed", phase: "estimate-mass", timestamp: Date.now() },
-      { type: "phase.started", phase: "estimate-fee", timestamp: Date.now() },
-      { type: "phase.completed", phase: "estimate-fee", timestamp: Date.now() },
-      { type: "phase.started", phase: "build", timestamp: Date.now() },
-      { type: "phase.completed", phase: "build", timestamp: Date.now() },
-      { type: "phase.started", phase: "send", timestamp: Date.now() },
+      { type: "phase.started", phase: "send", timestamp: startTime },
     ];
 
-    // We use the information from the artifact to apply the payment
-    const result = applySimulatedPayment(state, {
+    const simResult = applySimulatedPayment(state, {
       from: signedArtifact.from.input || signedArtifact.from.address,
       to: signedArtifact.to.input || signedArtifact.to.address,
       amountSompi: BigInt(signedArtifact.amountSompi),
     });
 
     events.push({ type: "phase.completed", phase: "send", timestamp: Date.now() });
-    events.push({ type: "phase.started", phase: "apply-state", timestamp: Date.now() });
-    
-    // Apply state logic is already handled by applySimulatedPayment above
-    events.push({ type: "phase.completed", phase: "apply-state", timestamp: Date.now() });
-    events.push({ type: "phase.started", phase: "save-state", timestamp: Date.now() });
 
-    await saveLocalnetState(result.state);
-    
-    events.push({ type: "phase.completed", phase: "save-state", timestamp: Date.now() });
-    events.push({ type: "phase.started", phase: "save-receipt", timestamp: Date.now() });
+    await saveLocalnetState(simResult.state);
+    const receiptPath = await saveSimulatedReceipt(simResult.receipt);
 
-    const receiptPath = await saveSimulatedReceipt(result.receipt);
-    
-    events.push({ type: "phase.completed", phase: "save-receipt", timestamp: Date.now() });
-    events.push({ type: "phase.started", phase: "save-trace", timestamp: Date.now() });
-    events.push({ type: "phase.completed", phase: "save-trace", timestamp: Date.now() });
+    // Create unified receipt
+    const receipt: TxReceiptArtifact = {
+      schema: ARTIFACT_SCHEMAS.TX_RECEIPT,
+      hardkasVersion: HARDKAS_VERSION,
+      networkId: resolvedName,
+      mode: "simulated",
+      createdAt: new Date().toISOString(),
+      status: "confirmed",
+      txId: simResult.receipt.txId,
+      sourceSignedId: signedArtifact.signedId,
+      amountSompi: signedArtifact.amountSompi,
+      feeSompi: simResult.receipt.feeSompi,
+      daaScore: simResult.receipt.daaScore.toString(),
+      submittedAt: simResult.receipt.createdAt,
+      confirmedAt: simResult.receipt.createdAt,
+      rpcUrl: "simulated://local",
+      receiptPath
+    };
 
     const tracePath = await saveSimulatedTrace({
-      schema: ARTIFACT_SCHEMAS.SIMULATED_TX_TRACE,
+      schema: ARTIFACT_SCHEMAS.TX_TRACE,
       hardkasVersion: HARDKAS_VERSION,
-      createdAt: result.receipt.createdAt,
-      txId: result.receipt.txId,
+      createdAt: receipt.createdAt,
+      txId: receipt.txId,
       mode: "simulated",
-      networkId: "simnet",
+      networkId: resolvedName,
       events,
       receiptPath
     });
 
+    receipt.tracePath = tracePath;
+
     return {
       accepted: true,
-      transactionId: result.receipt.txId,
-      rpcUrl: "simulated://local",
+      txId: receipt.txId,
+      rpcUrl: receipt.rpcUrl,
       networkName: resolvedName,
-      rawResponse: {
-        ...result.receipt,
-        receiptPath,
-        tracePath
-      }
+      receipt,
+      receiptPath,
+      formatted: `Transaction sent in simulated localnet\nTx ID: ${receipt.txId}\nReceipt: ${receiptPath}`
     };
   }
 
-  if (target.kind === "igra") {
-    throw new Error(`Network '${networkName}' targets Igra L2. Use future Igra commands, not Kaspa L1 tx send.`);
-  }
-
+  // 2. Real Mode (Node/RPC)
   assertBroadcastNetworkAllowed({
-    artifactNetworkId: broadcastable.networkId,
+    artifactNetworkId: signedArtifact.networkId,
     selectedNetwork: networkName
   });
 
   const rpcUrl = url || target.rpcUrl;
-  if (!rpcUrl) {
-    throw new Error(`No RPC URL found for network '${networkName}'.`);
-  }
+  if (!rpcUrl) throw new Error(`No RPC URL found for network '${networkName}'.`);
 
   const client = new JsonWrpcKaspaClient({ rpcUrl });
   try {
     const result = await client.submitTransaction(broadcastable.rawTransaction);
+    
+    const receipt: TxReceiptArtifact = {
+      schema: ARTIFACT_SCHEMAS.TX_RECEIPT,
+      hardkasVersion: HARDKAS_VERSION,
+      networkId: resolvedName,
+      mode: target.kind === "kaspa-node" ? "node" : "rpc",
+      createdAt: new Date().toISOString(),
+      status: result.accepted ? "submitted" : "failed",
+      txId: result.transactionId || "failed",
+      sourceSignedId: signedArtifact.signedId,
+      amountSompi: signedArtifact.amountSompi,
+      feeSompi: signedArtifact.metadata?.estimatedFeeSompi || "0",
+      submittedAt: new Date().toISOString(),
+      rpcUrl
+    };
+
     return {
       accepted: !!result.accepted,
-      transactionId: result.transactionId,
+      txId: receipt.txId,
       rpcUrl,
-      networkName,
-      rawResponse: result.raw
+      networkName: resolvedName,
+      receipt,
+      formatted: result.accepted 
+        ? `Kaspa transaction broadcast\nNetwork: ${resolvedName}\nTx ID:   ${receipt.txId}`
+        : `Transaction failed: ${JSON.stringify(result.raw)}`
     };
   } finally {
     await client.close();

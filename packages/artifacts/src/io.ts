@@ -1,7 +1,11 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { assertValidTxPlanArtifact, assertValidSignedTxArtifact } from "./validate.js";
-import type { TxPlanArtifact, SignedTxArtifact } from "./types.js";
+import { 
+  assertValidTxPlanArtifact, 
+  assertValidSignedTxArtifact, 
+  assertValidTxReceiptArtifact 
+} from "./validate.js";
+import type { TxPlanArtifact, SignedTxArtifact, TxReceiptArtifact } from "./types.js";
 
 export const bigIntReplacer = (_key: string, value: any) => 
   typeof value === "bigint" ? value.toString() : value;
@@ -42,5 +46,11 @@ export async function readTxPlanArtifact(filePath: string): Promise<TxPlanArtifa
 export async function readSignedTxArtifact(filePath: string): Promise<SignedTxArtifact> {
   const data = await readArtifact(filePath);
   assertValidSignedTxArtifact(data);
+  return data;
+}
+
+export async function readTxReceiptArtifact(filePath: string): Promise<TxReceiptArtifact> {
+  const data = await readArtifact(filePath);
+  assertValidTxReceiptArtifact(data);
   return data;
 }

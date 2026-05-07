@@ -7,6 +7,7 @@ import { runL2RpcHealth } from "../src/runners/l2-rpc-health-runner.js";
 import { runL2Balance, runL2Nonce } from "../src/runners/l2-account-runners.js";
 import { runL2Call, runL2EstimateGas } from "../src/runners/l2-call-runners.js";
 import { runL2TxBuild, runL2TxSign, runL2TxSend, runL2TxStatus } from "../src/runners/l2-tx-runners.js";
+import { runL2ContractDeployPlan } from "../src/runners/l2-contract-runners.js";
 import { runL2BridgeStatus } from "../src/runners/l2-bridge-runners.js";
 import * as l2 from "@hardkas/l2";
 import * as localnet from "@hardkas/localnet";
@@ -90,6 +91,7 @@ vi.mock("@hardkas/artifacts", async (importOriginal) => {
     }),
     createIgraPlanId: vi.fn().mockReturnValue("test-plan"),
     createIgraSignedId: vi.fn().mockReturnValue("test-signed"),
+    createIgraDeployPlanId: vi.fn().mockReturnValue("test-deploy-plan"),
     assertValidIgraTxPlanArtifact: vi.fn(),
     assertValidIgraSignedTxArtifact: vi.fn()
   };
@@ -178,6 +180,16 @@ describe("Igra L2 Smoke Tests (Mocked)", () => {
       // Status
       await runL2TxStatus({ txHash: "0x0000000000000000000000000000000000000000000000000000000000000001", network: "igra", url: "http://localhost:8545" });
       expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining("success"));
+    });
+
+    it("l2 contract deploy-plan", async () => {
+      await runL2ContractDeployPlan({ 
+        from: "0x1234567890123456789012345678901234567890", 
+        bytecode: "0x60006000",
+        network: "igra", 
+        url: "http://localhost:8545" 
+      });
+      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining("contract deploy plan built"));
     });
   });
 

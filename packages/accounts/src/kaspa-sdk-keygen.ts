@@ -42,16 +42,6 @@ export class KaspaSdkKeyGenerator implements KaspaKeyGenerator {
     const sdk = await this.sdkLoader();
     const network = options?.networkId || this.networkId;
 
-    // Depending on the SDK structure:
-    // If using rusty-kaspa/kaspa-wasm:
-    // const privateKey = new sdk.PrivateKey();
-    // const publicKey = privateKey.toPublicKey();
-    // const address = publicKey.toAddress(network);
-    
-    // For now, we assume a standard interface if it was found.
-    // Since we don't have the exact SDK version confirmed in dependencies, 
-    // we use a defensive implementation.
-
     try {
       if (typeof sdk.PrivateKey === "function") {
         const privKey = new sdk.PrivateKey();
@@ -67,7 +57,6 @@ export class KaspaSdkKeyGenerator implements KaspaKeyGenerator {
         };
       }
       
-      // Fallback for different SDK versions/structures if known
       throw new Error("Loaded Kaspa SDK does not expose expected PrivateKey constructor.");
     } catch (e) {
       throw new Error(`Failed to generate account using SDK: ${e instanceof Error ? e.message : String(e)}`);

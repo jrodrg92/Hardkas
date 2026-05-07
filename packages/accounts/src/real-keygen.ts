@@ -18,7 +18,7 @@ export interface KaspaKeyGenerator {
 export class UnsupportedKaspaKeyGenerator implements KaspaKeyGenerator {
   async generateAccount(): Promise<GeneratedKaspaDevAccount> {
     throw new Error(
-      "Real Kaspa key generation is not configured. Install/configure a supported Kaspa SDK adapter in a future phase."
+      "Real Kaspa key generation is not configured. Install/configure a supported Kaspa SDK adapter."
     );
   }
 }

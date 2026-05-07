@@ -267,6 +267,28 @@ hardkas l2 bridge status --network igra
 hardkas l2 bridge assumptions --network igra
 ```
 
+### Igra L2 contract deployment planning
+Build deployment plans for EVM contracts on Igra L2. This includes bytecode and optional constructor argument encoding.
+
+```bash
+# Basic deployment plan
+hardkas l2 contract deploy-plan \
+  --from 0x... \
+  --bytecode 0x...
+
+# Deployment plan with constructor arguments
+hardkas l2 contract deploy-plan \
+  --from 0x... \
+  --bytecode 0x... \
+  --constructor "constructor(address,uint256)" \
+  --args "0x...,1000"
+```
+
+> [!NOTE]
+> - This only builds a **deployment plan**. It does not sign or send the transaction.
+> - Use `hardkas l2 tx sign` and `hardkas l2 tx send` to complete the deployment.
+> - This is for Igra L2 EVM deployment, not Kaspa L1.
+
 > [!WARNING]
 > - **Trustless exit** is available only in the **ZK phase**.
 > - pre-ZK and MPC phases involve stronger trust assumptions regarding bridge custody and validators.
@@ -321,7 +343,7 @@ Example of a Transaction Plan (`plans/*.json`):
 - `hardkas.realTxPlan.v1`: Plan artifact specific to real Kaspa nodes.
 - `hardkas.realSignedTx.v1`: Signed artifact specific to real Kaspa nodes.
 - `hardkas.realTxSubmitReceipt.v1`: Receipt for transactions submitted to real nodes.
-- `hardkas.igraTxPlan.v1`: Igra L2 EVM transaction plan.
+- `hardkas.igraTxPlan.v1`: Igra L2 EVM transaction or contract deployment plan.
 - `hardkas.igraSignedTx.v1`: Igra L2 signed EVM transaction.
 - `hardkas.igraTxReceipt.v1`: Igra L2 local submission receipt.
 - `hardkas.l2Profile.v1`: Igra L2 network profile and security metadata.

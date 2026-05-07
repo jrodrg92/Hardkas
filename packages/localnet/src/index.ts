@@ -11,6 +11,3 @@ export * from "./transactions";
 export * from "./receipts";
 export * from "./traces";
 export * from "./replay";
-export * from "./real-accounts";
-export * from "./real-keygen";
-export * from "./kaspa-sdk-keygen";

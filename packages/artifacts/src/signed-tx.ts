@@ -1,4 +1,3 @@
-import { hashTxPlanArtifact } from "./tx-plan.js";
 import { validateTxPlanArtifact } from "./validate.js";
 import type { TxPlanArtifact, SignedTxArtifact } from "./types.js";
 import { HARDKAS_VERSION, ARTIFACT_SCHEMAS, HardkasArtifactMode } from "./constants.js";
@@ -22,11 +21,9 @@ export function createSimulatedSignedTxArtifact(
     throw new Error(`Cannot sign invalid TxPlanArtifact: ${validation.errors.join(", ")}`);
   }
 
-  if (plan.status !== "unsigned") {
+  if (plan.status !== "built" && (plan as any).status !== "unsigned") {
     throw new Error(`Cannot sign artifact with status: ${plan.status}`);
   }
-
-  const planHash = hashTxPlanArtifact(plan);
 
   const artifact: SignedTxArtifact = {
     schema: ARTIFACT_SCHEMAS.SIGNED_TX,
@@ -35,11 +32,8 @@ export function createSimulatedSignedTxArtifact(
     createdAt: new Date().toISOString(),
     signedId: "", // Placeholder
 
-    source: {
-      schema: ARTIFACT_SCHEMAS.TX_PLAN,
-      artifactPath: input.artifactPath,
-      planHash
-    },
+    sourcePlanId: plan.planId,
+    sourcePlanPath: input.artifactPath,
 
     networkId: plan.networkId,
     mode: plan.mode,
@@ -50,31 +44,15 @@ export function createSimulatedSignedTxArtifact(
     amountSompi: plan.amountSompi,
     amount: plan.amount,
 
-    selectedUtxos: plan.selectedUtxos,
-    outputs: plan.outputs,
-
-    estimatedMass: plan.estimatedMass,
-    estimatedFeeSompi: plan.estimatedFeeSompi,
-    estimatedFee: plan.estimatedFee,
-    changeSompi: plan.changeSompi,
-    change: plan.change,
-
-    signature: {
-      kind: "simulated",
-      account,
-      signerAddress: input.signerAddress,
-      value: `simulated:${account}:${planHash}`
-    },
-
     signedTransaction: {
-      encoding: "simulated",
-      value: `simulated-signed-tx:${planHash}`
+      format: "simulated",
+      payload: `simulated-signed-tx:${plan.planId}`
     },
 
     metadata: input.metadata
   };
 
-  artifact.signedId = `signed_${planHash.substring(0, 8)}_${Date.now().toString(36)}`;
+  artifact.signedId = `signed_${plan.planId.substring(0, 8)}_${Date.now().toString(36)}`;
   return artifact;
 }
 
@@ -90,8 +68,6 @@ export interface BroadcastableSignedTx {
 
 /**
  * Extracts and validates a broadcastable transaction from a signed artifact.
- * For real networks, it extracts the raw transaction.
- * For simulated networks, it allows the artifact but returns a placeholder.
  */
 export function getBroadcastableSignedTransaction(
   artifact: SignedTxArtifact
@@ -100,35 +76,31 @@ export function getBroadcastableSignedTransaction(
     throw new Error(`Signed artifact is in invalid state: ${artifact.status}`);
   }
 
-  const networkId = artifact.networkId || (artifact as any).network;
+  const networkId = artifact.networkId;
 
   if (artifact.mode === "simulated") {
     return {
       networkId,
       mode: "simulated",
-      rawTransaction: artifact.signedTransaction?.value || "simulated-tx-placeholder"
+      rawTransaction: artifact.signedTransaction?.payload || "simulated-tx-placeholder"
     };
-  }
-
-  if (artifact.signature.kind !== "kaspa") {
-    throw new Error(`Signed artifact is not broadcastable: signature kind is '${artifact.signature.kind}' (expected 'kaspa').`);
   }
 
   if (!artifact.signedTransaction) {
     throw new Error("Signed artifact is missing the 'signedTransaction' object.");
   }
 
-  if (artifact.signedTransaction.encoding !== "kaspa-raw") {
-    throw new Error(`Signed artifact is not broadcastable: expected signedTransaction.encoding = 'kaspa-raw' (got '${artifact.signedTransaction.encoding}').`);
+  if (artifact.signedTransaction.format === "unknown") {
+    throw new Error("Signed artifact has an unknown transaction format.");
   }
 
-  if (!artifact.signedTransaction.value) {
-    throw new Error("Signed artifact is missing the raw transaction value.");
+  if (!artifact.signedTransaction.payload) {
+    throw new Error("Signed artifact is missing the raw transaction payload.");
   }
 
   return {
     networkId,
     mode: artifact.mode,
-    rawTransaction: artifact.signedTransaction.value
+    rawTransaction: artifact.signedTransaction.payload
   };
 }

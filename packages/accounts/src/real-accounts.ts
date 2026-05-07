@@ -4,7 +4,7 @@ import { HardkasArtifactBase, HARDKAS_VERSION, ARTIFACT_SCHEMAS } from "@hardkas
 
 export interface RealAccountStore extends HardkasArtifactBase {
   readonly schema: "hardkas.realAccountStore.v1";
-  readonly networkId: "simnet";
+  readonly networkId: string; // usually "simnet" or "testnet-10"
   readonly mode: "node" | "rpc";
   readonly warning: string;
   readonly accounts: readonly RealDevAccount[];
@@ -34,10 +34,10 @@ export function createEmptyRealAccountStore(): RealAccountStore {
   };
 }
 
-export async function loadRealAccountStore(options?: {
+export function loadRealAccountStoreSync(options?: {
   readonly cwd?: string;
   readonly path?: string;
-}): Promise<RealAccountStore | null> {
+}): RealAccountStore | null {
   const filePath = options?.path || getDefaultRealAccountsPath(options?.cwd);
 
   if (!fs.existsSync(filePath)) {
@@ -50,6 +50,13 @@ export async function loadRealAccountStore(options?: {
   } catch (e) {
     throw new Error(`Failed to load real account store at ${filePath}: ${e instanceof Error ? e.message : String(e)}`);
   }
+}
+
+export async function loadRealAccountStore(options?: {
+  readonly cwd?: string;
+  readonly path?: string;
+}): Promise<RealAccountStore | null> {
+  return loadRealAccountStoreSync(options);
 }
 
 export async function loadOrCreateRealAccountStore(options?: {
@@ -165,7 +172,7 @@ export function listRealDevAccounts(
 }
 
 /**
- * Resolves a name (alias) or a direct Kaspa address.
+ * Resolves a name (alias) or a direct Kaspa address from the real store.
  */
 export function resolveRealAccountOrAddress(
   store: RealAccountStore | null,
@@ -178,10 +185,9 @@ export function resolveRealAccountOrAddress(
   }
 
   // 2. Otherwise assume it's a direct address
-  try {
-    validateAddressPrefix(nameOrAddress);
+  if (nameOrAddress.startsWith("kaspa:") || nameOrAddress.startsWith("kaspatest:") || nameOrAddress.startsWith("kaspasim:")) {
     return { address: nameOrAddress };
-  } catch (e) {
-    throw new Error(`'${nameOrAddress}' is not a registered real account name and is not a valid Kaspa address.`);
   }
+  
+  throw new Error(`'${nameOrAddress}' is not a registered real account name and is not a valid Kaspa address.`);
 }
