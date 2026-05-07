@@ -2,6 +2,7 @@ import { buildPaymentPlan } from "@hardkas/tx-builder";
 import type { LocalnetState, LocalnetUtxo } from "./types";
 import { resolveAccountAddressFromState } from "./state";
 import { getSpendableUtxos } from "./balance";
+import { HardkasArtifactBase, HARDKAS_VERSION, ARTIFACT_SCHEMAS } from "@hardkas/artifacts";
 
 export interface SimulatedPaymentInput {
   readonly from: string;
@@ -10,9 +11,8 @@ export interface SimulatedPaymentInput {
   readonly feeRateSompiPerMass?: bigint;
 }
 
-export interface SimulatedTxReceipt {
-  readonly version: 1;
-  readonly kind: "hardkas.simulatedTxReceipt";
+export interface SimulatedTxReceipt extends HardkasArtifactBase {
+  readonly schema: "hardkas.simulatedTxReceipt.v1";
   readonly txId: string;
   readonly mode: "simulated";
   readonly networkId: "simnet";
@@ -24,7 +24,6 @@ export interface SimulatedTxReceipt {
   readonly spentUtxoIds: readonly string[];
   readonly createdUtxoIds: readonly string[];
   readonly daaScore: string;
-  readonly createdAt: string;
 }
 
 export interface ApplySimulatedPaymentResult {
@@ -133,8 +132,9 @@ export function applySimulatedPayment(
   };
 
   const receipt: SimulatedTxReceipt = {
-    version: 1,
-    kind: "hardkas.simulatedTxReceipt",
+    schema: ARTIFACT_SCHEMAS.SIMULATED_TX_RECEIPT,
+    hardkasVersion: HARDKAS_VERSION,
+    createdAt: new Date().toISOString(),
     txId,
     mode: "simulated",
     networkId: "simnet",

@@ -1,10 +1,10 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { existsSync } from "node:fs";
+import { HardkasArtifactBase, HARDKAS_VERSION, ARTIFACT_SCHEMAS } from "@hardkas/artifacts";
 
-export interface StoredSimulatedTxReceipt {
-  readonly version: 1;
-  readonly kind: "hardkas.simulatedTxReceipt";
+export interface StoredSimulatedTxReceipt extends HardkasArtifactBase {
+  readonly schema: "hardkas.simulatedTxReceipt.v1";
   readonly txId: string;
   readonly mode: "simulated";
   readonly networkId: "simnet";
@@ -16,7 +16,6 @@ export interface StoredSimulatedTxReceipt {
   readonly spentUtxoIds: readonly string[];
   readonly createdUtxoIds: readonly string[];
   readonly daaScore: string;
-  readonly createdAt: string;
 }
 
 export function getDefaultReceiptsDir(cwd: string = process.cwd()): string {

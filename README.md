@@ -104,10 +104,38 @@ HardKAS has started laying the foundation for real Kaspa network transactions.
 
   # Sign a real transaction plan (requires 'kaspa' package installed)
   hardkas tx real sign plans/realplan_....real.plan.json --account alice
+
+  # Submit a signed transaction (requires --yes, mainnet is blocked)
+  hardkas tx real send signed/signed_....real.signed.json --yes
   ```
-- **Status**: **Real signing is supported via Kaspa SDK adapter. Submission is NOT implemented yet.** 
-  - To enable real signing, install the official SDK: `pnpm add kaspa` (as an optional peer dependency).
-  - The signing command will produce a valid signed transaction payload in the artifact.
+
+## Artifact Schemas
+
+HardKAS uses a canonical, versioned schema for all persistent artifacts.
+
+Example of a Real Transaction Plan (`plans/*.json`):
+```json
+{
+  "schema": "hardkas.realTxPlan.v1",
+  "hardkasVersion": "0.1.0-dev",
+  "networkId": "testnet-10",
+  "mode": "node",
+  "createdAt": "2026-05-07T12:00:00Z",
+  "status": "built",
+  ...
+}
+```
+
+- **schema**: Canonical versioned identifier (`hardkas.<name>.v1`).
+- **hardkasVersion**: Version of the tool that generated the artifact.
+- **networkId**: The Kaspa network (e.g., `simnet`, `testnet-10`, `mainnet`).
+- **mode**: The backend used (`simulated`, `node`, `rpc`).
+- **createdAt**: ISO 8601 creation timestamp.
+
+- **Status**: **Guarded submission is supported for simnet/testnet. Mainnet is BLOCKED.** 
+  - Submitting real transactions requires the `--yes` flag.
+  - Receipts are saved in `.hardkas/real-receipts/`.
+  - Check the mempool after submission: `hardkas rpc mempool <txId>`.
   - Never use plaintext development keys for significant amounts on mainnet.
   - Use `simulated` mode for end-to-end local testing.
 

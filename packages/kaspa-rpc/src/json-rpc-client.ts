@@ -80,8 +80,12 @@ export class KaspaJsonRpcClient implements KaspaRpcClient {
     return mapKaspaRpcUtxos(result, address);
   }
 
-  async submitTransaction(_rawTransaction: string): Promise<KaspaSubmitTransactionResult> {
-    throw new Error("Real submitTransaction is not exposed by HardKAS yet.");
+  async submitTransaction(rawTransaction: string): Promise<KaspaSubmitTransactionResult> {
+    const result = await this.callRpc<any>(RPC_METHODS.SUBMIT_TRANSACTION, { 
+      transaction: rawTransaction 
+    });
+    const { mapKaspaSubmitTransactionResult } = await import("./index.js");
+    return mapKaspaSubmitTransactionResult(result);
   }
 
   async getMempoolEntry(txId: string): Promise<MempoolEntry | null> {

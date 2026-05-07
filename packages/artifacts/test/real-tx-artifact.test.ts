@@ -5,7 +5,9 @@ import {
   txOutputToArtifact, 
   txOutputFromArtifact,
   validateRealTxPlanArtifact,
-  RealTxPlanArtifact
+  RealTxPlanArtifact,
+  HARDKAS_VERSION,
+  ARTIFACT_SCHEMAS
 } from "../src/index.js";
 import { Utxo, TxOutput } from "@hardkas/tx-builder";
 
@@ -54,9 +56,8 @@ describe("Real Transaction Artifacts", () => {
 
   describe("Validation", () => {
     const validArtifact: RealTxPlanArtifact = {
-      kind: "hardkas.realTxPlan",
-      schema: "hardkas.realTxPlan",
-      version: 1,
+      schema: ARTIFACT_SCHEMAS.REAL_TX_PLAN,
+      hardkasVersion: HARDKAS_VERSION,
       status: "built",
       createdAt: new Date().toISOString(),
       networkId: "simnet",
@@ -83,10 +84,10 @@ describe("Real Transaction Artifacts", () => {
       expect(res.errors).toHaveLength(0);
     });
 
-    it("should reject wrong kind", () => {
-      const res = validateRealTxPlanArtifact({ ...validArtifact, kind: "wrong" });
+    it("should reject wrong schema", () => {
+      const res = validateRealTxPlanArtifact({ ...validArtifact, schema: "wrong" });
       expect(res.ok).toBe(false);
-      expect(res.errors).toContain("Invalid kind: expected 'hardkas.realTxPlan'");
+      expect(res.errors[0]).toContain("Invalid schema");
     });
 
     it("should reject invalid bigint strings", () => {

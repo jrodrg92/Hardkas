@@ -1,3 +1,5 @@
+import { HardkasArtifactBase } from "@hardkas/artifacts";
+
 export interface LocalnetAccount {
   name: string;
   address: string;
@@ -21,9 +23,8 @@ export interface LocalnetSnapshot {
   utxos: LocalnetUtxo[];
 }
 
-export interface LocalnetState {
-  version: number;
-  kind: "hardkas.localnetState";
+export interface LocalnetState extends HardkasArtifactBase {
+  schema: "hardkas.localnetState.v1";
   mode: "simulated";
   networkId: "simnet";
   daaScore: string;

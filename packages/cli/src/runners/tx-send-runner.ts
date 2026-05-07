@@ -1,6 +1,8 @@
 import { 
   getBroadcastableSignedTransaction, 
-  SignedTxArtifact 
+  SignedTxArtifact,
+  HARDKAS_VERSION,
+  ARTIFACT_SCHEMAS
 } from "@hardkas/artifacts";
 import { 
   resolveNetworkTarget, 
@@ -96,10 +98,12 @@ export async function runTxSend(input: TxSendRunnerInput): Promise<TxSendRunnerR
     events.push({ type: "phase.completed", phase: "save-trace", timestamp: Date.now() });
 
     const tracePath = await saveSimulatedTrace({
+      schema: ARTIFACT_SCHEMAS.SIMULATED_TX_TRACE,
+      hardkasVersion: HARDKAS_VERSION,
+      createdAt: result.receipt.createdAt,
       txId: result.receipt.txId,
       mode: "simulated",
       networkId: "simnet",
-      createdAt: result.receipt.createdAt,
       events,
       receiptPath
     });

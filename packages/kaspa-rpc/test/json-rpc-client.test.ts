@@ -70,8 +70,23 @@ describe("KaspaJsonRpcClient", () => {
     await expect(client.getServerInfo()).rejects.toThrow("JSON-RPC error -32601: Method not found");
   });
 
-  it("should throw specific error for submitTransaction", async () => {
+  it("should call submitTransaction correctly", async () => {
     const client = new KaspaJsonRpcClient({ url: mockUrl, fetcher: mockFetcher });
-    await expect(client.submitTransaction("0000")).rejects.toThrow("Real submitTransaction is not exposed by HardKAS yet.");
+    
+    mockFetcher.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        result: {
+          transactionId: "new-txid-123"
+        }
+      })
+    });
+
+    const result = await client.submitTransaction("abcd");
+    
+    expect(mockFetcher).toHaveBeenCalledWith(mockUrl, expect.objectContaining({
+      body: expect.stringContaining(RPC_METHODS.SUBMIT_TRANSACTION)
+    }));
+    expect(result.transactionId).toBe("new-txid-123");
   });
 });

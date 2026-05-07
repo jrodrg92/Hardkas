@@ -4,13 +4,13 @@ import type { SignedTxArtifact } from "../src/types.js";
 
 describe("getBroadcastableSignedTransaction", () => {
   const baseArtifact: SignedTxArtifact = {
-    schema: "hardkas.signedTx",
-    version: 1,
+    schema: "hardkas.signedTx.v1",
+    hardkasVersion: "0.1.0-dev",
     status: "signed",
     createdAt: new Date().toISOString(),
-    source: { schema: "hardkas.txPlan", version: 1, planHash: "abc" },
-    network: "devnet",
-    mode: "kaspa-rpc",
+    source: { schema: "hardkas.txPlan.v1", planHash: "abc" },
+    networkId: "devnet",
+    mode: "rpc",
     from: { address: "kaspa:from", input: "alice" },
     to: { address: "kaspa:to", input: "bob" },
     amountSompi: "1000",
@@ -24,11 +24,11 @@ describe("getBroadcastableSignedTransaction", () => {
     change: "0",
     signature: { kind: "kaspa", value: "sig", account: "alice" },
     signedTransaction: { encoding: "kaspa-raw", value: "raw-tx-hex" }
-  };
+  } as any;
 
   it("should validate a correct real signed artifact", () => {
     const result = getBroadcastableSignedTransaction(baseArtifact);
-    expect(result.network).toBe("devnet");
+    expect(result.networkId).toBe("devnet");
     expect(result.rawTransaction).toBe("raw-tx-hex");
   });
 

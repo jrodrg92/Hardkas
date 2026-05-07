@@ -3,16 +3,18 @@ import {
   createTxPlanArtifact, 
   createSimulatedSignedTxArtifact, 
   validateSignedTxArtifact,
-  hashTxPlanArtifact
+  hashTxPlanArtifact,
+  HARDKAS_VERSION,
+  ARTIFACT_SCHEMAS
 } from "../src";
 
 describe("SignedTxArtifact", () => {
   const mockPlan = {
-    schema: "hardkas.txPlan",
-    version: 1,
+    schema: ARTIFACT_SCHEMAS.TX_PLAN,
+    hardkasVersion: HARDKAS_VERSION,
     status: "unsigned",
     createdAt: new Date().toISOString(),
-    network: "simnet",
+    networkId: "simnet",
     mode: "simulated",
     from: { input: "alice", address: "addr1" },
     to: { input: "bob", address: "addr2" },
@@ -52,7 +54,7 @@ describe("SignedTxArtifact", () => {
       signerAddress: "addr1"
     });
 
-    expect(signed.schema).toBe("hardkas.signedTx");
+    expect(signed.schema).toBe(ARTIFACT_SCHEMAS.SIGNED_TX);
     expect(signed.status).toBe("signed");
     expect(signed.signature.kind).toBe("simulated");
     expect(signed.signature.value).toContain("simulated:alice:");
@@ -70,7 +72,11 @@ describe("SignedTxArtifact", () => {
   });
 
   it("should fail validation for invalid signed artifact", () => {
-    const invalid = { schema: "hardkas.signedTx", status: "unsigned" };
+    const invalid = { 
+      schema: ARTIFACT_SCHEMAS.SIGNED_TX, 
+      hardkasVersion: HARDKAS_VERSION,
+      status: "unsigned" 
+    };
     const result = validateSignedTxArtifact(invalid);
     expect(result.ok).toBe(false);
     expect(result.errors).toContain("Invalid status: expected 'signed'");

@@ -2,10 +2,11 @@ import { createHash } from "node:crypto";
 import { formatSompi } from "@hardkas/core";
 import type { TxPlan } from "@hardkas/tx-builder";
 import type { TxPlanArtifact } from "./types.js";
+import { HARDKAS_VERSION, ARTIFACT_SCHEMAS } from "./constants.js";
 
 export interface CreateTxPlanArtifactInput {
-  network: string;
-  mode: "simulated" | "kaspa-node" | "kaspa-rpc";
+  networkId: string;
+  mode: "simulated" | "node" | "rpc";
   rpcUrl?: string | null;
   from: {
     input: string;
@@ -22,12 +23,11 @@ export interface CreateTxPlanArtifactInput {
 
 export function createTxPlanArtifact(input: CreateTxPlanArtifactInput): TxPlanArtifact {
   return {
-    kind: "hardkas.txPlan",
-    schema: "hardkas.txPlan",
-    version: 1,
+    schema: ARTIFACT_SCHEMAS.TX_PLAN,
+    hardkasVersion: HARDKAS_VERSION,
     status: "unsigned",
     createdAt: new Date().toISOString(),
-    network: input.network,
+    networkId: input.networkId,
     mode: input.mode,
     rpcUrl: input.rpcUrl,
     from: input.from,

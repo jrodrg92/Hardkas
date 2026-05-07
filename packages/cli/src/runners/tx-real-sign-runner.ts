@@ -5,7 +5,9 @@ import {
   assertValidRealTxPlanArtifact,
   RealSignedTxArtifact,
   assertValidRealSignedTxArtifact,
-  writeArtifact 
+  writeArtifact,
+  HARDKAS_VERSION,
+  ARTIFACT_SCHEMAS
 } from "@hardkas/artifacts";
 import { 
   loadRealAccountStore, 
@@ -82,9 +84,8 @@ export async function runTxRealSign(options: TxRealSignOptions): Promise<TxRealS
   const signedId = `signed_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
   
   const artifact: RealSignedTxArtifact = {
-    kind: "hardkas.realSignedTx",
-    schema: "hardkas.realSignedTx",
-    version: 1,
+    schema: ARTIFACT_SCHEMAS.REAL_SIGNED_TX,
+    hardkasVersion: HARDKAS_VERSION,
     status: "signed",
     mode: planData.mode,
     networkId: planData.networkId,

@@ -5,14 +5,14 @@ export function formatTxPlanArtifact(artifact: TxPlanArtifact): string {
 
   lines.push("HardKAS tx plan artifact");
   lines.push("");
-  lines.push(`Schema:  ${artifact.schema}`);
-  lines.push(`Version: ${artifact.version}`);
-  lines.push(`Status:  ${artifact.status}`);
-  lines.push(`Created: ${artifact.createdAt}`);
+  lines.push(`Schema:       ${artifact.schema}`);
+  lines.push(`Tool version: ${artifact.hardkasVersion || "legacy"}`);
+  lines.push(`Status:       ${artifact.status}`);
+  lines.push(`Created:      ${artifact.createdAt}`);
   lines.push("");
-  lines.push(`Network: ${artifact.network}`);
-  lines.push(`Mode:    ${artifact.mode}`);
-  lines.push(`RPC:     ${artifact.rpcUrl || "none"}`);
+  lines.push(`Network:      ${artifact.networkId || (artifact as any).network}`);
+  lines.push(`Mode:         ${artifact.mode}`);
+  lines.push(`RPC:          ${artifact.rpcUrl || "none"}`);
   lines.push("");
   lines.push(`From:   ${artifact.from.address} (${artifact.from.input})`);
   lines.push(`To:     ${artifact.to.address} (${artifact.to.input})`);
@@ -44,15 +44,15 @@ export function formatSignedTxArtifact(artifact: SignedTxArtifact): string {
 
   lines.push("HardKAS signed tx artifact");
   lines.push("");
-  lines.push(`Schema:  ${artifact.schema}`);
-  lines.push(`Version: ${artifact.version}`);
-  lines.push(`Status:  ${artifact.status}`);
-  lines.push(`Created: ${artifact.createdAt}`);
+  lines.push(`Schema:       ${artifact.schema}`);
+  lines.push(`Tool version: ${artifact.hardkasVersion || "legacy"}`);
+  lines.push(`Status:       ${artifact.status}`);
+  lines.push(`Created:      ${artifact.createdAt}`);
   lines.push("");
   lines.push(`Source plan hash: ${artifact.source.planHash || "none"}`);
   lines.push("");
-  lines.push(`Network: ${artifact.network}`);
-  lines.push(`Mode:    ${artifact.mode}`);
+  lines.push(`Network:      ${artifact.networkId || (artifact as any).network}`);
+  lines.push(`Mode:         ${artifact.mode}`);
   lines.push("");
   lines.push(`From:   ${artifact.from.address} (${artifact.from.input})`);
   lines.push(`To:     ${artifact.to.address} (${artifact.to.input})`);

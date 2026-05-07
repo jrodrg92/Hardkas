@@ -1,9 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
+import { HardkasArtifactBase, HARDKAS_VERSION, ARTIFACT_SCHEMAS } from "@hardkas/artifacts";
 
-export interface RealAccountStore {
-  readonly version: 1;
-  readonly kind: "hardkas.realAccountStore";
+export interface RealAccountStore extends HardkasArtifactBase {
+  readonly schema: "hardkas.realAccountStore.v1";
   readonly networkId: "simnet";
   readonly warning: string;
   readonly accounts: readonly RealDevAccount[];
@@ -23,8 +23,9 @@ export function getDefaultRealAccountsPath(cwd: string = process.cwd()): string 
 
 export function createEmptyRealAccountStore(): RealAccountStore {
   return {
-    version: 1,
-    kind: "hardkas.realAccountStore",
+    schema: ARTIFACT_SCHEMAS.REAL_ACCOUNT_STORE,
+    hardkasVersion: HARDKAS_VERSION,
+    createdAt: new Date().toISOString(),
     networkId: "simnet",
     warning: "Development keys only. Do not use on mainnet. Private keys are stored in plaintext.",
     accounts: []

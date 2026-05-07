@@ -1,9 +1,4 @@
-export type HardkasArtifactSchema =
-  | "hardkas.txPlan"
-  | "hardkas.signedTx"
-  | "hardkas.realTxPlan"
-  | "hardkas.realSignedTx"
-  | "hardkas.realTxSubmitReceipt";
+import { HardkasArtifactSchema, HardkasArtifactMode } from "./constants.js";
 
 export interface UtxoArtifact {
   readonly outpoint: {
@@ -23,9 +18,7 @@ export interface TxOutputArtifact {
 }
 
 export interface RealTxPlanArtifact extends HardkasArtifactBase {
-  readonly kind: "hardkas.realTxPlan";
-  readonly schema: "hardkas.realTxPlan";
-  readonly version: 1;
+  readonly schema: "hardkas.realTxPlan.v1";
   readonly status: "built";
   
   readonly mode: "node" | "rpc";
@@ -53,9 +46,7 @@ export interface RealTxPlanArtifact extends HardkasArtifactBase {
 }
 
 export interface RealSignedTxArtifact extends HardkasArtifactBase {
-  readonly kind: "hardkas.realSignedTx";
-  readonly schema: "hardkas.realSignedTx";
-  readonly version: 1;
+  readonly schema: "hardkas.realSignedTx.v1";
   readonly status: "signed";
   
   readonly mode: "rpc" | "node";
@@ -89,9 +80,7 @@ export interface RealSignedTxArtifact extends HardkasArtifactBase {
 }
 
 export interface RealTxSubmitReceipt extends HardkasArtifactBase {
-  readonly kind: "hardkas.realTxSubmitReceipt";
-  readonly schema: "hardkas.realTxSubmitReceipt";
-  readonly version: 1;
+  readonly schema: "hardkas.realTxSubmitReceipt.v1";
   readonly status: "submitted";
   
   readonly networkId: string;
@@ -105,20 +94,21 @@ export interface RealTxSubmitReceipt extends HardkasArtifactBase {
 }
 
 export interface HardkasArtifactBase {
-  kind: string;
   schema: HardkasArtifactSchema;
-  version: number;
+  hardkasVersion: string;
   createdAt: string;
+  
+  // Legacy support
+  kind?: string;
+  version?: number;
 }
 
 export interface TxPlanArtifact extends HardkasArtifactBase {
-  kind: "hardkas.txPlan";
-  schema: "hardkas.txPlan";
-  version: 1;
+  schema: "hardkas.txPlan.v1";
   status: "unsigned";
 
-  network: string;
-  mode: "simulated" | "kaspa-node" | "kaspa-rpc";
+  networkId: string;
+  mode: HardkasArtifactMode;
 
   rpcUrl?: string | null | undefined;
 
@@ -166,20 +156,18 @@ export interface TxPlanArtifact extends HardkasArtifactBase {
 }
 
 export interface SignedTxArtifact extends HardkasArtifactBase {
-  kind: "hardkas.signedTx";
-  schema: "hardkas.signedTx";
-  version: 1;
+  schema: "hardkas.signedTx.v1";
   status: "signed";
 
   source: {
-    schema: "hardkas.txPlan";
-    version: 1;
+    schema: "hardkas.txPlan.v1";
+    version?: number;
     artifactPath?: string | undefined;
     planHash?: string | undefined;
   };
 
-  network: string;
-  mode: "simulated" | "kaspa-node" | "kaspa-rpc";
+  networkId: string;
+  mode: HardkasArtifactMode;
 
   from: {
     input: string;

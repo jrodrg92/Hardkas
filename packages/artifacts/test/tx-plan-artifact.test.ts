@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createTxPlanArtifact, validateTxPlanArtifact } from "../src";
+import { createTxPlanArtifact, validateTxPlanArtifact, ARTIFACT_SCHEMAS } from "../src";
 
 describe("TxPlanArtifact", () => {
   const mockPlan = {
@@ -21,7 +21,7 @@ describe("TxPlanArtifact", () => {
 
   it("should create a valid artifact from a plan", () => {
     const artifact = createTxPlanArtifact({
-      network: "simnet",
+      networkId: "simnet",
       mode: "simulated",
       from: { input: "alice", address: "addr1" },
       to: { input: "bob", address: "addr2" },
@@ -29,7 +29,7 @@ describe("TxPlanArtifact", () => {
       plan: mockPlan as any
     });
 
-    expect(artifact.schema).toBe("hardkas.txPlan");
+    expect(artifact.schema).toBe(ARTIFACT_SCHEMAS.TX_PLAN);
     expect(artifact.amountSompi).toBe("500");
     expect(artifact.selectedUtxos[0].amountSompi).toBe("1000");
     expect(artifact.estimatedFeeSompi).toBe("10");
@@ -38,7 +38,7 @@ describe("TxPlanArtifact", () => {
 
   it("should validate a correct artifact", () => {
     const artifact = createTxPlanArtifact({
-      network: "simnet",
+      networkId: "simnet",
       mode: "simulated",
       from: { input: "alice", address: "addr1" },
       to: { input: "bob", address: "addr2" },
@@ -55,6 +55,6 @@ describe("TxPlanArtifact", () => {
     const artifact = { schema: "wrong" };
     const result = validateTxPlanArtifact(artifact);
     expect(result.ok).toBe(false);
-    expect(result.errors).toContain("Invalid schema: expected 'hardkas.txPlan'");
+    expect(result.errors[0]).toContain(`Invalid schema: expected '${ARTIFACT_SCHEMAS.TX_PLAN}'`);
   });
 });

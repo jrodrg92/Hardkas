@@ -1,6 +1,7 @@
 import { hashTxPlanArtifact } from "./tx-plan.js";
 import { validateTxPlanArtifact } from "./validate.js";
 import type { TxPlanArtifact, SignedTxArtifact } from "./types.js";
+import { HARDKAS_VERSION, ARTIFACT_SCHEMAS } from "./constants.js";
 
 export interface CreateSimulatedSignedTxArtifactInput {
   plan: TxPlanArtifact;
@@ -28,20 +29,18 @@ export function createSimulatedSignedTxArtifact(
   const planHash = hashTxPlanArtifact(plan);
 
   return {
-    kind: "hardkas.signedTx",
-    schema: "hardkas.signedTx",
-    version: 1,
+    schema: ARTIFACT_SCHEMAS.SIGNED_TX,
+    hardkasVersion: HARDKAS_VERSION,
     status: "signed",
     createdAt: new Date().toISOString(),
 
     source: {
-      schema: "hardkas.txPlan",
-      version: 1,
+      schema: ARTIFACT_SCHEMAS.TX_PLAN,
       artifactPath: input.artifactPath,
       planHash
     },
 
-    network: plan.network,
+    networkId: plan.networkId,
     mode: plan.mode,
 
     from: plan.from,
@@ -80,8 +79,8 @@ export function signedTxArtifactToJson(artifact: SignedTxArtifact): string {
 }
 
 export interface BroadcastableSignedTx {
-  readonly network: string;
-  readonly mode: "kaspa-node" | "kaspa-rpc" | "simulated";
+  readonly networkId: string;
+  readonly mode: "kaspa-node" | "kaspa-rpc" | "simulated" | "node" | "rpc";
   readonly rawTransaction: string;
 }
 
@@ -97,9 +96,11 @@ export function getBroadcastableSignedTransaction(
     throw new Error(`Signed artifact is in invalid state: ${artifact.status}`);
   }
 
+  const networkId = artifact.networkId || (artifact as any).network;
+
   if (artifact.mode === "simulated") {
     return {
-      network: artifact.network,
+      networkId,
       mode: "simulated",
       rawTransaction: artifact.signedTransaction?.value || "simulated-tx-placeholder"
     };
@@ -122,7 +123,7 @@ export function getBroadcastableSignedTransaction(
   }
 
   return {
-    network: artifact.network,
+    networkId,
     mode: artifact.mode,
     rawTransaction: artifact.signedTransaction.value
   };

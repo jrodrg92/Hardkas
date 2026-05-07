@@ -12,7 +12,9 @@ import {
   utxoToArtifact, 
   txOutputToArtifact, 
   assertValidRealTxPlanArtifact,
-  writeArtifact 
+  writeArtifact,
+  HARDKAS_VERSION,
+  ARTIFACT_SCHEMAS
 } from "@hardkas/artifacts";
 
 export interface TxRealBuildOptions {
@@ -71,9 +73,8 @@ export async function runTxRealBuild(options: TxRealBuildOptions): Promise<TxRea
     const planId = `realplan_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
     
     const artifact: RealTxPlanArtifact = {
-      kind: "hardkas.realTxPlan",
-      schema: "hardkas.realTxPlan",
-      version: 1,
+      schema: ARTIFACT_SCHEMAS.REAL_TX_PLAN,
+      hardkasVersion: HARDKAS_VERSION,
       status: "built",
       createdAt: new Date().toISOString(),
       planId,

@@ -1,4 +1,5 @@
 import type { TxPlanArtifact, SignedTxArtifact, RealTxPlanArtifact, RealSignedTxArtifact, RealTxSubmitReceipt } from "./types.js";
+import { ARTIFACT_SCHEMAS } from "./constants.js";
 
 export interface ArtifactValidationResult {
   ok: boolean;
@@ -18,9 +19,8 @@ export function validateRealTxPlanArtifact(value: unknown): ArtifactValidationRe
 
   const v = value as any;
 
-  if (v.kind !== "hardkas.realTxPlan") errors.push("Invalid kind: expected 'hardkas.realTxPlan'");
-  if (v.schema !== "hardkas.realTxPlan") errors.push("Invalid schema: expected 'hardkas.realTxPlan'");
-  if (v.version !== 1) errors.push("Unsupported version: expected 1");
+  if (v.schema !== ARTIFACT_SCHEMAS.REAL_TX_PLAN) errors.push(`Invalid schema: expected '${ARTIFACT_SCHEMAS.REAL_TX_PLAN}'`);
+  if (!v.hardkasVersion) errors.push("Missing hardkasVersion");
   if (v.status !== "built") errors.push("Invalid status: expected 'built'");
   
   if (typeof v.networkId !== "string") errors.push("Missing or invalid networkId");
@@ -91,12 +91,12 @@ export function validateTxPlanArtifact(value: unknown): ArtifactValidationResult
 
   const v = value as any;
 
-  if (v.schema !== "hardkas.txPlan") errors.push("Invalid schema: expected 'hardkas.txPlan'");
-  if (v.version !== 1) errors.push("Unsupported version: expected 1");
+  if (v.schema !== ARTIFACT_SCHEMAS.TX_PLAN) errors.push(`Invalid schema: expected '${ARTIFACT_SCHEMAS.TX_PLAN}'`);
+  if (!v.hardkasVersion) errors.push("Missing hardkasVersion");
   if (v.status !== "unsigned") errors.push("Invalid status: expected 'unsigned'");
   
-  if (typeof v.network !== "string") errors.push("Missing or invalid network");
-  if (!["simulated", "kaspa-node", "kaspa-rpc"].includes(v.mode)) errors.push("Invalid mode");
+  if (typeof v.networkId !== "string" && typeof v.network !== "string") errors.push("Missing or invalid networkId");
+  if (!["simulated", "kaspa-node", "kaspa-rpc"].includes(v.mode) && !["simulated", "node", "rpc"].includes(v.mode)) errors.push("Invalid mode");
 
   if (!v.from || typeof v.from.address !== "string") errors.push("Missing or invalid 'from' address");
   if (!v.to || typeof v.to.address !== "string") errors.push("Missing or invalid 'to' address");
@@ -132,14 +132,14 @@ export function validateSignedTxArtifact(value: unknown): ArtifactValidationResu
 
   const v = value as any;
 
-  if (v.schema !== "hardkas.signedTx") errors.push("Invalid schema: expected 'hardkas.signedTx'");
-  if (v.version !== 1) errors.push("Unsupported version: expected 1");
+  if (v.schema !== ARTIFACT_SCHEMAS.SIGNED_TX) errors.push(`Invalid schema: expected '${ARTIFACT_SCHEMAS.SIGNED_TX}'`);
+  if (!v.hardkasVersion) errors.push("Missing hardkasVersion");
   if (v.status !== "signed") errors.push("Invalid status: expected 'signed'");
   
-  if (!v.source || v.source.schema !== "hardkas.txPlan") errors.push("Missing or invalid source plan schema");
+  if (!v.source || (v.source.schema !== ARTIFACT_SCHEMAS.TX_PLAN && v.source.schema !== "hardkas.txPlan")) errors.push("Missing or invalid source plan schema");
   
-  if (typeof v.network !== "string") errors.push("Missing or invalid network");
-  if (!["simulated", "kaspa-node", "kaspa-rpc"].includes(v.mode)) errors.push("Invalid mode");
+  if (typeof v.networkId !== "string" && typeof v.network !== "string") errors.push("Missing or invalid networkId");
+  if (!["simulated", "kaspa-node", "kaspa-rpc"].includes(v.mode) && !["simulated", "node", "rpc"].includes(v.mode)) errors.push("Invalid mode");
 
   if (!v.from || typeof v.from.address !== "string") errors.push("Missing or invalid 'from' address");
   if (!v.to || typeof v.to.address !== "string") errors.push("Missing or invalid 'to' address");
@@ -184,9 +184,8 @@ export function validateRealSignedTxArtifact(value: unknown): ArtifactValidation
 
   const v = value as any;
 
-  if (v.kind !== "hardkas.realSignedTx") errors.push("Invalid kind: expected 'hardkas.realSignedTx'");
-  if (v.schema !== "hardkas.realSignedTx") errors.push("Invalid schema: expected 'hardkas.realSignedTx'");
-  if (v.version !== 1) errors.push("Unsupported version: expected 1");
+  if (v.schema !== ARTIFACT_SCHEMAS.REAL_SIGNED_TX) errors.push(`Invalid schema: expected '${ARTIFACT_SCHEMAS.REAL_SIGNED_TX}'`);
+  if (!v.hardkasVersion) errors.push("Missing hardkasVersion");
   if (v.status !== "signed") errors.push("Invalid status: expected 'signed'");
   
   if (typeof v.signedId !== "string" || !v.signedId) errors.push("Missing or invalid signedId");
@@ -237,21 +236,27 @@ export function validateArtifact(data: unknown): ArtifactValidationResult {
     return { ok: false, errors: ["Artifact must be an object"] };
   }
 
-  const kind = (data as any).kind;
+  const v = data as any;
+  const schema = v.schema || v.kind;
 
-  switch (kind) {
+  switch (schema) {
+    case ARTIFACT_SCHEMAS.TX_PLAN:
     case "hardkas.txPlan":
       return validateTxPlanArtifact(data);
+    case ARTIFACT_SCHEMAS.SIGNED_TX:
     case "hardkas.signedTx":
       return validateSignedTxArtifact(data);
+    case ARTIFACT_SCHEMAS.REAL_TX_PLAN:
     case "hardkas.realTxPlan":
       return validateRealTxPlanArtifact(data);
+    case ARTIFACT_SCHEMAS.REAL_SIGNED_TX:
     case "hardkas.realSignedTx":
       return validateRealSignedTxArtifact(data);
+    case ARTIFACT_SCHEMAS.REAL_TX_SUBMIT_RECEIPT:
     case "hardkas.realTxSubmitReceipt":
       return validateRealTxSubmitReceipt(data);
     default:
-      return { ok: false, errors: [`Unknown artifact kind: ${kind}`] };
+      return { ok: false, errors: [`Unknown artifact schema/kind: ${schema}`] };
   }
 }
 
@@ -268,9 +273,8 @@ export function validateRealTxSubmitReceipt(value: unknown): ArtifactValidationR
 
   const v = value as any;
 
-  if (v.kind !== "hardkas.realTxSubmitReceipt") errors.push("Invalid kind: expected 'hardkas.realTxSubmitReceipt'");
-  if (v.schema !== "hardkas.realTxSubmitReceipt") errors.push("Invalid schema: expected 'hardkas.realTxSubmitReceipt'");
-  if (v.version !== 1) errors.push("Unsupported version: expected 1");
+  if (v.schema !== ARTIFACT_SCHEMAS.REAL_TX_SUBMIT_RECEIPT) errors.push(`Invalid schema: expected '${ARTIFACT_SCHEMAS.REAL_TX_SUBMIT_RECEIPT}'`);
+  if (!v.hardkasVersion) errors.push("Missing hardkasVersion");
   if (v.status !== "submitted") errors.push("Invalid status: expected 'submitted'");
   
   if (typeof v.txId !== "string" || !v.txId) errors.push("Missing or invalid txId");

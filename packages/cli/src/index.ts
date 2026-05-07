@@ -40,6 +40,7 @@ import { runAccountsRealBalance } from "./runners/accounts-real-balance-runner.j
 import { runAccountsRealUtxos } from "./runners/accounts-real-utxos-runner.js";
 import { runTxRealBuild } from "./runners/tx-real-build-runner.js";
 import { runTxRealSign } from "./runners/tx-real-sign-runner.js";
+import { runTxRealSend } from "./runners/tx-real-send-runner.js";
 import { bigIntReplacer } from "@hardkas/artifacts";
 import { UI, handleError } from "./ui.js";
 
@@ -939,6 +940,39 @@ txReal.command("sign")
       }
     } catch (e) {
       handleError(e, "Real transaction signing failed");
+      process.exitCode = 1;
+    }
+  });
+
+txReal.command("send")
+  .description("Submit a signed real transaction artifact to a Kaspa node")
+  .argument("<signedPath>", "Path to real signed transaction artifact")
+  .option("--url <url>", "Kaspa RPC URL", "http://127.0.0.1:18210")
+  .option("--yes", "Confirm submission", false)
+  .option("--json", "Output as JSON", false)
+  .action(async (signedPath: string, options: {
+    url: string;
+    yes: boolean;
+    json: boolean;
+  }) => {
+    try {
+      const result = await runTxRealSend({
+        signedPath,
+        url: options.url,
+        yes: options.yes
+      });
+
+      if (options.json) {
+        console.log(JSON.stringify({
+          txId: result.txId,
+          receiptPath: result.receiptPath,
+          receipt: result.receipt
+        }, bigIntReplacer, 2));
+      } else {
+        console.log(result.formatted);
+      }
+    } catch (e) {
+      handleError(e, "Real transaction submission failed");
       process.exitCode = 1;
     }
   });
