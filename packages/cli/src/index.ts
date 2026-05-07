@@ -29,43 +29,53 @@ import { runRpcInfo } from "./runners/rpc-info-runner.js";
 import { runRpcDag } from "./runners/rpc-dag-runner.js";
 import { runRpcUtxos } from "./runners/rpc-utxos-runner.js";
 import { runRpcMempool } from "./runners/rpc-mempool-runner.js";
+import { runRpcHealth } from "./runners/rpc-health-runner.js";
+import { runAccountsRealInit } from "./runners/accounts-real-init-runner.js";
+import { runAccountsRealImport } from "./runners/accounts-real-import-runner.js";
+import { runAccountsRealList } from "./runners/accounts-real-list-runner.js";
+import { runAccountsRealShow } from "./runners/accounts-real-show-runner.js";
+import { runAccountsRealRemove } from "./runners/accounts-real-remove-runner.js";
+import { runAccountsRealGenerate } from "./runners/accounts-real-generate-runner.js";
 import { bigIntReplacer } from "@hardkas/artifacts";
+import { UI, handleError } from "./ui.js";
 
 const program = new Command();
 
 program
   .name("hardkas")
-  .description("Developer toolkit for Kaspa applications")
-  .version("0.1.0");
+  .description("HardKAS: Production-grade developer toolkit for Kaspa")
+  .version("0.1.0-dev");
 
 program
   .command("init")
   .description("Initialize a new HardKAS project")
   .option("--force", "Overwrite existing hardkas.config.ts", false)
   .action(async (options: { force: boolean }) => {
-    const fs = await import("node:fs");
-    const path = await import("node:path");
-    const configFile = path.join(process.cwd(), "hardkas.config.ts");
+    try {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const configFile = path.join(process.cwd(), "hardkas.config.ts");
 
-    if (fs.existsSync(configFile) && !options.force) {
-      console.log("hardkas.config.ts already exists. Use --force to overwrite.");
-      return;
-    }
+      if (fs.existsSync(configFile) && !options.force) {
+        UI.warning("hardkas.config.ts already exists. Use --force to overwrite.");
+        return;
+      }
 
-    const template = `import { defineHardkasConfig } from "@hardkas/config";
+      const template = `import { defineHardkasConfig } from "@hardkas/config";
 
 export default defineHardkasConfig({
-  defaultNetwork: "simnet",
+  // HardKAS v0.1-dev Configuration
+  defaultNetwork: "simulated",
 
   networks: {
-    simnet: {
+    simulated: {
       kind: "simulated"
     },
 
-    devnet: {
+    node: {
       kind: "kaspa-node",
-      network: "devnet",
-      rpcUrl: "ws://127.0.0.1:18310"
+      network: "simnet",
+      rpcUrl: "ws://127.0.0.1:18210"
     },
 
     testnet10: {
@@ -83,26 +93,19 @@ export default defineHardkasConfig({
     bob: {
       kind: "simulated",
       address: "kaspa:sim_bob"
-    },
-    carol: {
-      kind: "simulated",
-      address: "kaspa:sim_carol"
     }
   }
 });
 `;
 
-    fs.writeFileSync(configFile, template);
-    console.log("HardKAS project initialized");
-    console.log("");
-    console.log(`Created: ${path.basename(configFile)}`);
-    console.log("");
-    console.log("Next:");
-    console.log("  hardkas dev");
-    console.log("  hardkas tx simulate --from alice --to bob --amount 1");
-    console.log("  hardkas accounts list");
-    console.log("  hardkas node doctor --network devnet");
-    console.log("  hardkas rpc health --network devnet");
+      fs.writeFileSync(configFile, template, "utf-8");
+      UI.success("HardKAS project initialized successfully.");
+      UI.info(`Created: hardkas.config.ts`);
+      UI.footer("Run 'hardkas dev' to start developing.");
+    } catch (e) {
+      handleError(e, "Initialization failed");
+      process.exitCode = 1;
+    }
   });
 
 const configCmd = program.command("config").description("Manage HardKAS configuration");
@@ -248,6 +251,146 @@ accountsCmd.command("resolve")
     }
   });
 
+const realAccountsCmd = accountsCmd.command("real").description("Manage real Kaspa dev accounts (persistent store)");
+
+realAccountsCmd.command("init")
+  .description("Initialize real dev account store")
+  .option("--force", "Overwrite existing store", false)
+  .option("--json", "Output as JSON", false)
+  .action(async (options: { force: boolean, json: boolean }) => {
+    try {
+      const result = await runAccountsRealInit({ force: options.force });
+      if (options.json) {
+        console.log(JSON.stringify(result, null, 2));
+      } else {
+        console.log(result.formatted);
+      }
+    } catch (e) {
+      console.error(e instanceof Error ? `Error: ${e.message}` : String(e));
+      process.exitCode = 1;
+    }
+  });
+
+realAccountsCmd.command("import")
+  .description("Import a real dev account")
+  .option("--name <name>", "Account name")
+  .option("--address <address>", "Kaspa address")
+  .option("--public-key <publicKey>", "Public key (optional)")
+  .option("--private-key <privateKey>", "Private key (optional)")
+  .option("--json", "Output as JSON", false)
+  .action(async (options: { 
+    name?: string, 
+    address?: string, 
+    publicKey?: string, 
+    privateKey?: string, 
+    json: boolean 
+  }) => {
+    try {
+      if (!options.name || !options.address) {
+        throw new Error("--name and --address are required for import.");
+      }
+      const result = await runAccountsRealImport({
+        name: options.name,
+        address: options.address,
+        publicKey: options.publicKey,
+        privateKey: options.privateKey
+      });
+      if (options.json) {
+        console.log(JSON.stringify(result.account, null, 2));
+      } else {
+        console.log(result.formatted);
+      }
+    } catch (e) {
+      console.error(e instanceof Error ? `Error: ${e.message}` : String(e));
+      process.exitCode = 1;
+    }
+  });
+
+realAccountsCmd.command("generate")
+  .description("Generate new real dev account(s) using Kaspa SDK")
+  .option("--name <name>", "Base name for account(s)")
+  .option("--count <number>", "Number of accounts to generate", "1")
+  .option("--network <network>", "Kaspa network (simnet, testnet-10, mainnet)", "simnet")
+  .option("--json", "Output as JSON", false)
+  .action(async (options: { 
+    name?: string, 
+    count: string, 
+    network: string,
+    json: boolean 
+  }) => {
+    try {
+      const result = await runAccountsRealGenerate({
+        name: options.name,
+        count: parseInt(options.count, 10),
+        networkId: options.network as any
+      });
+      if (options.json) {
+        console.log(JSON.stringify(result.accounts, null, 2));
+      } else {
+        console.log(result.formatted);
+      }
+    } catch (e) {
+      console.error(e instanceof Error ? `Error: ${e.message}` : String(e));
+      process.exitCode = 1;
+    }
+  });
+
+realAccountsCmd.command("list")
+  .description("List real dev accounts")
+  .option("--show-private", "Show private keys (masked by default)", false)
+  .option("--json", "Output as JSON", false)
+  .action(async (options: { showPrivate: boolean, json: boolean }) => {
+    try {
+      const result = await runAccountsRealList({ showPrivate: options.showPrivate });
+      if (options.json) {
+        console.log(JSON.stringify(result.accounts, bigIntReplacer, 2));
+      } else {
+        console.log(result.formatted);
+      }
+    } catch (e) {
+      console.error(e instanceof Error ? `Error: ${e.message}` : String(e));
+      process.exitCode = 1;
+    }
+  });
+
+realAccountsCmd.command("show")
+  .description("Show a real dev account")
+  .argument("<name>", "Account name")
+  .option("--show-private", "Show private key (masked by default)", false)
+  .option("--json", "Output as JSON", false)
+  .action(async (name: string, options: { showPrivate: boolean, json: boolean }) => {
+    try {
+      const result = await runAccountsRealShow({ name, showPrivate: options.showPrivate });
+      if (options.json) {
+        console.log(JSON.stringify(result.account, null, 2));
+      } else {
+        console.log(result.formatted);
+      }
+    } catch (e) {
+      console.error(e instanceof Error ? `Error: ${e.message}` : String(e));
+      process.exitCode = 1;
+    }
+  });
+
+realAccountsCmd.command("remove")
+  .description("Remove a real dev account")
+  .argument("<name>", "Account name")
+  .option("--yes", "Confirm removal", false)
+  .option("--json", "Output as JSON", false)
+  .action(async (name: string, options: { yes: boolean, json: boolean }) => {
+    try {
+      const result = await runAccountsRealRemove({ name, yes: options.yes });
+      if (options.json) {
+        console.log(JSON.stringify(result, null, 2));
+      } else {
+        console.log(result.formatted);
+      }
+    } catch (e) {
+      console.error(e instanceof Error ? `Error: ${e.message}` : String(e));
+      process.exitCode = 1;
+    }
+  });
+
 program
   .command("dev")
   .description("Start a local HardKAS development environment")
@@ -289,18 +432,27 @@ program
           
           if (status.running) {
             try {
-              const rpcInfo = await runRpcInfo({ url: `http://127.0.0.1:${status.ports.jsonRpc}` });
-              const dagInfo = await runRpcDag({ url: `http://127.0.0.1:${status.ports.jsonRpc}` });
-              console.log("");
-              console.log("RPC Data:");
-              console.log(`  Network ID: ${rpcInfo.info.networkId}`);
-              console.log(`  Virtual DAA: ${dagInfo.dag.virtualDaaScore?.toString() || "unknown"}`);
-              console.log(`  Synced:     ${rpcInfo.info.isSynced ? "yes" : "no"}`);
+              const { waitForKaspaRpcReady } = await import("@hardkas/kaspa-rpc");
+              const rpcResult = await waitForKaspaRpcReady({ 
+                url: `http://127.0.0.1:${status.ports.jsonRpc}`,
+                maxWaitMs: 10000 // Short wait for dev command
+              });
+
+              if (rpcResult.ready) {
+                console.log("");
+                console.log("RPC Data:");
+                console.log(`  Network ID: ${rpcResult.networkId}`);
+                console.log(`  Virtual DAA: ${rpcResult.virtualDaaScore}`);
+                console.log(`  Synced:     ${rpcResult.isSynced ? "yes" : "no"}`);
+                console.log(`  Version:    ${rpcResult.serverVersion}`);
+              } else {
+                console.log("");
+                console.log("RPC:       not ready");
+                console.log("           (node may still be initializing consensus)");
+                console.log("Suggestion: hardkas rpc health --wait --timeout 60");
+              }
             } catch (e) {
-              console.log("");
-              console.log("RPC:       not ready");
-              console.log("           (node may still be initializing consensus)");
-              console.log("Suggestion: run hardkas node logs --tail 50");
+              // Ignore wait errors in dev command
             }
           }
 
@@ -1235,6 +1387,43 @@ node.command("logs")
   });
 
 const rpc = program.command("rpc").description("Kaspa RPC commands");
+
+rpc.command("health")
+  .description("Check Kaspa RPC health and readiness")
+  .option("--url <url>", "JSON-RPC URL", "http://127.0.0.1:18210")
+  .option("--wait", "Wait until RPC is ready", false)
+  .option("--timeout <seconds>", "Max wait time in seconds", "60")
+  .option("--interval <ms>", "Polling interval in milliseconds", "1000")
+  .option("--json", "Output as JSON", false)
+  .action(async (options: { 
+    url: string, 
+    wait: boolean, 
+    timeout: string, 
+    interval: string, 
+    json: boolean 
+  }) => {
+    try {
+      const { result, formatted } = await runRpcHealth({
+        url: options.url,
+        wait: options.wait,
+        timeout: parseInt(options.timeout, 10),
+        interval: parseInt(options.interval, 10)
+      });
+
+      if (options.json) {
+        console.log(JSON.stringify(result, bigIntReplacer, 2));
+      } else {
+        console.log(formatted);
+      }
+
+      if (!result.ready) {
+        process.exitCode = 1;
+      }
+    } catch (e) {
+      console.error(e instanceof Error ? `Error: ${e.message}` : String(e));
+      process.exitCode = 1;
+    }
+  });
 
 rpc.command("info")
   .description("Show Kaspa node information")

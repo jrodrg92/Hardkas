@@ -28,6 +28,7 @@ export function createSimulatedSignedTxArtifact(
   const planHash = hashTxPlanArtifact(plan);
 
   return {
+    kind: "hardkas.signedTx",
     schema: "hardkas.signedTx",
     version: 1,
     status: "signed",

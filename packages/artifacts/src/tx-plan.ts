@@ -22,6 +22,7 @@ export interface CreateTxPlanArtifactInput {
 
 export function createTxPlanArtifact(input: CreateTxPlanArtifactInput): TxPlanArtifact {
   return {
+    kind: "hardkas.txPlan",
     schema: "hardkas.txPlan",
     version: 1,
     status: "unsigned",

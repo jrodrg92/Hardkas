@@ -11,6 +11,8 @@ export interface SimulatedPaymentInput {
 }
 
 export interface SimulatedTxReceipt {
+  readonly version: 1;
+  readonly kind: "hardkas.simulatedTxReceipt";
   readonly txId: string;
   readonly mode: "simulated";
   readonly networkId: "simnet";
@@ -131,6 +133,8 @@ export function applySimulatedPayment(
   };
 
   const receipt: SimulatedTxReceipt = {
+    version: 1,
+    kind: "hardkas.simulatedTxReceipt",
     txId,
     mode: "simulated",
     networkId: "simnet",

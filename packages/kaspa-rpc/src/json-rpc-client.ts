@@ -26,9 +26,9 @@ export const RPC_METHODS = {
 export type RpcFetcher = (url: string, init?: RequestInit) => Promise<Response>;
 
 export interface KaspaJsonRpcClientOptions {
-  readonly url?: string;
-  readonly timeoutMs?: number;
-  readonly fetcher?: RpcFetcher;
+  readonly url?: string | undefined;
+  readonly timeoutMs?: number | undefined;
+  readonly fetcher?: RpcFetcher | undefined;
 }
 
 export class KaspaJsonRpcClient implements KaspaRpcClient {

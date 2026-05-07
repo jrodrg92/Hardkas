@@ -26,6 +26,8 @@ export type StoredTraceEvent =
     };
 
 export interface StoredSimulatedTxTrace {
+  readonly version: 1;
+  readonly kind: "hardkas.simulatedTxTrace";
   readonly txId: string;
   readonly mode: "simulated";
   readonly networkId: "simnet";

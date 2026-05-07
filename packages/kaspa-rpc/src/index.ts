@@ -395,3 +395,4 @@ export class MockKaspaRpcClient implements KaspaRpcClient {
 }
 
 export * from "./json-rpc-client.js";
+export * from "./health.js";

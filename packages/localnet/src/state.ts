@@ -20,6 +20,7 @@ export function createInitialLocalnetState(
 
   return {
     version: 1,
+    kind: "hardkas.localnetState",
     mode: "simulated",
     networkId: "simnet",
     daaScore: "0",

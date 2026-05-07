@@ -3,12 +3,14 @@ export type HardkasArtifactSchema =
   | "hardkas.signedTx";
 
 export interface HardkasArtifactBase {
+  kind: string;
   schema: HardkasArtifactSchema;
   version: number;
   createdAt: string;
 }
 
 export interface TxPlanArtifact extends HardkasArtifactBase {
+  kind: "hardkas.txPlan";
   schema: "hardkas.txPlan";
   version: 1;
   status: "unsigned";
@@ -62,6 +64,7 @@ export interface TxPlanArtifact extends HardkasArtifactBase {
 }
 
 export interface SignedTxArtifact extends HardkasArtifactBase {
+  kind: "hardkas.signedTx";
   schema: "hardkas.signedTx";
   version: 1;
   status: "signed";

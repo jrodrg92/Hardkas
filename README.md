@@ -1,530 +1,95 @@
 # HardKAS
 
-HardKAS is a Kaspa-native TypeScript developer toolkit. It is inspired by modern developer tooling, but it is built specifically for the Kaspa ecosystem.
+**HardKAS** is a production-grade developer toolkit for the Kaspa ecosystem. It provides a robust, Kaspa-native environment for building, testing, and deploying decentralized applications and protocols.
 
-## Core Principles
+> **Status: v0.1-dev (Early Preview)**
+> HardKAS is currently in active development. Features and APIs are subject to change.
 
-- **Kaspa-Native**: Kaspa L1 does not execute EVM smart contracts. HardKAS does not emulate Ethereum on Kaspa L1.
-- **UTXO-First**: Transactions are planned and built around the UTXO model.
-- **Simulated-First MVP**: The current MVP focuses on a high-fidelity local simulation for rapid development and testing.
+---
 
-## Current MVP Features
+## Core Philosophy
 
-- **Simulated Local Devnet**: A fully in-memory simulated Kaspa chain.
-- **Deterministic Accounts**: Pre-configured accounts (alice, bob, carol) with aliases for easy development.
-- **UTXO Transaction Planning**: Logic to select UTXOs, calculate fees, and plan outputs (including change).
-- **Transaction Simulation**: A lifecycle-based simulator to trace transaction progress from planning to "confirmation".
-- **Tracing**: Detailed trace events for each phase of a transaction's lifecycle.
-- **CLI**: A command-line interface to orchestrate the development environment.
+- **Kaspa Native**: Designed from the ground up for Kaspa's BlockDAG architecture. No EVM/Ethereum legacy assumptions.
+- **Developer First**: Focus on high-speed iteration, robust diagnostics, and actionable feedback.
+- **Hybrid Workflow**: Seamlessly switch between a high-fidelity **Simulated Mode** and a real **Node Mode** backed by `kaspad`.
 
-## Getting Started
+## Main Features
+
+### 1. Persistent Simulated Localnet
+Develop and test without waiting for block confirmations or managing real funds.
+- **Instant confirmations**: Zero-latency transaction processing.
+- **Persistence**: Localnet state (balances, UTXOs) survives restarts in `.hardkas/localnet.json`.
+- **Snapshots**: Capture and restore state at any point for reproducible tests.
+- **Faucet**: Instantly fund any address or alias.
+
+### 2. Real Kaspa Node Mode
+Run a local `kaspad` node in Docker with a single command.
+- **Automated Orchestration**: HardKAS manages Docker containers for you.
+- **RPC Diagnostics**: Comprehensive health checks, mempool inspection, and DAG status.
+- **Simnet Ready**: Pre-configured for local simulation networks.
+
+### 3. Advanced Transaction Tooling
+- **Simulated Traces**: Detailed step-by-step logs of how a transaction was processed.
+- **Persistent Receipts**: Every simulated transaction generates a verifiable receipt.
+- **Replay System**: Reproduce any past simulated transaction to debug logic changes.
+- **Plan & Sign Workflow**: Multi-step transaction lifecycle for security and auditability.
+
+### 4. Developer Account Management
+Securely manage real Kaspa development keys.
+- **Local Storage**: Encrypted (roadmap) storage for dev addresses and keys.
+- **SDK Integration**: Key generation using the official Kaspa WASM SDK.
+- **Security Guardrails**: Protection against accidental mainnet usage and plaintext exposure.
+
+---
+
+## Quickstart
 
 ### Installation
 
 ```bash
-pnpm install
-pnpm build
+pnpm install -g @hardkas/cli
 ```
 
-### Start Local Devnet
+### Initialize Project
 
 ```bash
-pnpm --filter @hardkas/cli hardkas dev
-```
-
-### Simulate a Transaction
-
-```bash
-pnpm --filter @hardkas/cli hardkas tx simulate --from alice --to bob --amount 1
-```
-
-### Receipts, traces and replay
-
-Every simulated transaction sent with `hardkas tx send` or `hardkas tx flow --send` generates local artifacts in the `.hardkas/` directory (ignored by git).
-
-- **Receipts**: Stored in `.hardkas/receipts/<txId>.json`. Contains transaction details, UTXO changes, and DAA score.
-- **Traces**: Stored in `.hardkas/traces/<txId>.trace.json`. Contains the step-by-step execution phases of the transaction.
-
-#### List receipts
-```bash
-hardkas tx receipts
-```
-
-#### View receipt details
-```bash
-hardkas tx receipt <txId>
-# Use --json for raw data
-hardkas tx receipt <txId> --json
-```
-
-#### View execution trace
-```bash
-hardkas trace <txId>
-```
-
-#### Replay summary
-```bash
-hardkas replay <txId>
-```
-
-Example workflow:
-```bash
-hardkas localnet reset
-hardkas tx send --from alice --to bob --amount 1 --yes
-hardkas tx receipts
-hardkas tx receipt <txId>
-hardkas trace <txId>
-hardkas replay <txId>
-```
-
-> [!NOTE]
-> `hardkas tx simulate` does NOT generate receipts or traces as it doesn't mutate the local state. Only commands that mutate state (like `tx send` or `tx flow --send`) generate these artifacts.
-
-## Real node orchestration (Docker)
-
-HardKAS allows you to manage a real Kaspa node (using `rusty-kaspa`) inside a Docker container in `simnet` mode. This is the recommended way to run a real node for local development.
-
-### Commands
-
-```bash
-# Start the node in Docker
-hardkas node start
-
-# Check container status
-hardkas node status
-
-# View container logs
-hardkas node logs --tail 50
-
-# Stop and remove the container
-hardkas node stop
-```
-
-### Unified development environment (Node mode)
-
-You can spin up a real node as part of your dev environment:
-
-```bash
-hardkas dev --mode node
-```
-
-- **Backend**: Docker.
-- **Image**: `aspectron/kaspad` (default).
-- **Network**: `simnet`.
-- **Ports**: Automatically maps 18310 (gRPC), 18311 (Borsh), and 18312 (JSON-RPC).
-- **Data Directory**: Persistent data is stored in `.hardkas/data/docker-node`.
-
-> [!IMPORTANT]
-> This mode currently only orchestrates the node process. Real accounts, faucet, and transaction signing for the real node are not yet implemented in this phase. For stateful transaction simulation with mock accounts, use the default `simulated` mode.
-
-## Project configuration
-
-HardKAS can work without configuration using defaults, but you can initialize a project to customize networks and targets.
-
-```bash
-# Initialize a new project (creates hardkas.config.ts)
 hardkas init
-
-# Show current configuration (resolved path and networks)
-hardkas config show
-hardkas config show --json
 ```
 
-### hardkas.config.ts
-
-```typescript
-import { defineHardkasConfig } from "@hardkas/config";
-
-export default defineHardkasConfig({
-  defaultNetwork: "simnet",
-
-  networks: {
-    simnet: {
-      kind: "simulated"
-    },
-
-    devnet: {
-      kind: "kaspa-node",
-      network: "devnet",
-      rpcUrl: "ws://127.0.0.1:18310"
-    },
-
-    testnet10: {
-      kind: "kaspa-rpc",
-      network: "testnet-10",
-      rpcUrl: "ws://127.0.0.1:18210"
-    }
-  }
-});
-```
-
-- **Priority**: CLI flags (like `--url` or `--network`) always have priority over the configuration file.
-- **Targets**:
-  - `simulated`: In-memory simulation (Phase 1).
-  - `kaspa-node`: Local node managed by HardKAS (Phase 2).
-  - `kaspa-rpc`: External or remote RPC endpoint (Phase 3).
-  - `igra`: Reserved for future Igra L2 integration.
-
-## Accounts
-
-HardKAS provides a robust identity management system through `@hardkas/accounts`.
+### Start Simulated Development
 
 ```bash
-# List all available accounts (defaults + config)
-hardkas accounts list
+# Start the simulated environment
+hardkas dev
 
-# Show account details
-hardkas accounts show alice
+# Fund an account
+hardkas faucet alice 1000
 
-# Resolve an alias to a Kaspa address
-hardkas accounts resolve bob
-```
-
-### Deterministic Accounts
-
-By default, HardKAS includes deterministic simulated accounts for local development:
-- `alice`: `kaspa:sim_alice`
-- `bob`: `kaspa:sim_bob`
-- `carol`: `kaspa:sim_carol`
-- `dave`: `kaspa:sim_dave`
-- `erin`: `kaspa:sim_erin`
-
-### Account Configuration
-
-You can define custom accounts in `hardkas.config.ts`:
-
-```typescript
-accounts: {
-  alice: {
-    kind: "simulated",
-    address: "kaspa:sim_alice"
-  },
-
-  devnetDeployer: {
-    kind: "kaspa-private-key",
-    privateKeyEnv: "KASPA_DEVNET_PRIVATE_KEY"
-  }
-}
-```
-
-> [!IMPORTANT]
-> **Security**: Never store real private keys directly in your configuration file. Always use `privateKeyEnv` to reference environment variables.
-
-## Read-only balance and UTXO tools
-
-HardKAS allows you to inspect account balances and UTXOs across different networks.
-
-```bash
-# Show balance (uses simnet by default)
+# Check balance
 hardkas balance alice
 
-# List UTXOs
-hardkas utxo list alice
+# Simulate a transaction
+hardkas tx simulate --from alice --to bob --amount 10
+
+# Send and mutate state
+hardkas tx send --from alice --to bob --amount 10 --yes
 ```
 
-- **Simulated Mode**: Queries the local state (usually `.hardkas/localnet.json`).
-- **Real Mode**: Connects to a Kaspa node via wRPC JSON.
+---
 
-## Simulated localnet send
+## Security Warnings
 
-In simulated mode (`simnet`), HardKAS supports persistent state mutation. This allows you to simulate a real network where transactions actually change account balances and move UTXOs.
+- **Development Only**: HardKAS v0.1-dev is intended for local development and testing.
+- **Plaintext Keys**: In this version, `.hardkas/accounts.real.json` stores keys in plaintext. Ensure this file is never committed to version control.
+- **No Mainnet**: Do not use HardKAS with real Mainnet funds yet. The toolkit is optimized for `simnet` and `testnet-10`.
 
-```bash
-# Reset the network state
-hardkas localnet reset
+## Roadmap
 
-# Check initial balances
-hardkas balance alice
-hardkas balance bob
-
-# Simulate a transaction (read-only, does NOT change balances)
-hardkas tx simulate --from alice --to bob --amount 1
-
-# Send a transaction (state-mutating, UPDATES balances)
-hardkas tx send --from alice --to bob --amount 1 --yes
-
-# Verify updated balances
-hardkas balance alice
-hardkas balance bob
-
-# Check network status (DAA score and UTXOs)
-hardkas localnet status
-```
-
-- **tx simulate**: Only plans and traces the transaction. It is safe and does not modify the state.
-- **tx send**: In simulated mode, it applies the transaction plan to `.hardkas/localnet.json`, spending inputs, creating new outputs (including change), and advancing the DAA score.
-- **Persistence**: All state changes are saved to disk, so you can restart your development session and keep your balances.
-
-## Transaction planning
-
-HardKAS allows you to build unsigned transaction plans. This is a read-only operation that selects UTXOs and estimates fees without signing or sending.
-
-```bash
-# Plan a transaction and save it as an artifact
-hardkas tx plan --from alice --to bob --amount 1 --out plans/alice-to-bob.json
-
-# Show details of a saved plan
-hardkas tx plan show plans/alice-to-bob.json
-
-# Validate a plan artifact
-hardkas tx plan validate plans/alice-to-bob.json
-```
-
-- **tx plan new**: (Default) Builds a new plan.
-- **tx plan show**: Displays a saved artifact.
-- **tx plan validate**: Checks the integrity and schema of an artifact.
-
-### Transaction plan artifacts
-
-Artifacts are JSON files that store the result of a planning session. They are designed to be shared and eventually signed and sent.
-
-- **Unsigned**: Artifacts do not contain private keys or signatures.
-- **Portable**: BigInt values are stored as strings for cross-platform compatibility.
-- **Schema-checked**: Every artifact includes a schema and version for forward compatibility.
-
-## Signing artifacts
-
-HardKAS implements a two-step transaction workflow: Planning and Signing. Phase 7C introduces **Signed Transaction Artifacts**, which store the result of a signing operation.
-
-> [!NOTE]
-> Currently, only **simulated signing** for `simnet` and `simulated` accounts is supported. Real Kaspa signing and broadcasting will be added in future phases.
-
-```bash
-# Sign a transaction plan artifact (simulated)
-hardkas tx sign plans/alice-to-bob.json --account alice --out signed/alice-to-bob.signed.json
-
-# Show details of a signed transaction
-hardkas tx signed show signed/alice-to-bob.signed.json
-
-# Validate a signed artifact
-hardkas tx signed validate signed/alice-to-bob.signed.json
-```
-
-- **tx sign**: Creates a signed artifact from a plan. It links to the source plan via a cryptographic hash.
-- **tx signed show**: Displays details including the source plan hash and signature kind.
-- **tx signed validate**: Ensures the artifact conforms to the `hardkas.signedTx` schema.
-
-### Security guardrails
-
-- **No Private Keys**: Artifacts never store private keys.
-- **No Env Exposure**: The system avoids reading sensitive environment variables unless explicitly required by a future real signer.
-- **Simulated First**: Real signing attempts on `devnet` or with real keys will fail with a clear message until the feature is fully implemented.
-
-## Signing foundation
-
-HardKAS provides a robust signer adapter architecture (Phase 8) to handle transaction signing across different account types and networks.
-
-> [!IMPORTANT]
-> **Security**: Real transaction signing uses the official **Kaspa WASM SDK**. By default, HardKAS maintains a "simulated-first" posture. Real signing requires the optional `kaspa` package and an explicit environment variable for the private key.
-
-### Signing Backends
-
-- **Simulated**: Used for `simnet`. Fully operational without extra dependencies.
-- **Real Kaspa (WASM)**: Powered by the official `kaspa` SDK. Enabled automatically if the package is installed.
-- **External Wallet**: Reserved for future integration.
-
-### Enabling Real Signing
-
-To enable real Kaspa signing for `devnet` or `testnet`:
-
-1.  **Install the SDK**:
-    ```bash
-    pnpm add kaspa
-    ```
-2.  **Configure Account**: In `hardkas.config.ts`, use `kind: "kaspa-private-key"`.
-3.  **Set Environment Variable**:
-    ```bash
-    export KASPA_DEVNET_PRIVATE_KEY=...
-    ```
-
-### Diagnostics
-
-Use the `doctor` command to verify your environment:
-
-```bash
-hardkas tx sign doctor
-```
-
-### Usage
-
-```bash
-# Sign a simulated plan
-hardkas tx sign plans/a-to-b.json --account alice --out signed/a-to-b.signed.json
-
-# Sign a real plan (requires 'kaspa' package and ENV)
-hardkas tx sign plans/devnet-payment.json --account devnetDeployer --out signed/devnet.signed.json
-
-# Signing for mainnet (DANGEROUS - Requires explicit flag)
-hardkas tx sign plans/mainnet.json --account myWallet --allow-mainnet-signing
-```
-
-### Security guardrails
-
-- **Dynamic Backend**: The WASM SDK is loaded only when needed. If missing, HardKAS remains safe and operational.
-- **Mainnet Protection**: Signing for `mainnet` is blocked unless `--allow-mainnet-signing` is provided.
-- **No Secret Storage**: Artifacts never store private keys, seeds, or environment variable values.
-- **Strict Matching**: Prevents signing simulated plans with real keys or vice versa.
-
-## Broadcasting signed transactions
-
-HardKAS can broadcast signed transactions to a real Kaspa network (Phase 9) by reading a `hardkas.signedTx` artifact.
-
-### Requirements
-
-- **Real Network**: The artifact must target a real network (`devnet`, `testnet`, or `mainnet`).
-- **Raw Transaction**: The artifact must contain a real raw transaction (`encoding: "kaspa-raw"`). Simulated signatures cannot be broadcast.
-- **Confirmation**: Broadcasting requires the `--yes` flag.
-
-### Preview Mode
-
-If you run the send command without `--yes`, HardKAS will show a preview of the transaction without sending it:
-
-```bash
-hardkas tx send signed/devnet-payment.signed.json --network devnet
-```
-
-### Broadcast
-
-To actually send the transaction to the network:
-
-```bash
-hardkas tx send signed/devnet-payment.signed.json --network devnet --yes
-```
-
-### Security guardrails
-
-- **Mainnet Block**: Broadcasting to `mainnet` is blocked by default. Use `--allow-mainnet-broadcast` to override.
-- **Network Mismatch**: HardKAS prevents broadcasting an artifact to a network different from the one it was signed for.
-- **Explicit Confirmation**: The `--yes` flag ensures no accidental broadcasts.
-
-## End-to-end transaction workflow
-
-HardKAS provides a high-level command to orchestrate the full transaction lifecycle in a single step (Phase 10).
-
-```bash
-hardkas tx flow --from alice --to bob --amount 1
-```
-
-### Chaining Steps
-
-The `tx flow` command can chain: **plan -> sign -> send**.
-
-- **Default**: Only performs planning (safe preview).
-- **--sign**: Plans and creates a signed artifact.
-- **--send**: Plans, signs, and broadcasts the transaction (requires `--yes`).
-
-### Artifact Management
-
-Use `--out-dir` and `--name` to persist intermediate artifacts:
-
-```bash
-hardkas tx flow \
-  --from alice \
-  --to bob \
-  --amount 1 \
-  --sign \
-  --out-dir runs \
-  --name payment-1
-```
-
-This will create `runs/payment-1.plan.json` and `runs/payment-1.signed.json`.
-
-### Examples
-
-**Real devnet broadcast:**
-
-```bash
-hardkas tx flow \
-  --network devnet \
-  --from devnetDeployer \
-  --to kaspa:p... \
-  --amount 1 \
-  --send \
-  --yes \
-  --out-dir runs
-```
-
-### Security Guardrails
-
-- **Explicit --yes**: Required for broadcasting real transactions.
-- **Mainnet Block**: Signing and broadcasting to `mainnet` are blocked by default.
-- **Simulated Safety**: `tx flow --send` in `simnet` will skip the real broadcast step.
-
-## Kaspa RPC adapter
-
-The `hardkas rpc` commands allow you to interact with a real Kaspa node via its wRPC JSON interface.
-
-- **Phase 3**: Supports health checks and node information.
-- **Connection**: Uses WebSockets (`ws://`).
-- **Simulated Mode**: Does not use or need a real RPC connection.
-
-### Commands
-
-```bash
-# Check RPC health
-hardkas rpc health --network devnet
-
-# Get detailed node info
-hardkas rpc info --network devnet
-hardkas rpc info --network devnet --json
-```
-
-- **Default Network**: `devnet`.
-- **Automatic Discovery**: Resolves the RPC URL from your `.hardkas` configuration if not provided via `--url`.
-
-## Real Kaspa RPC diagnostics
-
-HardKAS provides commands to interact with a real Kaspa node via its JSON-RPC interface. This is useful for verifying node status, DAG health, and UTXOs on a real network (like `simnet` or `devnet`).
-
-### Usage
-
-1. **Start a local node** (if not already running):
-   ```bash
-   hardkas node start
-   ```
-
-2. **Check node info**:
-   ```bash
-   hardkas rpc info
-   # Use --url for a different node
-   hardkas rpc info --url http://my-node:18210
-   ```
-
-3. **Check DAG status**:
-   ```bash
-   hardkas rpc dag
-   ```
-
-4. **List UTXOs for an address**:
-   ```bash
-   hardkas rpc utxos kaspa:p...
-   ```
-
-5. **Check mempool for a transaction**:
-   ```bash
-   hardkas rpc mempool <txId>
-   ```
-
-> [!NOTE]
-> **Requirements**: These commands require a node running with JSON-RPC enabled (usually port 18210).
-> **Phase 15 Limitations**: Real transaction broadcasting via `hardkas tx send` for real nodes is not yet exposed in the CLI. Use `simulated` mode for persistent state mutation and flow testing.
-
-## Future Roadmap
-
-- **Transaction sending**: Support for broadcasting real transactions to the network.
-- **Wallet/Accounts adapter**: Integrated wallet management for real accounts.
-- **Igra L2 Adapter**: Integration with Igra for EVM-compatible L2 workflows on Kaspa.
-- **Silverscript Support**: Experimental support for Silverscript and advanced covenants.
-
-- `@hardkas/core`: Base types, constants, and shared utilities.
-- `@hardkas/tx-builder`: UTXO selection and transaction planning.
-- `@hardkas/simulator`: Transaction lifecycle simulation and tracing.
-- `@hardkas/localnet`: Deterministic accounts and simulated chain logic.
-- `@hardkas/kaspa-rpc`: RPC client interfaces and mock implementations.
-- `@hardkas/wallet-adapter`: Standardized interface for Kaspa wallet providers.
-- `@hardkas/sdk`: Public-facing SDK re-exporting core functionality.
-- `@hardkas/cli`: The `hardkas` command-line tool.
+- [ ] **v0.2**: Encrypted keystores and BIP39 support.
+- [ ] **v0.3**: Integrated L2 (SilverScripts/Igra) simulation.
+- [ ] **v0.4**: Advanced BlockDAG visualizer.
+- [ ] **v1.0**: Stable release with full mainnet support.
 
 ## License
 
-MIT
+MIT - See [LICENSE](LICENSE) for details.

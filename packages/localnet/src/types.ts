@@ -23,6 +23,7 @@ export interface LocalnetSnapshot {
 
 export interface LocalnetState {
   version: number;
+  kind: "hardkas.localnetState";
   mode: "simulated";
   networkId: "simnet";
   daaScore: string;

@@ -3,6 +3,8 @@ import path from "node:path";
 import { existsSync } from "node:fs";
 
 export interface StoredSimulatedTxReceipt {
+  readonly version: 1;
+  readonly kind: "hardkas.simulatedTxReceipt";
   readonly txId: string;
   readonly mode: "simulated";
   readonly networkId: "simnet";
