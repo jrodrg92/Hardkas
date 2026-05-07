@@ -3,10 +3,10 @@
  * Blocks mainnet by default and prevents network mismatches.
  */
 export function assertBroadcastNetworkAllowed(input: {
-  artifactNetwork: string;
+  artifactNetworkId: string;
   selectedNetwork: string;
 }): void {
-  const isMainnetArtifact = isMainnetLike(input.artifactNetwork);
+  const isMainnetArtifact = isMainnetLike(input.artifactNetworkId);
   const isMainnetSelected = isMainnetLike(input.selectedNetwork);
 
   // Mainnet block
@@ -21,9 +21,9 @@ export function assertBroadcastNetworkAllowed(input: {
   }
 
   // Network mismatch check
-  if (!isSameNetwork(input.artifactNetwork, input.selectedNetwork)) {
+  if (!isSameNetwork(input.artifactNetworkId, input.selectedNetwork)) {
     throw new Error(
-      `Network mismatch: signed artifact targets '${input.artifactNetwork}' ` +
+      `Network mismatch: signed artifact targets '${input.artifactNetworkId}' ` +
       `but CLI selected '${input.selectedNetwork}'.`
     );
   }

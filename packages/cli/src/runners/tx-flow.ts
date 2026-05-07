@@ -47,7 +47,7 @@ export interface TxFlowStepResult<T> {
 
 export interface TxFlowResult {
   ok: boolean;
-  network: string;
+  networkId: string;
   mode: string;
   steps: {
     plan: TxFlowStepResult<TxPlanArtifact>;
@@ -78,7 +78,7 @@ export async function runTxFlow(input: TxFlowInput): Promise<TxFlowResult> {
 
   const flowResult: TxFlowResult = {
     ok: true,
-    network: network || config.defaultNetwork || "simnet",
+    networkId: network || config.defaultNetwork || "simnet",
     mode: "unknown",
     steps: {
       plan: { status: "skipped" },
@@ -92,12 +92,12 @@ export async function runTxFlow(input: TxFlowInput): Promise<TxFlowResult> {
     // 1. Plan
     const planArtifact = await runTxPlan({
       from, to, amount, 
-      network: flowResult.network, 
+      network: flowResult.networkId, 
       feeRate, config, url
     });
     
     flowResult.mode = planArtifact.mode;
-    flowResult.network = planArtifact.networkId;
+    flowResult.networkId = planArtifact.networkId;
     flowResult.steps.plan = { status: "ok", artifact: planArtifact };
 
     if (outDir) {

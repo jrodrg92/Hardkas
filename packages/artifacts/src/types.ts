@@ -21,8 +21,6 @@ export interface RealTxPlanArtifact extends HardkasArtifactBase {
   readonly schema: "hardkas.realTxPlan.v1";
   readonly status: "built";
   
-  readonly mode: "node" | "rpc";
-  readonly networkId: string;
   readonly planId: string;
   
   readonly from: {
@@ -49,9 +47,6 @@ export interface RealSignedTxArtifact extends HardkasArtifactBase {
   readonly schema: "hardkas.realSignedTx.v1";
   readonly status: "signed";
   
-  readonly mode: "rpc" | "node";
-  readonly networkId: string;
-  readonly createdAt: string;
   readonly signedId: string;
   readonly sourcePlanId: string;
   readonly sourcePlanPath?: string;
@@ -83,8 +78,6 @@ export interface RealTxSubmitReceipt extends HardkasArtifactBase {
   readonly schema: "hardkas.realTxSubmitReceipt.v1";
   readonly status: "submitted";
   
-  readonly networkId: string;
-  readonly mode: "rpc" | "node";
   readonly txId: string;
   readonly sourceSignedId: string;
   readonly sourceSignedPath?: string;
@@ -96,6 +89,8 @@ export interface RealTxSubmitReceipt extends HardkasArtifactBase {
 export interface HardkasArtifactBase {
   schema: HardkasArtifactSchema;
   hardkasVersion: string;
+  networkId: string;
+  mode: HardkasArtifactMode;
   createdAt: string;
   
   // Legacy support
@@ -107,9 +102,7 @@ export interface TxPlanArtifact extends HardkasArtifactBase {
   schema: "hardkas.txPlan.v1";
   status: "unsigned";
 
-  networkId: string;
-  mode: HardkasArtifactMode;
-
+  planId: string;
   rpcUrl?: string | null | undefined;
 
   from: {
@@ -158,6 +151,7 @@ export interface TxPlanArtifact extends HardkasArtifactBase {
 export interface SignedTxArtifact extends HardkasArtifactBase {
   schema: "hardkas.signedTx.v1";
   status: "signed";
+  signedId: string;
 
   source: {
     schema: "hardkas.txPlan.v1";
@@ -165,9 +159,6 @@ export interface SignedTxArtifact extends HardkasArtifactBase {
     artifactPath?: string | undefined;
     planHash?: string | undefined;
   };
-
-  networkId: string;
-  mode: HardkasArtifactMode;
 
   from: {
     input: string;

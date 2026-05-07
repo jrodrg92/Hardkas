@@ -22,13 +22,14 @@ export interface CreateTxPlanArtifactInput {
 }
 
 export function createTxPlanArtifact(input: CreateTxPlanArtifactInput): TxPlanArtifact {
-  return {
+  const artifact: TxPlanArtifact = {
     schema: ARTIFACT_SCHEMAS.TX_PLAN,
     hardkasVersion: HARDKAS_VERSION,
     status: "unsigned",
     createdAt: new Date().toISOString(),
     networkId: input.networkId,
     mode: input.mode,
+    planId: "", // Placeholder
     rpcUrl: input.rpcUrl,
     from: input.from,
     to: input.to,
@@ -66,6 +67,9 @@ export function createTxPlanArtifact(input: CreateTxPlanArtifactInput): TxPlanAr
     change: input.plan.change ? formatSompi(input.plan.change.amountSompi) : "0.00000000 KAS",
     metadata: input.metadata
   };
+
+  artifact.planId = hashTxPlanArtifact(artifact).substring(0, 16);
+  return artifact;
 }
 
 export function txPlanArtifactToJson(artifact: TxPlanArtifact): string {

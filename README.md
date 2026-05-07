@@ -118,32 +118,41 @@ HardKAS has started laying the foundation for real Kaspa network transactions.
 
 ## Artifact Schemas
 
-HardKAS uses a canonical, versioned schema for all persistent artifacts.
+HardKAS uses a canonical, versioned schema for all persistent artifacts. Every artifact includes a metadata header for integrity and cross-environment validation.
 
-Example of a Real Transaction Plan (`plans/*.json`):
+Example of a Transaction Plan (`plans/*.json`):
 ```json
 {
-  "schema": "hardkas.realTxPlan.v1",
+  "schema": "hardkas.txPlan.v1",
   "hardkasVersion": "0.1.0-dev",
   "networkId": "testnet-10",
   "mode": "node",
   "createdAt": "2026-05-07T12:00:00Z",
-  "status": "built",
+  "status": "unsigned",
   ...
 }
 ```
 
-- **schema**: Canonical versioned identifier (`hardkas.<name>.v1`).
+- **schema**: Canonical versioned identifier (`hardkas.<type>.v1`).
 - **hardkasVersion**: Version of the tool that generated the artifact.
-- **networkId**: The Kaspa network (e.g., `simnet`, `testnet-10`, `mainnet`).
-- **mode**: The backend used (`simulated`, `node`, `rpc`).
+- **networkId**: The target Kaspa network (e.g., `simnet`, `testnet-10`).
+- **mode**: The execution mode used (`simulated`, `node`, `rpc`).
 - **createdAt**: ISO 8601 creation timestamp.
 
-- **Status**: **Guarded submission is supported for simnet/testnet. Mainnet broadcast is DISABLED.** 
+### Supported Schemas
+- `hardkas.localnetState.v1`: Simulated localnet state.
+- `hardkas.realAccountStore.v1`: Real development account storage.
+- `hardkas.simulatedTxReceipt.v1`: Receipt for simulated transactions.
+- `hardkas.simulatedTxTrace.v1`: Detailed execution trace for simulated transactions.
+- `hardkas.txPlan.v1`: Transaction plan for simulated or real networks.
+- `hardkas.signedTx.v1`: Signed transaction ready for broadcast.
+- `hardkas.realTxPlan.v1`: Plan artifact specific to real Kaspa nodes.
+- `hardkas.realSignedTx.v1`: Signed artifact specific to real Kaspa nodes.
+- `hardkas.realTxSubmitReceipt.v1`: Receipt for transactions submitted to real nodes.
+
+- **Status**: **Mainnet broadcast is DISABLED in v0.1-dev.**
   - Submitting real transactions requires the `--yes` flag.
   - Receipts are saved in `.hardkas/real-receipts/`.
-  - Check the mempool after submission: `hardkas rpc mempool <txId>`.
-  - Never use plaintext development keys for significant amounts on mainnet.
   - Use `simulated` mode for end-to-end local testing.
 
 ## License

@@ -73,7 +73,12 @@ export async function runTxRealSend(options: TxRealSendOptions): Promise<TxRealS
 
   // Verify network mismatch
   if (serverInfo.networkId !== signedData.networkId) {
-     throw new Error(`Network mismatch: Artifact is for '${signedData.networkId}' but the node at ${options.url} is on '${serverInfo.networkId}'.`);
+     throw new Error(
+       `Network mismatch:\n` +
+       `  Refusing to submit transaction: artifact networkId does not match RPC node networkId.\n` +
+       `  Artifact: ${signedData.networkId}\n` +
+       `  RPC node: ${serverInfo.networkId}`
+     );
   }
 
   // 5. Submit to RPC

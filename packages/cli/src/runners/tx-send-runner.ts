@@ -45,7 +45,7 @@ export async function runTxSend(input: TxSendRunnerInput): Promise<TxSendRunnerR
   const { signedArtifact, network, config, url } = input;
   
   const broadcastable = getBroadcastableSignedTransaction(signedArtifact);
-  const networkName = network || broadcastable.network;
+  const networkName = network || broadcastable.networkId;
   const { name: resolvedName, target } = resolveNetworkTarget({ network: networkName, config });
 
   // Security Guards
@@ -125,7 +125,7 @@ export async function runTxSend(input: TxSendRunnerInput): Promise<TxSendRunnerR
   }
 
   assertBroadcastNetworkAllowed({
-    artifactNetwork: broadcastable.network,
+    artifactNetworkId: broadcastable.networkId,
     selectedNetwork: networkName
   });
 

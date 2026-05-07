@@ -128,7 +128,8 @@ export async function runTxRealBuild(options: TxRealBuildOptions): Promise<TxRea
       `  ${artifactPath}`,
       "",
       "Next:",
-      "  Real signing is not implemented yet."
+      `  Sign this plan with an account:`,
+      `    hardkas tx real sign ${artifactPath} --account ${options.from}`
     ];
 
     return {

@@ -1311,7 +1311,7 @@ tx.command("send")
           console.log("This will broadcast a signed Kaspa transaction.");
           console.log("");
           console.log(`Artifact: ${filePath}`);
-          console.log(`Network:  ${options.network || broadcastable.network}`);
+          console.log(`Network:  ${options.network || broadcastable.networkId}`);
           console.log(`Mode:     ${artifact.mode}`);
           console.log("");
           console.log(`From:     ${artifact.from.address} (${artifact.from.input})`);

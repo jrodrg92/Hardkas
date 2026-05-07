@@ -5,6 +5,7 @@ import { HardkasArtifactBase, HARDKAS_VERSION, ARTIFACT_SCHEMAS } from "@hardkas
 export interface RealAccountStore extends HardkasArtifactBase {
   readonly schema: "hardkas.realAccountStore.v1";
   readonly networkId: "simnet";
+  readonly mode: "node" | "rpc";
   readonly warning: string;
   readonly accounts: readonly RealDevAccount[];
 }
@@ -27,6 +28,7 @@ export function createEmptyRealAccountStore(): RealAccountStore {
     hardkasVersion: HARDKAS_VERSION,
     createdAt: new Date().toISOString(),
     networkId: "simnet",
+    mode: "node",
     warning: "Development keys only. Do not use on mainnet. Private keys are stored in plaintext.",
     accounts: []
   };

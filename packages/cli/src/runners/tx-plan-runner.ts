@@ -21,7 +21,7 @@ export interface TxPlanRunnerInput {
   from: string;
   to: string;
   amount: string;
-  network: string;
+  networkId: string;
   feeRate: string;
   config: HardkasConfig;
   url?: string;
@@ -31,7 +31,7 @@ export interface TxPlanRunnerInput {
  * Reusable logic for transaction planning.
  */
 export async function runTxPlan(input: TxPlanRunnerInput): Promise<TxPlanArtifact> {
-  const { from, to, amount, network, feeRate, config, url } = input;
+  const { from, to, amount, networkId, feeRate, config, url } = input;
   
   const fromAddress = resolveAccountAddress(from, config);
   const toAddress = resolveAccountAddress(to, config);
@@ -41,10 +41,10 @@ export async function runTxPlan(input: TxPlanRunnerInput): Promise<TxPlanArtifac
   let availableUtxos: any[] = [];
   let mode: "simulated" | "kaspa-node" | "kaspa-rpc" = "simulated";
   let rpcUrl: string | undefined;
-  let resolvedNetwork = network;
+  let resolvedNetwork = networkId;
 
   try {
-    const { target, name } = resolveNetworkTarget({ config, network });
+    const { target, name } = resolveNetworkTarget({ config, network: networkId });
     resolvedNetwork = name;
 
     if (target.kind === "simulated") {
@@ -87,12 +87,12 @@ export async function runTxPlan(input: TxPlanRunnerInput): Promise<TxPlanArtifac
       mode = target.kind;
     }
   } catch (e) {
-    if (url || network !== "simnet") {
+    if (url || networkId !== "simnet") {
       const { JsonWrpcKaspaClient } = await import("@hardkas/kaspa-rpc");
       const { resolveRuntimeConfig } = await import("@hardkas/node-orchestrator");
       rpcUrl = url;
       if (!rpcUrl) {
-        rpcUrl = resolveRuntimeConfig({ network: network as any }).rpcUrl;
+        rpcUrl = resolveRuntimeConfig({ network: networkId as any }).rpcUrl;
       }
       const client = new JsonWrpcKaspaClient({ rpcUrl });
       const rpcUtxos = await client.getUtxosByAddress(fromAddress);

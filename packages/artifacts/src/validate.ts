@@ -21,6 +21,7 @@ export function validateRealTxPlanArtifact(value: unknown): ArtifactValidationRe
 
   if (v.schema !== ARTIFACT_SCHEMAS.REAL_TX_PLAN) errors.push(`Invalid schema: expected '${ARTIFACT_SCHEMAS.REAL_TX_PLAN}'`);
   if (!v.hardkasVersion) errors.push("Missing hardkasVersion");
+  if (!v.createdAt) errors.push("Missing createdAt");
   if (v.status !== "built") errors.push("Invalid status: expected 'built'");
   
   if (typeof v.networkId !== "string") errors.push("Missing or invalid networkId");
@@ -93,10 +94,11 @@ export function validateTxPlanArtifact(value: unknown): ArtifactValidationResult
 
   if (v.schema !== ARTIFACT_SCHEMAS.TX_PLAN) errors.push(`Invalid schema: expected '${ARTIFACT_SCHEMAS.TX_PLAN}'`);
   if (!v.hardkasVersion) errors.push("Missing hardkasVersion");
+  if (!v.createdAt) errors.push("Missing createdAt");
   if (v.status !== "unsigned") errors.push("Invalid status: expected 'unsigned'");
   
-  if (typeof v.networkId !== "string" && typeof v.network !== "string") errors.push("Missing or invalid networkId");
-  if (!["simulated", "kaspa-node", "kaspa-rpc"].includes(v.mode) && !["simulated", "node", "rpc"].includes(v.mode)) errors.push("Invalid mode");
+  if (typeof v.networkId !== "string") errors.push("Missing or invalid networkId");
+  if (!["simulated", "node", "rpc"].includes(v.mode)) errors.push("Invalid mode");
 
   if (!v.from || typeof v.from.address !== "string") errors.push("Missing or invalid 'from' address");
   if (!v.to || typeof v.to.address !== "string") errors.push("Missing or invalid 'to' address");
@@ -134,12 +136,13 @@ export function validateSignedTxArtifact(value: unknown): ArtifactValidationResu
 
   if (v.schema !== ARTIFACT_SCHEMAS.SIGNED_TX) errors.push(`Invalid schema: expected '${ARTIFACT_SCHEMAS.SIGNED_TX}'`);
   if (!v.hardkasVersion) errors.push("Missing hardkasVersion");
+  if (!v.createdAt) errors.push("Missing createdAt");
   if (v.status !== "signed") errors.push("Invalid status: expected 'signed'");
   
   if (!v.source || (v.source.schema !== ARTIFACT_SCHEMAS.TX_PLAN && v.source.schema !== "hardkas.txPlan")) errors.push("Missing or invalid source plan schema");
   
-  if (typeof v.networkId !== "string" && typeof v.network !== "string") errors.push("Missing or invalid networkId");
-  if (!["simulated", "kaspa-node", "kaspa-rpc"].includes(v.mode) && !["simulated", "node", "rpc"].includes(v.mode)) errors.push("Invalid mode");
+  if (typeof v.networkId !== "string") errors.push("Missing or invalid networkId");
+  if (!["simulated", "node", "rpc"].includes(v.mode)) errors.push("Invalid mode");
 
   if (!v.from || typeof v.from.address !== "string") errors.push("Missing or invalid 'from' address");
   if (!v.to || typeof v.to.address !== "string") errors.push("Missing or invalid 'to' address");
@@ -186,6 +189,7 @@ export function validateRealSignedTxArtifact(value: unknown): ArtifactValidation
 
   if (v.schema !== ARTIFACT_SCHEMAS.REAL_SIGNED_TX) errors.push(`Invalid schema: expected '${ARTIFACT_SCHEMAS.REAL_SIGNED_TX}'`);
   if (!v.hardkasVersion) errors.push("Missing hardkasVersion");
+  if (!v.createdAt) errors.push("Missing createdAt");
   if (v.status !== "signed") errors.push("Invalid status: expected 'signed'");
   
   if (typeof v.signedId !== "string" || !v.signedId) errors.push("Missing or invalid signedId");
@@ -275,11 +279,13 @@ export function validateRealTxSubmitReceipt(value: unknown): ArtifactValidationR
 
   if (v.schema !== ARTIFACT_SCHEMAS.REAL_TX_SUBMIT_RECEIPT) errors.push(`Invalid schema: expected '${ARTIFACT_SCHEMAS.REAL_TX_SUBMIT_RECEIPT}'`);
   if (!v.hardkasVersion) errors.push("Missing hardkasVersion");
+  if (!v.createdAt) errors.push("Missing createdAt");
   if (v.status !== "submitted") errors.push("Invalid status: expected 'submitted'");
   
   if (typeof v.txId !== "string" || !v.txId) errors.push("Missing or invalid txId");
   if (typeof v.sourceSignedId !== "string" || !v.sourceSignedId) errors.push("Missing or invalid sourceSignedId");
   if (typeof v.networkId !== "string") errors.push("Missing or invalid networkId");
+  if (typeof v.mode !== "string") errors.push("Missing or invalid mode");
   if (typeof v.rpcUrl !== "string") errors.push("Missing or invalid rpcUrl");
 
   return {

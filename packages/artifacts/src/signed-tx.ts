@@ -28,11 +28,12 @@ export function createSimulatedSignedTxArtifact(
 
   const planHash = hashTxPlanArtifact(plan);
 
-  return {
+  const artifact: SignedTxArtifact = {
     schema: ARTIFACT_SCHEMAS.SIGNED_TX,
     hardkasVersion: HARDKAS_VERSION,
     status: "signed",
     createdAt: new Date().toISOString(),
+    signedId: "", // Placeholder
 
     source: {
       schema: ARTIFACT_SCHEMAS.TX_PLAN,
@@ -72,6 +73,9 @@ export function createSimulatedSignedTxArtifact(
 
     metadata: input.metadata
   };
+
+  artifact.signedId = `signed_${planHash.substring(0, 8)}_${Date.now().toString(36)}`;
+  return artifact;
 }
 
 export function signedTxArtifactToJson(artifact: SignedTxArtifact): string {

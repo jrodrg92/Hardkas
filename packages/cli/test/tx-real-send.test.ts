@@ -82,7 +82,7 @@ describe("runTxRealSend", () => {
       signedPath: mockSignedPath,
       url: mockUrl,
       yes: true
-    })).rejects.toThrow("Network mismatch: Artifact is for 'simnet' but the node at http://127.0.0.1:18210 is on 'mainnet'.");
+    })).rejects.toThrow(/Refusing to submit transaction: artifact networkId does not match RPC node networkId/);
   });
 
   it("should fail if mainnet is attempted (always rejected in v0.1-dev)", async () => {
