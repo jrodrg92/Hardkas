@@ -32,6 +32,9 @@ importers:
 
   packages/accounts:
     dependencies:
+      '@hardkas/artifacts':
+        specifier: workspace:*
+        version: link:../artifacts
       '@hardkas/config':
         specifier: workspace:*
         version: link:../config
@@ -52,11 +55,33 @@ importers:
         specifier: ^2.1.8
         version: 2.1.9(@types/node@22.19.17)
 
+  packages/artifacts:
+    dependencies:
+      '@hardkas/core':
+        specifier: workspace:*
+        version: link:../core
+      '@hardkas/tx-builder':
+        specifier: workspace:*
+        version: link:../tx-builder
+    devDependencies:
+      tsup:
+        specifier: ^8.3.5
+        version: 8.5.1(jiti@2.7.0)(postcss@8.5.14)(tsx@4.21.0)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.4
+        version: 2.1.9(@types/node@22.19.17)
+
   packages/cli:
     dependencies:
       '@hardkas/accounts':
         specifier: workspace:*
         version: link:../accounts
+      '@hardkas/artifacts':
+        specifier: workspace:*
+        version: link:../artifacts
       '@hardkas/config':
         specifier: workspace:*
         version: link:../config

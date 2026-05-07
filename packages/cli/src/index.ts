@@ -5,6 +5,11 @@ import { formatSompi, parseKasToSompi, SOMPI_PER_KAS } from "@hardkas/core";
 import { startSimulatedDevnet, resolveAccountAddress, createDeterministicAccounts } from "@hardkas/localnet";
 import { TxSimulator } from "@hardkas/simulator";
 import { buildPaymentPlan, createMockUtxo } from "@hardkas/tx-builder";
+import { runTxPlan } from "./runners/tx-plan-runner.js";
+import { runTxSign } from "./runners/tx-sign-runner.js";
+import { runTxSend } from "./runners/tx-send-runner.js";
+import { runTxFlow } from "./runners/tx-flow.js";
+import { bigIntReplacer } from "@hardkas/artifacts";
 
 const program = new Command();
 
@@ -310,6 +315,115 @@ program
 
 const tx = program.command("tx").description("Transaction commands");
 
+tx.command("flow")
+  .description("End-to-end transaction workflow: plan -> sign -> send")
+  .requiredOption("--from <accountOrAddress>", "Sender account name or address")
+  .requiredOption("--to <accountOrAddress>", "Recipient account name or address")
+  .requiredOption("--amount <kas>", "Amount in KAS")
+  .option("--network <network>", "Kaspa network name or config target", "simnet")
+  .option("--config <path>", "Path to config file")
+  .option("--url <wsUrl>", "Direct RPC WebSocket URL")
+  .option("--fee-rate <sompiPerMass>", "Fee rate in sompi per mass", "1")
+  .option("--plan-only", "Only plan the transaction, don't sign or send", false)
+  .option("--sign", "Plan and sign the transaction", false)
+  .option("--send", "Plan, sign, and send the transaction (implies --sign)", false)
+  .option("--yes", "Confirm broadcast without prompt", false)
+  .option("--out-dir <dir>", "Directory to save artifacts")
+  .option("--name <name>", "Base name for artifacts")
+  .option("--json", "Output results as JSON", false)
+  .option("--allow-mainnet-signing", "Allow signing for mainnet", false)
+  .option("--allow-mainnet-broadcast", "Allow broadcasting to mainnet", false)
+  .action(async (options: {
+    from: string;
+    to: string;
+    amount: string;
+    network: string;
+    config?: string;
+    url?: string;
+    feeRate: string;
+    planOnly: boolean;
+    sign: boolean;
+    send: boolean;
+    yes: boolean;
+    outDir?: string;
+    name?: string;
+    json: boolean;
+    allowMainnetSigning: boolean;
+    allowMainnetBroadcast: boolean;
+  }) => {
+    const { loadHardkasConfig } = await import("@hardkas/config");
+    const { formatTxPlanArtifact, formatSignedTxArtifact } = await import("@hardkas/artifacts");
+
+    try {
+      const loaded = await loadHardkasConfig({ configPath: options.config });
+      const result = await runTxFlow({
+        ...options,
+        config: loaded.config
+      });
+
+      if (options.json) {
+        console.log(JSON.stringify(result, bigIntReplacer, 2));
+        if (!result.ok) process.exitCode = 1;
+        return;
+      }
+
+      console.log("HardKAS tx flow");
+      console.log("");
+
+      // Step 1: Plan
+      console.log("Step 1/3: plan");
+      if (result.steps.plan.status === "ok") {
+        console.log("  Status: ok");
+        if (result.steps.plan.artifactPath) {
+          console.log(`  Artifact: ${result.steps.plan.artifactPath}`);
+        }
+      } else {
+        console.log(`  Status: ${result.steps.plan.status}`);
+        if (result.steps.plan.error) console.log(`  Error: ${result.steps.plan.error}`);
+      }
+
+      // Step 2: Sign
+      console.log("Step 2/3: sign");
+      if (result.steps.sign.status === "ok") {
+        console.log("  Status: ok");
+        console.log(`  Signature: ${result.steps.sign.artifact?.signature.kind || "unknown"}`);
+        if (result.steps.sign.artifactPath) {
+          console.log(`  Artifact: ${result.steps.sign.artifactPath}`);
+        }
+      } else {
+        console.log(`  Status: ${result.steps.sign.status}`);
+        if (result.steps.sign.reason) console.log(`  Reason: ${result.steps.sign.reason}`);
+        if (result.steps.sign.error) console.log(`  Error: ${result.steps.sign.error}`);
+      }
+
+      // Step 3: Send
+      console.log("Step 3/3: send");
+      if (result.steps.send.status === "ok") {
+        console.log("  Status: ok");
+        console.log(`  Tx ID: ${result.steps.send.artifact?.transactionId || "unknown"}`);
+        console.log(`  Accepted: ${result.steps.send.artifact?.accepted ? "yes" : "no"}`);
+      } else {
+        console.log(`  Status: ${result.steps.send.status}`);
+        if (result.steps.send.reason) console.log(`  Reason: ${result.steps.send.reason}`);
+        if (result.steps.send.error) console.log(`  Error: ${result.steps.send.error}`);
+      }
+
+      console.log("");
+      console.log(`Result: ${result.result.replace("-", " ")}`);
+
+      if (!result.ok) {
+        if (result.result === "signed" && options.send && !options.yes) {
+           console.log("");
+           console.log("Re-run with --send --yes to broadcast.");
+        }
+        process.exitCode = 1;
+      }
+    } catch (e) {
+      console.error(e instanceof Error ? `Error: ${e.message}` : String(e));
+      process.exitCode = 1;
+    }
+  });
+
 tx.command("simulate")
   .description("Simulate a Kaspa payment transaction (simulated devnet only)")
   .requiredOption("--to <address>", "Recipient address or alias")
@@ -405,187 +519,378 @@ tx.command("simulate")
     }
   );
 
-tx.command("plan")
-  .description("Build an unsigned transaction plan (simulated or real)")
-  .requiredOption("--to <address>", "Recipient address or alias")
-  .requiredOption("--amount <kas>", "Amount in KAS")
-  .requiredOption("--from <address>", "Sender address or alias")
+const txPlan = tx.command("plan")
+  .description("Manage Kaspa transaction plans")
+  .option("--to <address>", "Recipient address or alias")
+  .option("--amount <kas>", "Amount in KAS")
+  .option("--from <address>", "Sender address or alias")
   .option("--fee-rate <sompiPerMass>", "Fee rate in sompi per mass", "1")
   .option("--network <network>", "Kaspa network name or config target", "simnet")
   .option("--config <path>", "Path to config file")
   .option("--url <wsUrl>", "WebSocket RPC URL")
+  .option("--out <path>", "Save plan as artifact JSON")
   .option("--json", "Output as JSON", false)
   .action(async (options: {
-    to: string;
-    amount: string;
-    from: string;
+    to?: string;
+    amount?: string;
+    from?: string;
     feeRate: string;
     network: string;
     config?: string;
     url?: string;
+    out?: string;
     json: boolean;
-  }) => {
-    const { resolveAccountAddress } = await import("@hardkas/accounts");
-    const { loadHardkasConfig, resolveNetworkTarget } = await import("@hardkas/config");
-    const { formatSompi, parseKasToSompi } = await import("@hardkas/core");
-    const { buildPaymentPlan, createMockUtxo } = await import("@hardkas/tx-builder");
-
-    const loaded = await loadHardkasConfig({ configPath: options.config });
-    const fromAddress = resolveAccountAddress(options.from, loaded.config);
-    const toAddress = resolveAccountAddress(options.to, loaded.config);
-    const amountSompi = parseKasToSompi(options.amount);
-    const feeRateSompiPerMass = BigInt(options.feeRate);
-
-    let availableUtxos: any[] = [];
-    let mode = "simulated";
-    let rpcUrl: string | undefined;
-    let resolvedNetwork = options.network;
-
-    try {
-      const { target, name } = resolveNetworkTarget({ config: loaded.config, network: options.network });
-      resolvedNetwork = name;
-
-      if (target.kind === "simulated") {
-         const { createDeterministicAccounts } = await import("@hardkas/localnet");
-         const detAccounts = createDeterministicAccounts();
-         const det = detAccounts.find(a => a.address === fromAddress);
-         if (det) {
-           availableUtxos = [createMockUtxo({ address: det.address, amountSompi: det.balanceSompi, index: 0 })];
-         }
-         mode = "simulated";
-      } else if (target.kind === "kaspa-node" || target.kind === "kaspa-rpc") {
-         const { JsonWrpcKaspaClient } = await import("@hardkas/kaspa-rpc");
-         const { resolveRuntimeConfig } = await import("@hardkas/node-orchestrator");
-         
-         rpcUrl = options.url || target.rpcUrl;
-         if (!rpcUrl && target.kind === "kaspa-node") {
-           rpcUrl = resolveRuntimeConfig({ network: target.network, dataDir: target.dataDir }).rpcUrl;
-         }
-
-         if (!rpcUrl) throw new Error("Could not resolve RPC URL");
-
-         const client = new JsonWrpcKaspaClient({ rpcUrl });
-         const rpcUtxos = await client.getUtxosByAddress(fromAddress);
-         await client.close();
-         
-         availableUtxos = rpcUtxos.map(u => ({
-           outpoint: u.outpoint,
-           address: u.address,
-           amountSompi: u.amountSompi,
-           scriptPublicKey: u.scriptPublicKey || "unresolved"
-         }));
-         mode = target.kind;
-      } else if (target.kind === "igra") {
-         throw new Error(`Network '${name}' targets Igra L2. Use Igra commands for planning.`);
-      }
-    } catch (e) {
-       if (options.url || options.network !== "simnet") {
-         const { JsonWrpcKaspaClient } = await import("@hardkas/kaspa-rpc");
-         const { resolveRuntimeConfig } = await import("@hardkas/node-orchestrator");
-         rpcUrl = options.url;
-         if (!rpcUrl) {
-            rpcUrl = resolveRuntimeConfig({ network: options.network as any }).rpcUrl;
-         }
-         const client = new JsonWrpcKaspaClient({ rpcUrl });
-         const rpcUtxos = await client.getUtxosByAddress(fromAddress);
-         await client.close();
-         
-         availableUtxos = rpcUtxos.map(u => ({
-           outpoint: u.outpoint,
-           address: u.address,
-           amountSompi: u.amountSompi,
-           scriptPublicKey: u.scriptPublicKey || "unresolved"
-         }));
-         mode = "kaspa-rpc";
-      } else {
-         throw e;
-      }
-    }
-
-    if (availableUtxos.length === 0) {
-      console.error(`Error: No UTXOs found for ${fromAddress} on network '${resolvedNetwork}'.`);
-      process.exitCode = 1;
+  }, cmd: any) => {
+    // If no arguments and no options provided, show help
+    if (!options.to && !options.amount && !options.from && cmd.args.length === 0) {
+      cmd.help();
       return;
     }
 
+    // This action handles the "new plan" logic
+    const { writeArtifact, formatTxPlanArtifact } = await import("@hardkas/artifacts");
+    const { loadHardkasConfig } = await import("@hardkas/config");
+
     try {
-      const plan = buildPaymentPlan({
-        fromAddress,
-        outputs: [{ address: toAddress, amountSompi }],
-        availableUtxos,
-        feeRateSompiPerMass
+      const loaded = await loadHardkasConfig({ configPath: options.config });
+      
+      const artifact = await runTxPlan({
+        from: options.from,
+        to: options.to,
+        amount: options.amount,
+        network: options.network,
+        feeRate: options.feeRate,
+        config: loaded.config,
+        url: options.url
+      });
+
+      if (options.out) {
+        await writeArtifact(options.out, artifact);
+      }
+
+      if (options.json) {
+        console.log(JSON.stringify(artifact, bigIntReplacer, 2));
+        return;
+      }
+
+      console.log(formatTxPlanArtifact(artifact));
+      if (options.out) {
+        console.log(`Artifact: ${options.out}`);
+      }
+
+    } catch (e) {
+      console.error(e instanceof Error ? `Error: ${e.message}` : String(e));
+      process.exitCode = 1;
+    }
+  });
+
+txPlan.command("show")
+  .description("Show details of a saved transaction plan")
+  .argument("<path>", "Path to artifact JSON")
+  .option("--json", "Output as JSON", false)
+  .action(async (filePath: string, options: { json: boolean }) => {
+    const { readTxPlanArtifact, formatTxPlanArtifact } = await import("@hardkas/artifacts");
+    try {
+      const artifact = await readTxPlanArtifact(filePath);
+      if (options.json) {
+        console.log(JSON.stringify(artifact, null, 2));
+        return;
+      }
+      console.log(formatTxPlanArtifact(artifact));
+      console.log(`File:    ${filePath}`);
+    } catch (e) {
+      console.error(e instanceof Error ? e.message : String(e));
+      process.exitCode = 1;
+    }
+  });
+
+txPlan.command("validate")
+  .description("Validate a transaction plan artifact")
+  .argument("<path>", "Path to artifact JSON")
+  .option("--json", "Output as JSON", false)
+  .action(async (filePath: string, options: { json: boolean }) => {
+    const { readArtifact, validateTxPlanArtifact } = await import("@hardkas/artifacts");
+    try {
+      const data = await readArtifact(filePath);
+      const result = validateTxPlanArtifact(data);
+      
+      if (options.json) {
+        console.log(JSON.stringify(result, null, 2));
+      } else {
+        if (result.ok) {
+          console.log("Tx plan artifact valid");
+          console.log("");
+          console.log(`File:    ${filePath}`);
+          console.log(`Schema:  ${(data as any).schema}`);
+          console.log(`Version: ${(data as any).version}`);
+          console.log(`Status:  ${(data as any).status}`);
+        } else {
+          console.log("Invalid tx plan artifact");
+          console.log("");
+          console.log("Errors:");
+          for (const err of result.errors) {
+            console.log(`  - ${err}`);
+          }
+        }
+      }
+
+      if (!result.ok) {
+        process.exitCode = 1;
+      }
+    } catch (e) {
+      console.error(e instanceof Error ? e.message : String(e));
+      process.exitCode = 1;
+    }
+  });
+
+const txSign = tx.command("sign")
+  .description("Transaction signing commands");
+
+txSign.command("doctor")
+  .description("Diagnose available signing backends")
+  .option("--config <path>", "Path to config file")
+  .action(async (options: { config?: string }) => {
+    const { loadHardkasConfig } = await import("@hardkas/config");
+    const { getKaspaSigningBackendStatus } = await import("@hardkas/accounts");
+    
+    try {
+      await loadHardkasConfig({ configPath: options.config });
+      const status = await getKaspaSigningBackendStatus();
+      
+      console.log("HardKAS signing doctor");
+      console.log("");
+      console.log("Simulated signing:          yes");
+      console.log(`Kaspa private key signing:  ${status.available ? "yes" : "no"}`);
+      console.log(`Backend:                    ${status.name}${status.available ? "" : " (none)"}`);
+      console.log("External wallet signing:    no");
+      console.log("Igra/EVM signing:           reserved for future");
+      console.log("");
+      console.log("Warnings:");
+      if (!status.available) {
+        console.log(`  - Real Kaspa signing backend is not available: ${status.error || "Package 'kaspa' missing"}`);
+      }
+      console.log("  - Mainnet signing is disabled by default.");
+      
+    } catch (e) {
+      console.error(e instanceof Error ? `Error: ${e.message}` : String(e));
+      process.exitCode = 1;
+    }
+  });
+
+txSign.command("plan", { isDefault: true })
+  .description("Sign a transaction plan artifact")
+  .argument("<path>", "Path to tx plan artifact JSON")
+  .option("--account <name>", "Account name to sign with")
+  .option("--out <path>", "Save signed artifact JSON")
+  .option("--config <path>", "Path to config file")
+  .option("--allow-mainnet-signing", "Allow signing transactions for mainnet (DANGEROUS)", false)
+  .option("--json", "Output as JSON", false)
+  .action(async (filePath: string, options: {
+    account?: string;
+    out?: string;
+    config?: string;
+    allowMainnetSigning: boolean;
+    json: boolean;
+  }) => {
+    const { readTxPlanArtifact, writeArtifact, formatSignedTxArtifact } = await import("@hardkas/artifacts");
+    const { loadHardkasConfig } = await import("@hardkas/config");
+    const { resolveHardkasAccount, signTxPlanArtifact } = await import("@hardkas/accounts");
+
+    try {
+      const planArtifact = await readTxPlanArtifact(filePath);
+      const loaded = await loadHardkasConfig({ configPath: options.config });
+      
+      const signedArtifact = await runTxSign({
+        planArtifact,
+        accountName: options.account,
+        config: loaded.config,
+        allowMainnetSigning: options.allowMainnetSigning
+      });
+
+      if (options.out) {
+        await writeArtifact(options.out, signedArtifact);
+      }
+
+      if (options.json) {
+        console.log(JSON.stringify(signedArtifact, bigIntReplacer, 2));
+        return;
+      }
+
+      console.log("HardKAS tx sign");
+      console.log("");
+      console.log(`Input:   ${filePath}`);
+      console.log(`Mode:    ${planArtifact.mode}`);
+      console.log(`Signer:  ${signedArtifact.signature.account}`);
+      console.log(`Backend: ${signedArtifact.metadata?.signingBackend || "simulated"}`);
+      console.log("");
+      console.log("Signed artifact created");
+      console.log("");
+      if (options.out) {
+        console.log(`Artifact: ${options.out}`);
+        console.log("");
+      }
+      
+      console.log(`Status:    ${signedArtifact.status}`);
+      console.log(`Broadcast: ${signedArtifact.metadata?.warning || "not performed"}`);
+      console.log("");
+      
+      console.log(formatSignedTxArtifact(signedArtifact));
+
+    } catch (e) {
+      console.error(e instanceof Error ? `Error: ${e.message}` : String(e));
+      process.exitCode = 1;
+    }
+  });
+
+const txSigned = tx.command("signed").description("Manage signed transaction artifacts");
+
+txSigned.command("show")
+  .description("Show details of a signed transaction artifact")
+  .argument("<path>", "Path to signed artifact JSON")
+  .option("--json", "Output as JSON", false)
+  .action(async (filePath: string, options: { json: boolean }) => {
+    const { readSignedTxArtifact, formatSignedTxArtifact, getBroadcastableSignedTransaction } = await import("@hardkas/artifacts");
+    try {
+      const artifact = await readSignedTxArtifact(filePath);
+      if (options.json) {
+        console.log(JSON.stringify(artifact, null, 2));
+        return;
+      }
+
+      let broadcastable = "yes";
+      let reason = "";
+      try {
+        getBroadcastableSignedTransaction(artifact);
+      } catch (e) {
+        broadcastable = "no";
+        reason = e instanceof Error ? e.message : String(e);
+      }
+
+      console.log(formatSignedTxArtifact(artifact));
+      console.log(`Broadcastable: ${broadcastable}${reason ? ` (${reason})` : ""}`);
+      console.log(`File:          ${filePath}`);
+    } catch (e) {
+      console.error(e instanceof Error ? e.message : String(e));
+      process.exitCode = 1;
+    }
+  });
+
+txSigned.command("validate")
+  .description("Validate a signed transaction artifact")
+  .argument("<path>", "Path to signed artifact JSON")
+  .option("--json", "Output as JSON", false)
+  .action(async (filePath: string, options: { json: boolean }) => {
+    const { readArtifact, validateSignedTxArtifact } = await import("@hardkas/artifacts");
+    try {
+      const data = await readArtifact(filePath);
+      const result = validateSignedTxArtifact(data);
+      
+      if (options.json) {
+        console.log(JSON.stringify(result, null, 2));
+      } else {
+        if (result.ok) {
+          console.log("Signed tx artifact valid");
+          console.log("");
+          console.log(`File:    ${filePath}`);
+          console.log(`Schema:  ${(data as any).schema}`);
+          console.log(`Version: ${(data as any).version}`);
+          console.log(`Status:  ${(data as any).status}`);
+        } else {
+          console.log("Invalid signed tx artifact");
+          console.log("");
+          console.log("Errors:");
+          for (const err of result.errors) {
+            console.log(`  - ${err}`);
+          }
+        }
+      }
+
+      if (!result.ok) {
+        process.exitCode = 1;
+      }
+    } catch (e) {
+      console.error(e instanceof Error ? e.message : String(e));
+      process.exitCode = 1;
+    }
+  });
+
+tx.command("send")
+  .description("Broadcast a signed transaction artifact to the network")
+  .argument("<path>", "Path to signed artifact JSON")
+  .option("--network <name>", "Network name (defaults to artifact network)")
+  .option("--config <path>", "Path to config file")
+  .option("--url <wsUrl>", "Direct RPC WebSocket URL")
+  .option("--yes", "Confirm broadcast without prompt", false)
+  .option("--json", "Output as JSON", false)
+  .option("--allow-mainnet-broadcast", "Allow broadcasting to mainnet (DANGEROUS)", false)
+  .option("--verbose", "Show verbose RPC response", false)
+  .action(async (filePath: string, options: {
+    network?: string;
+    config?: string;
+    url?: string;
+    yes: boolean;
+    json: boolean;
+    allowMainnetBroadcast: boolean;
+    verbose: boolean;
+  }) => {
+    const { readSignedTxArtifact, getBroadcastableSignedTransaction } = await import("@hardkas/artifacts");
+    const { loadHardkasConfig } = await import("@hardkas/config");
+
+    try {
+      const artifact = await readSignedTxArtifact(filePath);
+      const loaded = await loadHardkasConfig({ configPath: options.config });
+
+      if (!options.yes) {
+        const broadcastable = getBroadcastableSignedTransaction(artifact);
+        console.log("This will broadcast a signed Kaspa transaction.");
+        console.log("");
+        console.log(`Artifact: ${filePath}`);
+        console.log(`Network:  ${options.network || broadcastable.network}`);
+        console.log(`Mode:     ${artifact.mode}`);
+        console.log("");
+        console.log(`From:     ${artifact.from.address} (${artifact.from.input})`);
+        console.log(`To:       ${artifact.to.address} (${artifact.to.input})`);
+        console.log(`Amount:   ${artifact.amount}`);
+        console.log(`Fee:      ${artifact.estimatedFee}`);
+        console.log("");
+        console.log("Re-run with --yes to broadcast.");
+        return;
+      }
+
+      const result = await runTxSend({
+        signedArtifact: artifact,
+        network: options.network,
+        config: loaded.config,
+        url: options.url,
+        allowMainnetBroadcast: options.allowMainnetBroadcast
       });
 
       if (options.json) {
         console.log(JSON.stringify({
-          network: resolvedNetwork,
-          mode,
-          rpcUrl,
-          from: { input: options.from, address: fromAddress },
-          to: { input: options.to, address: toAddress },
-          amountSompi: amountSompi.toString(),
-          amount: formatSompi(amountSompi),
-          selectedUtxos: plan.inputs.map(i => ({
-            id: `${i.outpoint.transactionId}:${i.outpoint.index}`,
-            txId: i.outpoint.transactionId,
-            outputIndex: i.outpoint.index,
-            address: i.address,
-            amountSompi: i.amountSompi.toString(),
-            amount: formatSompi(i.amountSompi)
-          })),
-          outputs: [
-            ...plan.outputs.map(o => ({
-              kind: "payment",
-              address: o.address,
-              amountSompi: o.amountSompi.toString(),
-              amount: formatSompi(o.amountSompi)
-            })),
-            ...(plan.change ? [{
-              kind: "change",
-              address: plan.change.address,
-              amountSompi: plan.change.amountSompi.toString(),
-              amount: formatSompi(plan.change.amountSompi)
-            }] : [])
-          ],
-          estimatedMass: plan.estimatedMass.toString(),
-          estimatedFeeSompi: plan.estimatedFeeSompi.toString(),
-          estimatedFee: formatSompi(plan.estimatedFeeSompi),
-          changeSompi: plan.change ? plan.change.amountSompi.toString() : "0",
-          change: plan.change ? formatSompi(plan.change.amountSompi) : "0.00000000 KAS",
-          status: "unsigned"
-        }, null, 2));
-        return;
+          ok: true,
+          artifact: filePath,
+          network: result.networkName,
+          rpcUrl: result.rpcUrl,
+          accepted: result.accepted,
+          transactionId: result.transactionId,
+          raw: options.verbose ? result.rawResponse : undefined
+        }, bigIntReplacer, 2));
+      } else {
+        console.log("Kaspa transaction broadcast");
+        console.log("");
+        console.log(`Artifact: ${filePath}`);
+        console.log(`Network:  ${result.networkName}`);
+        console.log(`RPC:      ${result.rpcUrl}`);
+        console.log("");
+        console.log(`Accepted: ${result.accepted ? "yes" : "no"}`);
+        console.log(`Tx ID:    ${result.transactionId || "unknown"}`);
+        
+        if (options.verbose && result.rawResponse) {
+          console.log("");
+          console.log("Raw Response:");
+          console.log(JSON.stringify(result.rawResponse, null, 2));
+        }
       }
-
-      console.log("HardKAS tx plan");
-      console.log("");
-      console.log(`Network: ${resolvedNetwork}`);
-      console.log(`Mode:    ${mode}`);
-      if (rpcUrl) console.log(`RPC:     ${rpcUrl}`);
-      console.log("");
-      console.log(`From:   ${fromAddress} (${options.from})`);
-      console.log(`To:     ${toAddress} (${options.to})`);
-      console.log(`Amount: ${formatSompi(amountSompi)}`);
-      console.log("");
-      console.log(`Selected UTXOs: ${plan.inputs.length}`);
-      for (const input of plan.inputs) {
-        console.log(`  - ${input.outpoint.transactionId}:${input.outpoint.index}  ${formatSompi(input.amountSompi)}`);
-      }
-      console.log("");
-      console.log("Outputs:");
-      for (const output of plan.outputs) {
-        console.log(`  - ${output.address.padEnd(24)} ${formatSompi(output.amountSompi)}`);
-      }
-      if (plan.change) {
-        console.log(`  - ${plan.change.address.padEnd(24)} ${formatSompi(plan.change.amountSompi)} change`);
-      }
-      console.log("");
-      console.log(`Estimated mass: ${plan.estimatedMass}`);
-      console.log(`Estimated fee:  ${formatSompi(plan.estimatedFeeSompi)}`);
-      console.log(`Change:         ${plan.change ? formatSompi(plan.change.amountSompi) : "0.00000000 KAS"}`);
-      console.log("");
-      console.log("Status: unsigned plan only");
-      console.log("Next:   future hardkas tx sign / hardkas tx send");
 
     } catch (e) {
       console.error(e instanceof Error ? `Error: ${e.message}` : String(e));

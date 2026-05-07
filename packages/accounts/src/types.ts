@@ -39,6 +39,34 @@ export type HardkasAccount =
   | HardkasExternalWalletAccount
   | HardkasEvmPrivateKeyAccount;
 
+export type HardkasSignerKind =
+  | "simulated"
+  | "kaspa-private-key"
+  | "external-wallet"
+  | "unsupported";
+
+export interface SignTxPlanInput {
+  planArtifact: any; // Using any here to avoid circular dependency with @hardkas/artifacts if needed, or cast later
+  accountName: string;
+}
+
+export interface SignTxPlanResult {
+  signatureKind: "simulated" | "kaspa";
+  signerAddress?: string;
+  signedTransaction: {
+    encoding: "simulated" | "kaspa-raw";
+    value: string;
+  };
+  signature?: {
+    value: string;
+  };
+}
+
+export interface HardkasTxPlanSigner {
+  kind: HardkasSignerKind;
+  signTxPlan(input: SignTxPlanInput): Promise<SignTxPlanResult>;
+}
+
 export interface HardkasSigner<TTx = unknown, TSignedTx = unknown> {
   account: HardkasAccount;
   signTransaction(tx: TTx): Promise<TSignedTx>;

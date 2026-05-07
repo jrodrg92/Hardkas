@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { formatSompi } from "@hardkas/core";
 import type { TxPlan } from "@hardkas/tx-builder";
 import type { TxPlanArtifact } from "./types.js";
@@ -68,4 +69,32 @@ export function createTxPlanArtifact(input: CreateTxPlanArtifactInput): TxPlanAr
 
 export function txPlanArtifactToJson(artifact: TxPlanArtifact): string {
   return JSON.stringify(artifact, null, 2) + "\n";
+}
+
+/**
+ * Generates a stable SHA-256 hash of a TxPlanArtifact.
+ * This is used to link signed artifacts to their source plans.
+ */
+export function hashTxPlanArtifact(artifact: TxPlanArtifact): string {
+  const stable = stableStringify(artifact);
+  return createHash("sha256").update(stable).digest("hex");
+}
+
+function stableStringify(val: any): string {
+  if (val === null || typeof val !== "object" || Array.isArray(val)) {
+    return JSON.stringify(val);
+  }
+
+  const sortedKeys = Object.keys(val).sort();
+  const obj: Record<string, any> = {};
+  for (const key of sortedKeys) {
+    if (val[key] !== undefined) {
+      obj[key] = val[key];
+    }
+  }
+
+  return "{" + sortedKeys
+    .filter(k => val[k] !== undefined)
+    .map(k => `"${k}":${stableStringify(val[k])}`)
+    .join(",") + "}";
 }

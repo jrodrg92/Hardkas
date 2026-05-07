@@ -1,8 +1,10 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { assertValidTxPlanArtifact } from "./validate.js";
-import type { TxPlanArtifact } from "./types.js";
-import { txPlanArtifactToJson } from "./tx-plan.js";
+import { assertValidTxPlanArtifact, assertValidSignedTxArtifact } from "./validate.js";
+import type { TxPlanArtifact, SignedTxArtifact } from "./types.js";
+
+export const bigIntReplacer = (_key: string, value: any) => 
+  typeof value === "bigint" ? value.toString() : value;
 
 export async function writeArtifact(filePath: string, artifact: unknown): Promise<void> {
   try {
@@ -11,7 +13,7 @@ export async function writeArtifact(filePath: string, artifact: unknown): Promis
     
     const content = typeof artifact === "string" 
       ? artifact 
-      : JSON.stringify(artifact, null, 2) + "\n";
+      : JSON.stringify(artifact, bigIntReplacer, 2) + "\n";
       
     await fs.writeFile(filePath, content, "utf-8");
   } catch (error) {
@@ -34,5 +36,11 @@ export async function readArtifact(filePath: string): Promise<unknown> {
 export async function readTxPlanArtifact(filePath: string): Promise<TxPlanArtifact> {
   const data = await readArtifact(filePath);
   assertValidTxPlanArtifact(data);
+  return data;
+}
+
+export async function readSignedTxArtifact(filePath: string): Promise<SignedTxArtifact> {
+  const data = await readArtifact(filePath);
+  assertValidSignedTxArtifact(data);
   return data;
 }

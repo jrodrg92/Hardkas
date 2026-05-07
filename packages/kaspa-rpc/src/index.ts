@@ -62,12 +62,18 @@ export interface MempoolEntry {
   readonly acceptedAt?: string | undefined;
 }
 
+export interface KaspaSubmitTransactionResult {
+  transactionId?: string;
+  accepted?: boolean;
+  raw?: unknown;
+}
+
 export interface KaspaRpcClient {
   getInfo(): Promise<KaspaNodeInfo>;
   healthCheck(): Promise<KaspaRpcHealth>;
   getBalanceByAddress(address: string): Promise<KaspaAddressBalance>;
   getUtxosByAddress(address: string): Promise<KaspaRpcUtxo[]>;
-  submitTransaction(tx: unknown): Promise<{ txId: string }>;
+  submitTransaction(rawTransaction: string): Promise<KaspaSubmitTransactionResult>;
   getMempoolEntry(txId: string): Promise<MempoolEntry | null>;
   getBlockDagInfo(): Promise<BlockDagInfo>;
   getServerInfo(): Promise<ServerInfo>;
@@ -119,8 +125,13 @@ export class JsonWrpcKaspaClient implements KaspaRpcClient {
     return mapKaspaRpcUtxos(response, address);
   }
 
-  async submitTransaction(_tx: unknown): Promise<{ txId: string }> {
-    throw new Error("submitTransaction not implemented in Phase 6.");
+  async submitTransaction(rawTransaction: string): Promise<KaspaSubmitTransactionResult> {
+    // We try multiple payload formats for compatibility
+    const response = await this.safeRequest(
+      ["submitTransactionRequest", "submitTransaction"],
+      { transaction: rawTransaction, transactionHex: rawTransaction, rawTransaction }
+    );
+    return mapKaspaSubmitTransactionResult(response);
   }
 
   async getMempoolEntry(_txId: string): Promise<MempoolEntry | null> {
@@ -323,6 +334,16 @@ export function mapKaspaRpcUtxos(result: any, address: string): KaspaRpcUtxo[] {
   });
 }
 
+export function mapKaspaSubmitTransactionResult(result: any): KaspaSubmitTransactionResult {
+  if (!result) return { raw: result };
+
+  return {
+    transactionId: result.transactionId || result.transaction_id || result.txId || result.tx_id,
+    accepted: result.accepted !== undefined ? result.accepted : (result.isAccepted || result.success),
+    raw: result
+  };
+}
+
 export class MockKaspaRpcClient implements KaspaRpcClient {
   private utxosByAddress = new Map<string, KaspaRpcUtxo[]>();
 
@@ -350,8 +371,12 @@ export class MockKaspaRpcClient implements KaspaRpcClient {
     this.utxosByAddress.set(address, utxos);
   }
 
-  async submitTransaction(_tx: unknown): Promise<{ txId: string }> {
-    return { txId: "mock_tx" };
+  async submitTransaction(rawTransaction: string): Promise<KaspaSubmitTransactionResult> {
+    return { 
+      transactionId: "mock-txid", 
+      accepted: true,
+      raw: { rawTransaction }
+    };
   }
 
   async getMempoolEntry(_txId: string): Promise<MempoolEntry | null> {
