@@ -1,5 +1,10 @@
 import type { TxPlanArtifact, SignedTxArtifact, RealTxPlanArtifact, RealSignedTxArtifact, RealTxSubmitReceipt } from "./types.js";
 import { ARTIFACT_SCHEMAS } from "./constants.js";
+import { 
+  validateIgraTxPlanArtifact, 
+  validateIgraSignedTxArtifact, 
+  validateIgraTxReceiptArtifact 
+} from "./igra-artifacts.js";
 
 export interface ArtifactValidationResult {
   ok: boolean;
@@ -259,6 +264,12 @@ export function validateArtifact(data: unknown): ArtifactValidationResult {
     case ARTIFACT_SCHEMAS.REAL_TX_SUBMIT_RECEIPT:
     case "hardkas.realTxSubmitReceipt":
       return validateRealTxSubmitReceipt(data);
+    case ARTIFACT_SCHEMAS.IGRA_TX_PLAN:
+      return validateIgraTxPlanArtifact(data);
+    case ARTIFACT_SCHEMAS.IGRA_SIGNED_TX:
+      return validateIgraSignedTxArtifact(data);
+    case ARTIFACT_SCHEMAS.IGRA_TX_RECEIPT:
+      return validateIgraTxReceiptArtifact(data);
     default:
       return { ok: false, errors: [`Unknown artifact schema/kind: ${schema}`] };
   }

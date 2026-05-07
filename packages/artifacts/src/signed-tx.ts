@@ -1,7 +1,7 @@
 import { hashTxPlanArtifact } from "./tx-plan.js";
 import { validateTxPlanArtifact } from "./validate.js";
 import type { TxPlanArtifact, SignedTxArtifact } from "./types.js";
-import { HARDKAS_VERSION, ARTIFACT_SCHEMAS } from "./constants.js";
+import { HARDKAS_VERSION, ARTIFACT_SCHEMAS, HardkasArtifactMode } from "./constants.js";
 
 export interface CreateSimulatedSignedTxArtifactInput {
   plan: TxPlanArtifact;
@@ -84,7 +84,7 @@ export function signedTxArtifactToJson(artifact: SignedTxArtifact): string {
 
 export interface BroadcastableSignedTx {
   readonly networkId: string;
-  readonly mode: "kaspa-node" | "kaspa-rpc" | "simulated" | "node" | "rpc";
+  readonly mode: HardkasArtifactMode;
   readonly rawTransaction: string;
 }
 

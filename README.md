@@ -87,7 +87,7 @@ hardkas tx send --from alice --to bob --amount 10 --yes
 
 - [x] **v0.1-dev**: Persistent localnet, basic transaction flow, RPC diagnostics, account management.
 - [ ] **v0.2**: Real transaction signing and broadcasting, encrypted keystores, and BIP39 support.
-- [ ] **v0.3**: Integrated L2 (SilverScripts/Igra) simulation.
+- [x] **v0.3**: Integrated L2 (SilverScripts/Igra) simulation foundation.
 
 ### Real Transaction Support
 HardKAS has started laying the foundation for real Kaspa network transactions.
@@ -115,6 +115,161 @@ HardKAS has started laying the foundation for real Kaspa network transactions.
 > **Mainnet broadcast is disabled in v0.1-dev.**
 > Production transaction submission is intentionally unavailable in this development release.
 > Use `simnet` or `testnet-10` for real transaction testing.
+
+## Igra / Kaspa L2 Profiles
+
+HardKAS provides foundation support for Layer 2 (L2) networks built on Kaspa, with a primary focus on the **Igra** EVM-based rollup.
+
+> [!NOTE]
+> HardKAS v0.1-dev supports L2 profile metadata and registry management. Transaction submission and bridge automation are not yet available for L2.
+
+### Igra L2 RPC diagnostics
+HardKAS provides read-only diagnostics for EVM-compatible L2 networks. This allows you to verify node connectivity and basic network state.
+
+> [!IMPORTANT]
+> These commands use EVM JSON-RPC to query L2 state. They do not interact with the Kaspa L1 UTXO state or the bridge automation.
+
+```bash
+# Check L2 RPC health and connectivity
+hardkas l2 rpc health --network igra --url <rpcUrl>
+
+# Wait for L2 RPC to be ready
+hardkas l2 rpc health --network igra --url <rpcUrl> --wait
+
+# Query basic L2 state
+hardkas l2 rpc chain-id --url <rpcUrl>
+hardkas l2 rpc block-number --url <rpcUrl>
+hardkas l2 rpc gas-price --url <rpcUrl>
+```
+
+### Igra L2 account state
+HardKAS allows you to inspect the state of EVM accounts on L2 networks.
+
+> [!IMPORTANT]
+> These commands read L2 EVM account state. This is NOT a Kaspa L1 UTXO balance. No signing or sending is performed.
+
+```bash
+# Check L2 balance for an address
+hardkas l2 balance 0x... --network igra --url <rpcUrl>
+
+# Check L2 nonce (transaction count)
+hardkas l2 nonce 0x... --network igra --url <rpcUrl>
+
+# Output as JSON
+hardkas l2 balance 0x... --json
+```
+
+### Igra L2 preflight calls
+HardKAS supports simulating EVM execution on L2 without sending transactions.
+
+> [!IMPORTANT]
+> These commands use EVM JSON-RPC to simulate/read state. They do not sign or broadcast transactions. L2 gas is not Kaspa L1 transaction mass.
+
+```bash
+# Perform a read-only EVM call
+hardkas l2 call --to 0x... --data 0x... --url <rpcUrl>
+
+# Estimate gas for a call
+hardkas l2 estimate-gas --from 0x... --to 0x... --data 0x... --url <rpcUrl>
+```
+
+### Igra L2 transaction artifacts
+HardKAS uses canonical, versioned artifacts for L2 transactions, isolated from Kaspa L1 UTXO artifacts.
+
+- **`IgraTxPlanArtifact`**: Schema `hardkas.igraTxPlan.v1`. Used for planning EVM transactions.
+- **`IgraSignedTxArtifact`**: Schema `hardkas.igraSignedTx.v1`. Stores raw signed EVM transactions.
+- **`IgraTxReceiptArtifact`**: Schema `hardkas.igraTxReceipt.v1`. Tracks L2 submission and confirmation.
+
+Example metadata:
+```json
+{
+  "schema": "hardkas.igraTxPlan.v1",
+  "hardkasVersion": "0.1.0-dev",
+  "networkId": "igra",
+  "mode": "l2-rpc",
+  "createdAt": "2026-..."
+}
+```
+
+### Igra L2 transaction plans
+You can build a transaction plan for Igra/L2 using the CLI. This will fetch network data and simulate execution to estimate fees.
+
+```bash
+# Build a transaction plan
+# Note: --value is in wei decimal, not iKAS.
+hardkas l2 tx build --network igra --url <rpcUrl> --from 0x... --to 0x... --value 1000000000000000000
+```
+
+> [!NOTE]
+> L2 transaction plans are stored in the `plans/` directory by default. They are strictly account-based and do not interact with Kaspa L1 UTXO state.
+
+### Igra L2 signing
+HardKAS supports signing Igra/L2 transaction plans using an EVM-compatible signing adapter (powered by `viem`).
+
+> [!IMPORTANT]
+> **L2 signing requires an account with an EVM 0x address and a valid private key.** 
+> Kaspa L1 addresses (e.g., `kaspa:...`) cannot be used for L2 signing.
+> Private keys are loaded from `.hardkas/accounts.real.json` and are never printed to the console.
+
+```bash
+# Sign an L2 transaction plan
+hardkas l2 tx sign plans/p1.igra.plan.json --account alice
+```
+
+Success will generate a `*.igra.signed.json` artifact in the `signed/` directory.
+
+> [!WARNING]
+> **L2 transaction sending is not yet implemented.** 
+> Signing an Igra L2 transaction is isolated from Kaspa L1 UTXO signing.
+
+### Igra L2 transaction send
+HardKAS supports broadcasting signed Igra/L2 transactions using `eth_sendRawTransaction`.
+
+> [!IMPORTANT]
+> **L2 transaction sending requires the `--yes` flag.**
+> Before sending, HardKAS verifies that the RPC endpoint's `chainId` matches the artifact.
+> Mainnet/production broadcast is disabled in v0.1-dev.
+
+```bash
+# Send a signed L2 transaction
+hardkas l2 tx send signed/s1.igra.signed.json --network igra --url <rpcUrl> --yes
+```
+
+Success will generate an `IgraTxReceiptArtifact` in `.hardkas/l2-receipts/`.
+
+### Igra L2 receipts and status
+HardKAS provides tools to list and inspect the status of Igra L2 transactions.
+
+```bash
+# List local transaction receipts
+hardkas l2 tx receipts
+
+# Inspect local and remote status for a transaction
+hardkas l2 tx receipt 0x... --network igra --url <rpcUrl>
+
+# Quick remote status check (success/reverted/pending)
+hardkas l2 tx status 0x... --network igra --url <rpcUrl>
+```
+
+> [!NOTE]
+> - **Local receipts** are stored as artifacts in `.hardkas/l2-receipts/`.
+> - **Remote status** is queried directly from the L2 EVM node via `eth_getTransactionReceipt`.
+> - These commands only track Igra L2 transaction execution; they do not imply Kaspa L1 bridge finality or ZK exit completion.
+
+### Architecture Rules
+- **Kaspa L1 does NOT execute EVM**: Kaspa provides sequencing, data availability (DA), and state commitment anchoring.
+- **Igra execution occurs on L2**: Full EVM execution happens within the Igra L2 network.
+- **Bridge Security**: Security is phase-dependent: `pre-ZK` -> `MPC` -> `ZK`.
+- **Trustless Exit**: Guaranteed exit functionality is only available in the `ZK` phase.
+
+### CLI Usage
+```bash
+# List supported L2 networks
+hardkas l2 networks
+
+# Show detailed profile and security assumptions
+hardkas l2 profile show igra
+```
 
 ## Artifact Schemas
 

@@ -16,6 +16,7 @@
   "dependencies": {
     "@hardkas/core": "workspace:*",
     "@hardkas/kaspa-rpc": "workspace:*",
+    "@hardkas/l2": "workspace:*",
     "@hardkas/localnet": "workspace:*",
     "@hardkas/simulator": "workspace:*",
     "@hardkas/tx-builder": "workspace:*",

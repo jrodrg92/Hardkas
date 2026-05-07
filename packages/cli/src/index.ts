@@ -41,6 +41,26 @@ import { runAccountsRealUtxos } from "./runners/accounts-real-utxos-runner.js";
 import { runTxRealBuild } from "./runners/tx-real-build-runner.js";
 import { runTxRealSign } from "./runners/tx-real-sign-runner.js";
 import { runTxRealSend } from "./runners/tx-real-send-runner.js";
+import { 
+  runL2Networks 
+} from "./runners/l2-networks-runner.js";
+import { 
+  runL2ProfileShow 
+} from "./runners/l2-profile-show-runner.js";
+import { 
+  runL2ProfileValidate 
+} from "./runners/l2-profile-validate-runner.js";
+import { 
+  runL2RpcHealth 
+} from "./runners/l2-rpc-health-runner.js";
+import { 
+  runL2RpcChainId,
+  runL2RpcBlockNumber,
+  runL2RpcGasPrice
+} from "./runners/l2-rpc-query-runners.js";
+import { runL2Balance, runL2Nonce } from "./runners/l2-account-runners.js";
+import { runL2Call, runL2EstimateGas } from "./runners/l2-call-runners.js";
+import { runL2TxBuild, runL2TxSign, runL2TxSend, runL2TxReceipt, runL2TxReceipts, runL2TxStatus } from "./runners/l2-tx-runners.js";
 import { bigIntReplacer } from "@hardkas/artifacts";
 import { UI, handleError } from "./ui.js";
 
@@ -1253,7 +1273,7 @@ txSigned.command("validate")
           console.log(`Version: ${(data as any).version}`);
           console.log(`Status:  ${(data as any).status}`);
         } else {
-          console.log("Invalid signed tx artifact");
+          console.log("Invalid tx signed artifact");
           console.log("");
           console.log("Errors:");
           for (const err of result.errors) {
@@ -2034,5 +2054,245 @@ program
       process.exitCode = 1;
     }
   });
+
+  // --- L2 Commands ---
+
+  const l2 = program
+    .command("l2")
+    .description("Layer 2 / Igra management");
+
+  l2.command("networks")
+    .description("List available L2 network profiles")
+    .option("--json", "Output results in JSON format")
+    .action(async (options) => {
+      await runL2Networks(options);
+    });
+
+  const l2Profile = l2.command("profile").description("L2 profile management");
+
+  l2Profile.command("show <name>")
+    .description("Show detailed information for an L2 profile")
+    .option("--json", "Output results in JSON format")
+    .action(async (name, options) => {
+      await runL2ProfileShow({ name, ...options });
+    });
+
+  l2Profile.command("validate <name>")
+    .description("Validate an L2 profile against canonical rules")
+    .option("--json", "Output results in JSON format")
+    .action(async (name, options) => {
+      await runL2ProfileValidate({ name, ...options });
+    });
+
+  
+  
+  
+  const l2tx = l2.command("tx").description("L2 transaction management");
+
+  l2tx.command("build")
+    .description("Build an L2 EVM transaction plan artifact")
+    .option("--network <name>", "L2 network name", "igra")
+    .option("--url <url>", "RPC URL")
+    .option("--from <address>", "From address")
+    .option("--to <address>", "To address")
+    .option("--data <hex>", "Transaction data", "0x")
+    .option("--value <wei>", "Value in wei", "0")
+    .option("--gas-limit <gas>", "Gas limit")
+    .option("--gas-price <wei>", "Gas price in wei")
+    .option("--nonce <nonce>", "Account nonce")
+    .option("--out-dir <dir>", "Output directory for plans", "plans")
+    .option("--json", "Output results in JSON format")
+    .action(async (options) => {
+      try {
+        await runL2TxBuild(options);
+      } catch (e) {
+        handleError(e);
+      }
+    });
+
+  l2tx.command("sign <planPath>")
+    .description("Sign an L2 EVM transaction plan artifact")
+    .option("--account <name>", "Account name or address to sign with")
+    .option("--out-dir <dir>", "Output directory for signed txs", "signed")
+    .option("--json", "Output results in JSON format")
+    .action(async (planPath, options) => {
+      try {
+        await runL2TxSign({ planPath, ...options });
+      } catch (e) {
+        handleError(e);
+      }
+    });
+
+  l2tx.command("send <signedPath>")
+    .description("Send a signed L2 EVM transaction")
+    .option("--network <name>", "L2 network name", "igra")
+    .option("--url <url>", "RPC URL")
+    .option("--yes", "Confirm submission (mandatory)")
+    .option("--json", "Output results in JSON format")
+    .action(async (signedPath, options) => {
+      try {
+        await runL2TxSend({ signedPath, ...options });
+      } catch (e) {
+        handleError(e);
+      }
+    });
+
+  l2tx.command("receipt <txHash>")
+    .description("Get an L2 transaction receipt")
+    .option("--network <name>", "L2 network name", "igra")
+    .option("--url <url>", "RPC URL")
+    .option("--json", "Output results in JSON format")
+    .action(async (txHash, options) => {
+      try {
+        await runL2TxReceipt({ txHash, ...options });
+      } catch (e) {
+        handleError(e);
+      }
+    });
+
+  l2tx.command("receipts")
+    .description("List local L2 transaction receipts")
+    .option("--json", "Output results in JSON format")
+    .action(async (options) => {
+      try {
+        await runL2TxReceipts(options);
+      } catch (e) {
+        handleError(e);
+      }
+    });
+
+  l2tx.command("status <txHash>")
+    .description("Check L2 transaction status via RPC")
+    .option("--network <name>", "L2 network name", "igra")
+    .option("--url <url>", "RPC URL")
+    .option("--json", "Output results in JSON format")
+    .action(async (txHash, options) => {
+      try {
+        await runL2TxStatus({ txHash, ...options });
+      } catch (e) {
+        handleError(e);
+      }
+    });
+
+  l2.command("call")
+    .description("Perform a read-only L2 EVM call")
+    .option("--network <name>", "L2 network name", "igra")
+    .option("--url <url>", "RPC URL")
+    .option("--from <address>", "From address")
+    .requiredOption("--to <address>", "To address")
+    .option("--data <hex>", "Call data", "0x")
+    .option("--value <hex>", "Value in wei (hex)")
+    .option("--block <tag>", "Block tag (latest|pending)", "latest")
+    .option("--json", "Output results in JSON format")
+    .action(async (options) => {
+      try {
+        await runL2Call(options);
+      } catch (e) {
+        handleError(e);
+      }
+    });
+
+  l2.command("estimate-gas")
+    .description("Estimate gas for an L2 EVM call")
+    .option("--network <name>", "L2 network name", "igra")
+    .option("--url <url>", "RPC URL")
+    .option("--from <address>", "From address")
+    .requiredOption("--to <address>", "To address")
+    .option("--data <hex>", "Call data", "0x")
+    .option("--value <hex>", "Value in wei (hex)")
+    .option("--block <tag>", "Block tag (latest|pending)", "latest")
+    .option("--json", "Output results in JSON format")
+    .action(async (options) => {
+      try {
+        await runL2EstimateGas(options);
+      } catch (e) {
+        handleError(e);
+      }
+    });
+
+  l2.command("balance <address>")
+    .description("Check L2 balance for an address")
+    .option("--network <name>", "L2 network name", "igra")
+    .option("--url <url>", "RPC URL")
+    .option("--block <tag>", "Block tag (latest|pending)", "latest")
+    .option("--json", "Output results in JSON format")
+    .action(async (address, options) => {
+      try {
+        await runL2Balance(address, options);
+      } catch (e) {
+        handleError(e);
+      }
+    });
+
+  l2.command("nonce <address>")
+    .description("Check L2 nonce for an address")
+    .option("--network <name>", "L2 network name", "igra")
+    .option("--url <url>", "RPC URL")
+    .option("--block <tag>", "Block tag (latest|pending)", "latest")
+    .option("--json", "Output results in JSON format")
+    .action(async (address, options) => {
+      try {
+        await runL2Nonce(address, options);
+      } catch (e) {
+        handleError(e);
+      }
+    });
+
+  const l2Rpc = l2.command("rpc").description("L2 RPC diagnostics");
+
+  l2Rpc.command("health")
+    .description("Check health of an L2 RPC endpoint")
+    .option("--network <name>", "L2 network name", "igra")
+    .option("--url <url>", "RPC URL")
+    .option("--wait", "Wait for RPC to be ready")
+    .option("--timeout <seconds>", "Timeout in seconds", "60")
+    .option("--interval <ms>", "Check interval in ms", "1000")
+    .option("--json", "Output results in JSON format")
+    .action(async (options) => {
+      try {
+        await runL2RpcHealth(options);
+      } catch (e) {
+        handleError(e);
+      }
+    });
+
+  l2Rpc.command("chain-id")
+    .description("Get L2 chain ID")
+    .option("--network <name>", "L2 network name", "igra")
+    .option("--url <url>", "RPC URL")
+    .option("--json", "Output results in JSON format")
+    .action(async (options) => {
+      try {
+        await runL2RpcChainId(options);
+      } catch (e) {
+        handleError(e);
+      }
+    });
+
+  l2Rpc.command("block-number")
+    .description("Get L2 latest block number")
+    .option("--network <name>", "L2 network name", "igra")
+    .option("--url <url>", "RPC URL")
+    .option("--json", "Output results in JSON format")
+    .action(async (options) => {
+      try {
+        await runL2RpcBlockNumber(options);
+      } catch (e) {
+        handleError(e);
+      }
+    });
+
+  l2Rpc.command("gas-price")
+    .description("Get L2 gas price")
+    .option("--network <name>", "L2 network name", "igra")
+    .option("--url <url>", "RPC URL")
+    .option("--json", "Output results in JSON format")
+    .action(async (options) => {
+      try {
+        await runL2RpcGasPrice(options);
+      } catch (e) {
+        handleError(e);
+      }
+    });
 
 await program.parseAsync(process.argv);

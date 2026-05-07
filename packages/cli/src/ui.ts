@@ -67,6 +67,8 @@ export function handleError(e: unknown, context?: string) {
       suggestion = "Check your 'hardkas.config.ts' or use a full Kaspa address.";
     } else if (msg.includes("Docker") || msg.includes("container")) {
       suggestion = "Ensure Docker is running and you have permissions to manage containers.";
+    } else if (msg.includes("L2 RPC") || msg.includes("L2 profile")) {
+      suggestion = "Check your L2 network configuration or pass a valid --url.";
     } else if (msg.includes("RPC") || msg.includes("Connection refused")) {
       suggestion = "The Kaspa node might still be starting. Try 'hardkas rpc health --wait'.";
     } else if (msg.includes("submitTransaction is not exposed")) {
