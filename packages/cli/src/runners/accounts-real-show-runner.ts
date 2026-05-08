@@ -6,6 +6,7 @@ import {
 
 export interface AccountsRealShowOptions {
   name: string;
+  showPrivate?: boolean;
 }
 
 export async function runAccountsRealShow(options: AccountsRealShowOptions): Promise<{
@@ -26,7 +27,10 @@ export async function runAccountsRealShow(options: AccountsRealShowOptions): Pro
   ];
 
   if (account.publicKey) lines.push(`Public Key:  ${account.publicKey}`);
-  if (account.privateKey) lines.push(`Private Key: ${account.privateKey} (plaintext)`);
+  if (account.privateKey) {
+    const pk = options.showPrivate ? account.privateKey : "[masked]";
+    lines.push(`Private Key: ${pk}${options.showPrivate ? " (plaintext)" : ""}`);
+  }
 
   return { formatted: lines.join("\n") };
 }

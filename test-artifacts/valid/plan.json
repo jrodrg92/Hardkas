@@ -1,1 +1,0 @@
-{"schema":"hardkas.txPlan.v2","version":"2.0.0","networkId":"simnet","mode":"simulated","planId":"test","from":{"address":"kaspa:abc"},"to":{"address":"kaspa:def"},"amountSompi":"1000","estimatedFeeSompi":"1","estimatedMass":"1","inputs":[],"outputs":[],"createdAt":"2026-05-08T10:00:00.000Z"}

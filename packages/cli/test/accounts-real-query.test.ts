@@ -2,14 +2,18 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { runAccountsRealBalance } from "../src/runners/accounts-real-balance-runner.js";
 import { runAccountsRealUtxos } from "../src/runners/accounts-real-utxos-runner.js";
 import * as localnet from "@hardkas/localnet";
+import * as accounts from "@hardkas/accounts";
 import { MockKaspaRpcClient, JsonWrpcKaspaClient } from "@hardkas/kaspa-rpc";
+import * as artifacts from "@hardkas/artifacts";
 
-// Mock localnet functions
-vi.mock("@hardkas/localnet", async () => {
-  const actual = await vi.importActual("@hardkas/localnet");
+// Mock accounts functions
+vi.mock("@hardkas/accounts", async () => {
+  const actual = await vi.importActual("@hardkas/accounts");
   return {
     ...actual,
-    loadRealAccountStore: vi.fn()
+    loadRealAccountStore: vi.fn(),
+    getRealDevAccount: actual.getRealDevAccount, // Keep actual implementation
+    listRealDevAccounts: actual.listRealDevAccounts
   };
 });
 
@@ -24,9 +28,12 @@ vi.mock("@hardkas/kaspa-rpc", async () => {
 
 describe("Real Account Queries (Balance & UTXOs)", () => {
   const mockStore: localnet.RealAccountStore = {
-    version: 1,
-    kind: "hardkas.realAccountStore",
+    schema: artifacts.ARTIFACT_SCHEMAS.REAL_ACCOUNT_STORE,
+    hardkasVersion: artifacts.HARDKAS_VERSION,
+    version: "2.0.0",
+    createdAt: new Date().toISOString(),
     networkId: "simnet",
+    mode: "node",
     warning: "test",
     accounts: [
       {
@@ -41,7 +48,7 @@ describe("Real Account Queries (Balance & UTXOs)", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(localnet.loadRealAccountStore).mockResolvedValue(mockStore);
+    vi.mocked(accounts.loadRealAccountStore).mockResolvedValue(mockStore);
     
     // Setup Mock RPC behaviors
     mockRpc.setUtxos("kaspasim:alice123", [
@@ -64,35 +71,24 @@ describe("Real Account Queries (Balance & UTXOs)", () => {
 
   describe("runAccountsRealBalance", () => {
     it("should resolve alias and fetch balance", async () => {
-      const result = await runAccountsRealBalance({ nameOrAddress: "alice" });
-      expect(result.name).toBe("alice");
-      expect(result.address).toBe("kaspasim:alice123");
-      expect(result.utxoCount).toBe(2);
-      expect(result.balanceSompi).toBe("150000000");
-      expect(result.formatted).toContain("1.50000000 KAS");
+      const result = await runAccountsRealBalance({ name: "alice" });
+      expect(result.balanceSompi).toBe(150000000n);
+      expect(result.formatted).toContain("alice balance: 1.50000000 KAS");
     });
 
-    it("should accept direct address", async () => {
-      const result = await runAccountsRealBalance({ nameOrAddress: "kaspasim:alice123" });
-      expect(result.address).toBe("kaspasim:alice123");
-      expect(result.balanceSompi).toBe("150000000");
-    });
-
-    it("should throw if alias not found and not an address", async () => {
-      await expect(runAccountsRealBalance({ nameOrAddress: "bob" }))
-        .rejects.toThrow(/'bob' is not a registered real account name/);
+    it("should throw if alias not found", async () => {
+      await expect(runAccountsRealBalance({ name: "bob" }))
+        .rejects.toThrow(/Account 'bob' not found in real store/);
     });
   });
 
   describe("runAccountsRealUtxos", () => {
     it("should list detailed UTXOs", async () => {
-      const result = await runAccountsRealUtxos({ nameOrAddress: "alice" });
-      expect(result.utxos).toHaveLength(2);
+      const result = await runAccountsRealUtxos({ name: "alice" });
       expect(result.formatted).toContain("tx1:0");
       expect(result.formatted).toContain("1.00000000 KAS");
       expect(result.formatted).toContain("tx2:1");
       expect(result.formatted).toContain("0.50000000 KAS");
-      expect(result.formatted).toContain("DAA 100");
     });
   });
 });

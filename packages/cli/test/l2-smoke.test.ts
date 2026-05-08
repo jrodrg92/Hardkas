@@ -43,8 +43,8 @@ vi.mock("@hardkas/l2", async (importOriginal) => {
   };
 });
 
-// Mock @hardkas/localnet
-vi.mock("@hardkas/localnet", async (importOriginal) => {
+// Mock @hardkas/accounts
+vi.mock("@hardkas/accounts", async (importOriginal) => {
   const actual = await importOriginal() as any;
   return {
     ...actual,
@@ -66,7 +66,7 @@ vi.mock("@hardkas/artifacts", async (importOriginal) => {
     readArtifact: vi.fn().mockImplementation(async (p: string) => {
        if (p.includes(".plan.json")) return {
          schema: "hardkas.igraTxPlan.v1",
-         hardkasVersion: "0.1.0-dev",
+         hardkasVersion: "0.2.0-alpha",
          networkId: "igra",
          mode: "l2-rpc",
          planId: "test-plan",
@@ -77,7 +77,7 @@ vi.mock("@hardkas/artifacts", async (importOriginal) => {
        };
        if (p.includes(".signed.json")) return {
          schema: "hardkas.igraSignedTx.v1",
-         hardkasVersion: "0.1.0-dev",
+         hardkasVersion: "0.2.0-alpha",
          networkId: "igra",
          mode: "l2-rpc",
          signedId: "test-signed",

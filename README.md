@@ -52,34 +52,49 @@ Securely manage real Kaspa development keys.
 
 ---
 
-## Quickstart
+## Current Status (v0.2-alpha RC)
 
-### Installation
+HardKAS is currently in its private Release Candidate (RC) phase for version **v0.2-alpha**. It is intended for source-based usage by developers and partners. Public npm packages will be available once the RC period concludes.
+
+---
+
+## Quickstart (From Source)
+
+### 1. Clone & Build
 
 ```bash
-pnpm install -g @hardkas/cli
+git clone https://github.com/jrodrg92/Hardkas.git
+cd Hardkas
+pnpm install
+pnpm build
+```
+
+### 2. Verify Installation
+
+```bash
+pnpm hardkas --help
 ```
 
 ### Initialize Project
 
 ```bash
-hardkas init
+pnpm hardkas init
 ```
 
 ### Start Simulated Development
 
 ```bash
 # Start the simulated environment
-hardkas dev
+pnpm hardkas up
 
 # Fund an account
-hardkas faucet alice 1000
+pnpm hardkas faucet alice 1000
 
 # Check balance
-hardkas balance alice
+pnpm hardkas balance alice
 
 # Build and send a transaction (Shortcut)
-hardkas tx send --from alice --to bob --amount 10 --yes
+pnpm hardkas tx send --from alice --to bob --amount 10 --yes
 ```
 
 ---

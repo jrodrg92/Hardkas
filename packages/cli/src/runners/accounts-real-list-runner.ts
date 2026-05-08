@@ -1,6 +1,7 @@
 import { 
   loadRealAccountStore, 
-  listRealDevAccounts 
+  listRealDevAccounts,
+  RealDevAccount
 } from "@hardkas/accounts";
 
 export interface AccountsRealListOptions {
@@ -8,13 +9,14 @@ export interface AccountsRealListOptions {
 }
 
 export async function runAccountsRealList(options: AccountsRealListOptions = {}): Promise<{
+  accounts: readonly RealDevAccount[];
   formatted: string;
 }> {
   const store = await loadRealAccountStore();
-  if (!store) return { formatted: "Real account store not found (run 'hardkas accounts real init')." };
+  if (!store) return { accounts: [], formatted: "Real account store not found (run 'hardkas accounts real init')." };
 
   const accounts = listRealDevAccounts(store);
-  if (accounts.length === 0) return { formatted: "No real dev accounts found." };
+  if (accounts.length === 0) return { accounts: [], formatted: "No real dev accounts found." };
 
   const lines = [
     "Real dev accounts:",
@@ -25,5 +27,8 @@ export async function runAccountsRealList(options: AccountsRealListOptions = {})
     lines.push(`${acc.name.padEnd(12)} ${acc.address}`);
   });
 
-  return { formatted: lines.join("\n") };
+  return { 
+    accounts,
+    formatted: lines.join("\n") 
+  };
 }

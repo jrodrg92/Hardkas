@@ -35,10 +35,12 @@ export function createTxPlanArtifact(options: CreateTxPlanArtifactOptions): TxPl
     planId: `plan-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     from: {
       address: options.from.address,
-      accountName: options.from.accountName
+      accountName: options.from.accountName,
+      input: options.from.input
     },
     to: {
-      address: options.to.address
+      address: options.to.address,
+      input: options.to.input
     },
     amountSompi: options.amountSompi.toString(),
     estimatedFeeSompi: options.plan.estimatedFeeSompi.toString(),

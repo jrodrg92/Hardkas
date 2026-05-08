@@ -42,7 +42,7 @@ export async function runRpcDoctor(options: RpcDoctorOptions) {
     console.log(`│ CONFIDENCE: ${health.confidence?.toUpperCase().padEnd(36)} [${(health.score ?? 0).toString().padStart(3)}%] │`);
     console.log(`│ LATENCY:    ${(health.latencyMs + "ms").padEnd(48)} │`);
     console.log(`│ NETWORK:    ${(health.info?.networkId || "unknown").padEnd(48)} │`);
-    console.log(`│ DAA SCORE:  ${(health.info?.virtualDaaScore || "0").padEnd(48)} │`);
+    console.log(`│ DAA SCORE:  ${(health.info?.virtualDaaScore?.toString() || "0").padEnd(48)} │`);
     console.log("└──────────────────────────────────────────────────────────────");
 
     // Issues Section

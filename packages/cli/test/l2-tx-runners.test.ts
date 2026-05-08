@@ -22,7 +22,7 @@ vi.mock("@hardkas/l2", async (importOriginal) => {
   };
 });
 
-vi.mock("@hardkas/localnet", async (importOriginal) => {
+vi.mock("@hardkas/accounts", async (importOriginal) => {
   const actual = await importOriginal() as any;
   return {
     ...actual,

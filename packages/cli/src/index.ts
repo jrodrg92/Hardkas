@@ -99,7 +99,7 @@ program
       const template = `import { defineHardkasConfig } from "@hardkas/config";
 
 export default defineHardkasConfig({
-  // HardKAS v0.1-dev Configuration
+  // HardKAS v0.2-alpha Configuration
   defaultNetwork: "simulated",
 
   networks: {
@@ -135,8 +135,8 @@ export default defineHardkasConfig({
 
       fs.writeFileSync(configFile, template, "utf-8");
       UI.success("HardKAS project initialized successfully.");
-      UI.info(`Created: hardkas.config.ts`);
-      UI.footer("Run 'hardkas dev' to start developing.");
+      UI.info(`Created: hardkas.config.ts (v0.2-alpha)`);
+      UI.footer("Run 'hardkas up' to validate your environment.");
     } catch (e) {
       handleError(e, "Initialization failed");
       process.exitCode = 1;

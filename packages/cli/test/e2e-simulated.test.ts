@@ -57,7 +57,7 @@ describe("E2E Simulated Happy Path", () => {
     expect(result.result).toBe("broadcast");
     expect(result.steps.send.status).toBe("ok");
     
-    const txId = result.steps.send.artifact?.transactionId;
+    const txId = (result.steps.send.artifact as any)?.txId;
     expect(txId).toBeDefined();
 
     // 3. Verify state changed
@@ -71,7 +71,7 @@ describe("E2E Simulated Happy Path", () => {
     const receipts = await listSimulatedReceipts();
     expect(receipts.length).toBe(1);
     expect(receipts[0].txId).toBe(txId);
-    expect(receipts[0].schema).toBe(artifacts.ARTIFACT_SCHEMAS.SIMULATED_TX_RECEIPT);
+    expect(receipts[0].schema).toBe(artifacts.ARTIFACT_SCHEMAS.TX_RECEIPT);
   });
 
   it("should fail if insufficient funds", async () => {

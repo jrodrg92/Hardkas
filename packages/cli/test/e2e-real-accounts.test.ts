@@ -14,7 +14,7 @@ import {
 import { 
   runAccountsRealRemove 
 } from "../src/runners/accounts-real-remove-runner";
-import { getDefaultRealAccountsPath } from "@hardkas/localnet";
+import { getDefaultRealAccountsPath } from "@hardkas/accounts";
 import fs from "node:fs";
 
 describe("E2E Real Accounts Management", () => {
