@@ -22,9 +22,23 @@ export class LoadBalancedRpcProvider implements KaspaRpcClient {
   }
 
   async healthCheck(): Promise<KaspaRpcHealth> {
-    // Health check returns aggregate or specific depending on strategy
-    // For simplicity, we check the current one
-    return this.clients[this.currentIndex]!.healthCheck();
+    const healths = await Promise.all(this.clients.map(c => c.healthCheck()));
+    const primaryHealth = healths[this.currentIndex]!;
+    
+    const allHealthy = healths.every(h => h.status === "healthy");
+    const anyHealthy = healths.some(h => h.status === "healthy" || h.status === "degraded");
+
+    return {
+      endpoint: `LoadBalancedProvider(${this.clients.length} nodes)`,
+      status: allHealthy ? "healthy" : anyHealthy ? "degraded" : "unavailable",
+      latencyMs: primaryHealth.latencyMs,
+      lastError: primaryHealth.lastError,
+      retries: healths.reduce((sum, h) => sum + (h.retries || 0), 0),
+      circuitState: primaryHealth.circuitState,
+      stale: healths.some(h => h.stale),
+      info: primaryHealth.info,
+      reachable: anyHealthy
+    };
   }
 
   async getBalanceByAddress(address: string): Promise<KaspaAddressBalance> {

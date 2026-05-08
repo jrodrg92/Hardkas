@@ -13,15 +13,16 @@ export interface KaspaNodeInfo {
 }
 
 export interface KaspaRpcHealth {
-  reachable: boolean;
-  rpcUrl: string;
-  status: "healthy" | "degraded" | "unavailable";
-  info?: KaspaNodeInfo;
-  error?: string;
-  latencyMs?: number;
-  lastError?: string;
-  successRate?: number;
-  circuitState?: "CLOSED" | "OPEN" | "HALF_OPEN";
+  readonly endpoint: string;
+  readonly status: "healthy" | "degraded" | "unavailable";
+  readonly latencyMs?: number | undefined;
+  readonly lastError?: string | null | undefined;
+  readonly retries?: number | undefined;
+  readonly circuitState?: string | undefined;
+  readonly stale?: boolean | undefined;
+  readonly info?: KaspaNodeInfo | undefined;
+  readonly reachable?: boolean | undefined; // Keep for compat
+  readonly successRate?: number | undefined; // Keep for compat
 }
 
 export interface KaspaAddressBalance {
@@ -119,13 +120,18 @@ export class JsonWrpcKaspaClient implements KaspaRpcClient {
   async healthCheck(): Promise<KaspaRpcHealth> {
     try {
       const info = await this.getInfo();
-      return { reachable: true, rpcUrl: this.rpcUrl, info, status: "healthy" };
+      return { 
+        endpoint: this.rpcUrl, 
+        status: "healthy",
+        info,
+        reachable: true 
+      };
     } catch (error) {
       return {
-        reachable: false,
-        rpcUrl: this.rpcUrl,
+        endpoint: this.rpcUrl,
         status: "unavailable",
-        error: error instanceof Error ? error.message : String(error)
+        lastError: error instanceof Error ? error.message : String(error),
+        reachable: false
       };
     }
   }
@@ -442,7 +448,12 @@ export class MockKaspaRpcClient implements KaspaRpcClient {
   }
 
   async healthCheck(): Promise<KaspaRpcHealth> {
-    return { reachable: true, rpcUrl: "mock://local", info: await this.getInfo(), status: "healthy" };
+    return { 
+      endpoint: "mock://local", 
+      status: "healthy",
+      info: await this.getInfo(), 
+      reachable: true 
+    };
   }
 
   async getBalanceByAddress(address: string): Promise<KaspaAddressBalance> {

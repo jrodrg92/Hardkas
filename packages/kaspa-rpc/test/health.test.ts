@@ -11,14 +11,15 @@ describe("RPC Health API", () => {
 
   it("should return ready=true when client calls succeed", async () => {
     const mockClient = {
-      getServerInfo: vi.fn().mockResolvedValue({ 
-        networkId: "simnet", 
-        serverVersion: "1.0.0", 
-        isSynced: true 
-      }),
-      getBlockDagInfo: vi.fn().mockResolvedValue({ 
-        networkId: "simnet", 
-        virtualDaaScore: 123n 
+      healthCheck: vi.fn().mockResolvedValue({ 
+        status: "healthy",
+        info: {
+          networkId: "simnet", 
+          virtualDaaScore: 123n,
+          serverVersion: "1.0.0", 
+          isSynced: true 
+        },
+        latencyMs: 10
       })
     };
     
@@ -29,13 +30,12 @@ describe("RPC Health API", () => {
     expect(result.ready).toBe(true);
     expect(result.networkId).toBe("simnet");
     expect(result.virtualDaaScore).toBe("123");
-    expect(result.latencyMs).toBeDefined();
+    expect(result.latencyMs).toBe(10);
   });
 
   it("should return ready=false when a call fails", async () => {
     const mockClient = {
-      getServerInfo: vi.fn().mockRejectedValue(new Error("Connection refused")),
-      getBlockDagInfo: vi.fn().mockResolvedValue({})
+      healthCheck: vi.fn().mockRejectedValue(new Error("Connection refused"))
     };
     
     vi.mocked(KaspaJsonRpcClient).mockReturnValue(mockClient as any);
@@ -43,18 +43,19 @@ describe("RPC Health API", () => {
     const result = await checkKaspaRpcHealth();
     
     expect(result.ready).toBe(false);
-    expect(result.error).toBe("Connection refused");
+    expect(result.lastError).toBe("Connection refused");
   });
 
   it("should wait for ready=true", async () => {
     const mockClientFail = {
-      getServerInfo: vi.fn().mockRejectedValue(new Error("Refused")),
-      getBlockDagInfo: vi.fn().mockResolvedValue({})
+      healthCheck: vi.fn().mockResolvedValue({ status: "unavailable" })
     };
     
     const mockClientSuccess = {
-      getServerInfo: vi.fn().mockResolvedValue({ networkId: "simnet" }),
-      getBlockDagInfo: vi.fn().mockResolvedValue({ virtualDaaScore: 1n })
+      healthCheck: vi.fn().mockResolvedValue({ 
+        status: "healthy",
+        info: { networkId: "simnet" } 
+      })
     };
 
     // First call fails, second succeeds
@@ -70,8 +71,7 @@ describe("RPC Health API", () => {
 
   it("should timeout if never ready", async () => {
     const mockClient = {
-      getServerInfo: vi.fn().mockRejectedValue(new Error("Refused")),
-      getBlockDagInfo: vi.fn().mockResolvedValue({})
+      healthCheck: vi.fn().mockResolvedValue({ status: "unavailable" })
     };
     
     vi.mocked(KaspaJsonRpcClient).mockReturnValue(mockClient as any);

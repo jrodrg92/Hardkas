@@ -726,6 +726,14 @@ dagCmd.command("simulate-reorg")
     }
   });
 
+tx.command("verify <path>")
+  .description("Perform deep semantic verification of a transaction plan")
+  .option("--json", "Output as JSON", false)
+  .action(async (path, options) => {
+    const { runTxVerify } = await import("./runners/tx-verify-runner.js");
+    await runTxVerify({ path, ...options });
+  });
+
 // --- RPC Commands ---
 const rpcCmd = program.command("rpc").description("Kaspa RPC diagnostics and queries");
 

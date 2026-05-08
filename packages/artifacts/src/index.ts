@@ -10,7 +10,6 @@ export * from "./conversions.js";
 export * from "./tx-plan.js";
 export * from "./signed-tx.js";
 export * from "./validate.js";
-export * from "./semanticVerify.js";
 export * from "./explain.js";
 export * from "./igra-artifacts.js";
 export * from "./igra-io.js";

@@ -12,48 +12,53 @@ export interface RpcReadinessWaitOptions extends RpcHealthCheckOptions {
 }
 
 export interface RpcHealthResult {
-  readonly url: string;
-  readonly ready: boolean;
+  readonly endpoint: string;
+  readonly status: "healthy" | "degraded" | "unavailable";
+  readonly ready: boolean; // Alias for status !== "unavailable"
   readonly checkedAt: string;
   readonly latencyMs?: number | undefined;
   readonly networkId?: string | undefined;
   readonly virtualDaaScore?: string | undefined;
   readonly serverVersion?: string | undefined;
   readonly isSynced?: boolean | undefined;
-  readonly error?: string | undefined;
+  readonly error?: string | undefined; // Legacy
+  readonly lastError?: string | null | undefined;
+  readonly retries?: number | undefined;
+  readonly circuitState?: string | undefined;
+  readonly stale?: boolean | undefined;
 }
 
 export async function checkKaspaRpcHealth(options?: RpcHealthCheckOptions): Promise<RpcHealthResult> {
   const url = options?.url || "http://127.0.0.1:18210";
   const client = new KaspaJsonRpcClient({ url, timeoutMs: options?.timeoutMs });
-  const start = Date.now();
   const checkedAt = new Date().toISOString();
 
   try {
-    // A node is ready if both server info and DAG info are accessible
-    const [serverInfo, dagInfo] = await Promise.all([
-      client.getServerInfo(),
-      client.getBlockDagInfo()
-    ]);
-
-    const latencyMs = Date.now() - start;
+    const health = await client.healthCheck();
 
     return {
-      url,
-      ready: true,
+      endpoint: url,
+      status: health.status,
+      ready: health.status !== "unavailable",
       checkedAt,
-      latencyMs,
-      networkId: serverInfo.networkId,
-      virtualDaaScore: dagInfo.virtualDaaScore?.toString(),
-      serverVersion: serverInfo.serverVersion,
-      isSynced: serverInfo.isSynced
+      ...(health.latencyMs !== undefined ? { latencyMs: health.latencyMs } : {}),
+      ...(health.info?.networkId !== undefined ? { networkId: health.info.networkId } : {}),
+      ...(health.info?.virtualDaaScore !== undefined ? { virtualDaaScore: health.info.virtualDaaScore.toString() } : {}),
+      ...(health.info?.serverVersion !== undefined ? { serverVersion: health.info.serverVersion } : {}),
+      ...(health.info?.isSynced !== undefined ? { isSynced: health.info.isSynced } : {}),
+      lastError: health.lastError,
+      ...(health.retries !== undefined ? { retries: health.retries } : {}),
+      ...(health.circuitState !== undefined ? { circuitState: health.circuitState } : {}),
+      stale: health.stale
     };
-  } catch (e) {
+  } catch (e: any) {
     return {
-      url,
+      endpoint: url,
+      status: "unavailable",
       ready: false,
       checkedAt,
-      error: e instanceof Error ? e.message : String(e)
+      error: e.message,
+      lastError: e.message
     };
   }
 }
@@ -79,7 +84,8 @@ export async function waitForKaspaRpcReady(options?: RpcReadinessWaitOptions): P
   }
 
   return lastResult || {
-    url: options?.url || "http://127.0.0.1:18210",
+    endpoint: options?.url || "http://127.0.0.1:18210",
+    status: "unavailable",
     ready: false,
     checkedAt: new Date().toISOString(),
     error: "Timed out waiting for RPC to be ready"

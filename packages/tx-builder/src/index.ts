@@ -1,6 +1,7 @@
 export type Sompi = bigint;
 import { estimateTransactionMassV2 } from "./mass.js";
 export * from "./mass.js";
+export * from "./verify.js";
 
 export interface Outpoint {
   readonly transactionId: string;

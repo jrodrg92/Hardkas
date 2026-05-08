@@ -58,6 +58,9 @@ export class KaspaJsonRpcClient implements KaspaRpcClient {
   private lastLatencyMs: number | null = null;
   private totalRequests: number = 0;
   private successfulRequests: number = 0;
+  private lastDaaScore: bigint | null = null;
+  private lastDaaCheckTime: number = 0;
+  private retriesCount: number = 0;
 
   constructor(options: RpcClientOptions) {
     this.url = options.url || "http://127.0.0.1:18210";
@@ -80,24 +83,42 @@ export class KaspaJsonRpcClient implements KaspaRpcClient {
     try {
       const info = await this.getInfo();
       const latency = Date.now() - start;
+      
+      // Stale Detection
+      let stale = false;
+      const now = Date.now();
+      if (this.lastDaaScore !== null && info.virtualDaaScore !== undefined) {
+        if (info.virtualDaaScore <= this.lastDaaScore && now - this.lastDaaCheckTime > 30000) {
+          stale = true;
+        }
+      }
+      
+      if (info.virtualDaaScore !== undefined) {
+        this.lastDaaScore = info.virtualDaaScore;
+        this.lastDaaCheckTime = now;
+      }
+
       return {
-        reachable: true,
-        rpcUrl: this.url,
-        status: this.circuitState === CircuitState.CLOSED ? "healthy" : "degraded",
-        info,
+        endpoint: this.url,
+        status: (this.circuitState === CircuitState.CLOSED && !stale) ? "healthy" : "degraded",
         latencyMs: latency,
-        successRate: this.getSuccessRate(),
-        circuitState: this.circuitState
+        lastError: this.lastError,
+        retries: this.retriesCount,
+        circuitState: this.circuitState,
+        stale,
+        info,
+        reachable: true,
+        successRate: this.getSuccessRate()
       };
     } catch (e: any) {
       return {
-        reachable: false,
-        rpcUrl: this.url,
+        endpoint: this.url,
         status: "unavailable",
-        error: e.message,
-        lastError: this.lastError || e.message,
-        successRate: this.getSuccessRate(),
-        circuitState: this.circuitState
+        lastError: e.message,
+        retries: this.retriesCount,
+        circuitState: this.circuitState,
+        reachable: false,
+        successRate: this.getSuccessRate()
       };
     }
   }
@@ -217,6 +238,11 @@ export class KaspaJsonRpcClient implements KaspaRpcClient {
       } catch (e: any) {
         this.onFailure(e);
         lastErr = e;
+
+        // Increment total retries count for health reporting
+        if (attempt < this.retry.maxRetries && (e instanceof RpcError ? e.isRetriable : true)) {
+           this.retriesCount++;
+        }
 
         // Don't retry if it's a non-retriable error
         if (e instanceof RpcError && !e.isRetriable) {

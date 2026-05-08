@@ -1,34 +1,12 @@
 import { loadHardkasConfig as loadConfig, LoadedHardkasConfig as LoadedConfig } from "@hardkas/config";
 import { JsonWrpcKaspaClient, KaspaRpcClient } from "@hardkas/kaspa-rpc";
-import { 
-  listL2Profiles, 
-  getL2Profile, 
-  L2NetworkProfile 
-} from "@hardkas/l2";
-import { 
-  HardkasAccount, 
-  resolveHardkasAccount, 
-  signTxPlanArtifact 
-} from "@hardkas/accounts";
-import { 
-  buildPaymentPlan, 
-  TxPlan,
-  Utxo as BuilderUtxo
-} from "@hardkas/tx-builder";
-import { 
-  TxPlanArtifact, 
-  SignedTxArtifact, 
-  TxReceiptArtifact, 
-  ARTIFACT_SCHEMAS, 
-  HARDKAS_VERSION,
-  getBroadcastableSignedTransaction,
-  writeArtifact,
-  getDefaultReceiptPath,
-  createTxPlanArtifact,
-  readTxReceiptArtifact,
-  calculateArtifactHash
-} from "@hardkas/artifacts";
-import { formatSompi, parseKasToSompi } from "@hardkas/core";
+import { HardkasAccounts } from "./accounts.js";
+import { HardkasTx } from "./tx.js";
+import { HardkasL2 } from "./l2.js";
+
+export { HardkasAccounts } from "./accounts.js";
+export { HardkasTx } from "./tx.js";
+export { HardkasL2 } from "./l2.js";
 
 // Re-export core types and utilities
 export { 
@@ -51,21 +29,28 @@ export interface HardkasOptions {
 }
 
 /**
- * Hardkas high-level facade.
+ * HardKAS SDK - Main Entry Point
+ * 
+ * Provides a high-level facade for interacting with the Kaspa ecosystem.
+ * Modular boundaries are available via .accounts, .tx, and .l2.
  */
 export class Hardkas {
   public readonly accounts: HardkasAccounts;
   public readonly tx: HardkasTx;
+  public readonly l2: HardkasL2;
 
   private constructor(
     public readonly config: LoadedConfig,
-    public readonly rpc: KaspaRpcClient,
-    public readonly l2: HardkasL2
+    public readonly rpc: KaspaRpcClient
   ) {
     this.accounts = new HardkasAccounts(this);
     this.tx = new HardkasTx(this);
+    this.l2 = new HardkasL2();
   }
 
+  /**
+   * Initializes the HardKAS SDK.
+   */
   static async create(options: HardkasOptions = {}): Promise<Hardkas> {
     const loaded = await loadConfig(options);
     const networkId = loaded.config.defaultNetwork || "simnet";
@@ -81,211 +66,45 @@ export class Hardkas {
     }
 
     const rpc = new JsonWrpcKaspaClient({ rpcUrl });
-    const l2 = new HardkasL2();
 
-    return new Hardkas(loaded, rpc, l2);
+    return new Hardkas(loaded, rpc);
   }
 
-  get network(): string {
-    return this.config.config.defaultNetwork || "simnet";
-  }
-}
-
-/**
- * Sub-facade for Accounts.
- */
-export class HardkasAccounts {
-  constructor(private sdk: Hardkas) {}
-
-  async resolve(nameOrAddress: string): Promise<HardkasAccount> {
-    return resolveHardkasAccount({
-      nameOrAddress,
-      config: this.sdk.config.config
-    });
-  }
-
-  async getBalance(accountNameOrAddress: string): Promise<{ sompi: bigint, formatted: string }> {
-    const account = await this.resolve(accountNameOrAddress);
-    if (!account.address) throw new Error(`Account ${accountNameOrAddress} has no address`);
-    
+  /**
+   * Performs a lightweight SDK health and environment self-check.
+   * @alpha
+   */
+  async checkHealth(): Promise<{
+    status: "ok" | "error";
+    environment: string;
+    network: string;
+    rpcUrl: string;
+    version: string;
+  }> {
     try {
-      const { balanceSompi } = await this.sdk.rpc.getBalanceByAddress(account.address);
-      const sompi = BigInt(balanceSompi);
-      
+      const info = await this.rpc.getInfo();
       return {
-        sompi,
-        formatted: formatSompi(sompi)
+        status: "ok",
+        environment: this.config.config.defaultNetwork || "simnet",
+        network: info.networkId || "unknown",
+        rpcUrl: (this.rpc as any).rpcUrl || "unknown",
+        version: "0.2.0-alpha"
       };
     } catch (e) {
-      // Fallback for demo/dev purposes if RPC is problematic
       return {
-        sompi: 0n,
-        formatted: "0 KAS (simulated)"
+        status: "error",
+        environment: this.config.config.defaultNetwork || "simnet",
+        network: "unknown",
+        rpcUrl: (this.rpc as any).rpcUrl || "unknown",
+        version: "0.2.0-alpha"
       };
     }
   }
-}
 
-/**
- * Sub-facade for Transactions (Workflow oriented).
- */
-export class HardkasTx {
-  constructor(private sdk: Hardkas) {}
-
-  async plan(options: { 
-    from: string | HardkasAccount, 
-    to: string | HardkasAccount, 
-    amount: string | bigint,
-    feeRate?: bigint
-  }): Promise<TxPlanArtifact> {
-    const fromAccount = typeof options.from === "string" ? await this.sdk.accounts.resolve(options.from) : options.from;
-    const toAccount = typeof options.to === "string" ? await this.sdk.accounts.resolve(options.to) : options.to;
-    
-    if (!fromAccount.address) throw new Error(`From account ${fromAccount.name} has no address.`);
-    if (!toAccount.address) throw new Error(`To account ${toAccount.name} has no address.`);
-
-    const amountSompi = typeof options.amount === "string" ? parseKasToSompi(options.amount) : options.amount;
-
-    // Fetch UTXOs
-    const rpcUtxos = await this.sdk.rpc.getUtxosByAddress(fromAccount.address);
-    const builderUtxos: BuilderUtxo[] = rpcUtxos.map(u => ({
-      outpoint: {
-        transactionId: u.outpoint.transactionId,
-        index: u.outpoint.index
-      },
-      address: u.address,
-      amountSompi: u.amountSompi,
-      scriptPublicKey: u.scriptPublicKey || ""
-    }));
-
-    const builderPlan = buildPaymentPlan({
-      fromAddress: fromAccount.address,
-      availableUtxos: builderUtxos,
-      outputs: [{
-        address: toAccount.address,
-        amountSompi
-      }],
-      feeRateSompiPerMass: options.feeRate ?? 1n
-    });
-
-    return createTxPlanArtifact({
-      networkId: this.sdk.network,
-      mode: "simulated", // Default for now, should be derived from config
-      from: {
-        input: fromAccount.name,
-        address: fromAccount.address,
-        accountName: fromAccount.name
-      },
-      to: {
-        input: toAccount.name,
-        address: toAccount.address
-      },
-      amountSompi,
-      plan: builderPlan
-    });
-  }
-
-  async sign(plan: TxPlanArtifact, account?: HardkasAccount | string): Promise<SignedTxArtifact> {
-    let resolvedAccount: HardkasAccount;
-    if (typeof account === "string") {
-      resolvedAccount = await this.sdk.accounts.resolve(account);
-    } else if (account) {
-      resolvedAccount = account;
-    } else {
-      if (!plan.from.accountName) throw new Error("Plan does not specify an account name and no account was provided for signing.");
-      resolvedAccount = await this.sdk.accounts.resolve(plan.from.accountName);
-    }
-
-    return signTxPlanArtifact({
-      planArtifact: plan,
-      account: resolvedAccount,
-      config: this.sdk.config.config
-    });
-  }
-
-  async send(signed: SignedTxArtifact): Promise<TxReceiptArtifact> {
-    const broadcastable = getBroadcastableSignedTransaction(signed);
-    const result = await this.sdk.rpc.submitTransaction(broadcastable.rawTransaction);
-    
-    const txId = result.transactionId;
-    if (!txId) throw new Error("Broadcast failed: RPC returned no transaction ID.");
-
-    const receipt: any = {
-      schema: "hardkas.txReceipt.v2",
-      hardkasVersion: HARDKAS_VERSION,
-      version: "2.0.0",
-      networkId: signed.networkId,
-      mode: signed.mode,
-      status: "accepted",
-      createdAt: new Date().toISOString(),
-      txId,
-      from: {
-        address: signed.from.address
-      },
-      to: {
-        address: signed.to.address
-      },
-      amountSompi: signed.amountSompi,
-      feeSompi: (signed as any).estimatedFeeSompi || "0"
-    };
-
-    receipt.contentHash = calculateArtifactHash(receipt);
-
-    // Auto-save receipt
-    const receiptPath = getDefaultReceiptPath(txId, this.sdk.config.cwd);
-    await writeArtifact(receiptPath, receipt);
-
-    return {
-      ...receipt,
-      receiptPath
-    } as any;
-  }
-
-  async confirm(txId: string, options: { timeout?: number, interval?: number } = {}): Promise<TxReceiptArtifact> {
-    const timeout = options.timeout || 60000;
-    const interval = options.interval || 2000;
-    const start = Date.now();
-
-    while (Date.now() - start < timeout) {
-      try {
-        const txInfo = await this.sdk.rpc.getTransaction(txId);
-        
-        if (txInfo) {
-           const info = await this.sdk.rpc.getInfo();
-           const receiptPath = getDefaultReceiptPath(txId, this.sdk.config.cwd);
-           const receipt = await readTxReceiptArtifact(receiptPath).catch(() => null);
-           
-           if (receipt) {
-             const updated: any = {
-               ...receipt,
-               status: (txInfo as any).blockHash ? "accepted" : "pending",
-               daaScore: String(info.virtualDaaScore || ""),
-               blueScore: String((info.raw as any)?.blueScore || ""),
-               confirmedAt: new Date().toISOString()
-             };
-             await writeArtifact(receiptPath, updated);
-             if (updated.status === "accepted") return updated;
-           }
-        }
-      } catch (e) {
-        // Ignore errors during polling
-      }
-      await new Promise(resolve => setTimeout(resolve, interval));
-    }
-
-    throw new Error(`Transaction ${txId} confirmation timed out after ${timeout}ms`);
-  }
-}
-
-/**
- * Sub-facade for L2/Igra capabilities.
- */
-export class HardkasL2 {
-  listProfiles(): readonly L2NetworkProfile[] {
-    return listL2Profiles();
-  }
-
-  getProfile(name: string): L2NetworkProfile | null {
-    return getL2Profile(name);
+  /**
+   * Current active network name.
+   */
+  get network(): string {
+    return this.config.config.defaultNetwork || "simnet";
   }
 }
