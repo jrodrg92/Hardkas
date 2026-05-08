@@ -3,6 +3,7 @@ import { HardkasArtifactSchema, HardkasArtifactMode } from "./constants.js";
 export interface HardkasArtifactBase {
   schema: HardkasArtifactSchema;
   hardkasVersion: string;
+  version: string;
   networkId: string;
   mode: HardkasArtifactMode;
   createdAt: string;
@@ -42,7 +43,7 @@ export interface TxOutputArtifact {
   readonly script?: string | undefined;
 }
 
-export interface TxPlanArtifact extends HardkasArtifactBase {
+export interface TxPlanArtifactV1 extends HardkasArtifactBase {
   readonly schema: "hardkas.txPlan.v1";
   readonly status: "built" | "unsigned";
   
@@ -74,7 +75,7 @@ export interface TxPlanArtifact extends HardkasArtifactBase {
   readonly metadata?: Record<string, any> | undefined;
 }
 
-export interface SignedTxArtifact extends HardkasArtifactBase {
+export interface SignedTxArtifactV1 extends HardkasArtifactBase {
   readonly schema: "hardkas.signedTx.v1";
   readonly status: "signed";
   
@@ -105,7 +106,7 @@ export interface SignedTxArtifact extends HardkasArtifactBase {
   readonly metadata?: Record<string, any> | undefined;
 }
 
-export interface TxReceiptArtifact extends HardkasArtifactBase {
+export interface TxReceiptArtifactV1 extends HardkasArtifactBase {
   readonly schema: "hardkas.txReceipt.v1";
   readonly status: "submitted" | "accepted" | "confirmed" | "finalized" | "failed";
   
@@ -139,7 +140,7 @@ export interface TxReceiptArtifact extends HardkasArtifactBase {
   readonly metadata?: Record<string, any> | undefined;
 }
 
-export interface TxTraceArtifact extends HardkasArtifactBase {
+export interface TxTraceArtifactV1 extends HardkasArtifactBase {
   readonly schema: "hardkas.txTrace.v1";
   readonly txId: string;
   readonly steps: Array<{

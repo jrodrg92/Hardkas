@@ -8,6 +8,7 @@ import {
   listSimulatedTraces,
   StoredSimulatedTxTrace
 } from "../src/traces";
+import { ARTIFACT_SCHEMAS } from "@hardkas/artifacts";
 
 describe("traces store", () => {
   let tempDir: string;
@@ -20,7 +21,10 @@ describe("traces store", () => {
     await fs.rm(tempDir, { recursive: true, force: true });
   });
 
-  const mockTrace: StoredSimulatedTxTrace = {
+  const mockTrace = {
+    schema: ARTIFACT_SCHEMAS.TX_TRACE,
+    hardkasVersion: "0.2.0",
+    version: "2.0.0",
     txId: "simtx_trace_123",
     mode: "simulated",
     networkId: "simnet",
@@ -29,7 +33,7 @@ describe("traces store", () => {
       { type: "phase.started", phase: "test", timestamp: Date.now() },
       { type: "phase.completed", phase: "test", timestamp: Date.now() }
     ]
-  };
+  } as any;
 
   it("should save and load a trace", async () => {
     const path = await saveSimulatedTrace(mockTrace, { cwd: tempDir });
@@ -40,16 +44,34 @@ describe("traces store", () => {
   });
 
   it("should list traces sorted by date", async () => {
-    const t1 = { ...mockTrace, txId: "t1", createdAt: "2026-01-01T10:00:00Z" };
-    const t2 = { ...mockTrace, txId: "t2", createdAt: "2026-01-01T11:00:00Z" };
+    const t1: any = {
+      schema: ARTIFACT_SCHEMAS.TX_TRACE,
+      hardkasVersion: "0.2.0",
+      version: "2.0.0",
+      txId: "t1",
+      mode: "simulated",
+      networkId: "simnet",
+      createdAt: "2026-01-01T10:00:00Z",
+      events: []
+    };
+    const t2: any = {
+      schema: ARTIFACT_SCHEMAS.TX_TRACE,
+      hardkasVersion: "0.2.0",
+      version: "2.0.0",
+      txId: "t2",
+      mode: "simulated",
+      networkId: "simnet",
+      createdAt: "2026-01-01T11:00:00Z",
+      events: []
+    };
     
     await saveSimulatedTrace(t1, { cwd: tempDir });
     await saveSimulatedTrace(t2, { cwd: tempDir });
     
     const list = await listSimulatedTraces({ cwd: tempDir });
     expect(list.length).toBe(2);
-    expect(list[0].txId).toBe("t2");
-    expect(list[1].txId).toBe("t1");
+    expect(list[0]!.txId).toBe("t2");
+    expect(list[1]!.txId).toBe("t1");
   });
 
   it("should throw error for invalid txId (path traversal)", async () => {

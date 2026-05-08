@@ -1,23 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { KaspaSdkRealTxSigner } from "../src/kaspa-sdk-real-signer.js";
-import { RealTxPlanArtifact } from "@hardkas/artifacts";
-import { RealDevAccount } from "@hardkas/localnet";
+import { TxPlanArtifact } from "@hardkas/artifacts";
+import { RealDevAccount } from "../src/real-accounts.js";
 
 describe("KaspaSdkRealTxSigner", () => {
-  const mockPlan: RealTxPlanArtifact = {
-    kind: "hardkas.realTxPlan",
-    schema: "hardkas.realTxPlan",
-    version: 1,
-    status: "built",
+  const mockPlan: any = {
+    schema: "hardkas.txPlan.v2",
+    hardkasVersion: "0.2.0",
+    version: "2.0.0",
     createdAt: new Date().toISOString(),
     planId: "plan123",
     networkId: "simnet",
-    mode: "rpc",
+    mode: "simulated",
     from: { address: "kaspasim:alice123" },
     to: { address: "kaspasim:bob456" },
     amountSompi: "100000000",
-    feeRateSompiPerMass: "1",
-    selectedUtxos: [
+    inputs: [
       {
         outpoint: { transactionId: "tx1", index: 0 },
         address: "kaspasim:alice123",
@@ -74,11 +72,14 @@ describe("KaspaSdkRealTxSigner", () => {
   it("should fail if UTXO is missing scriptPublicKey", async () => {
     const planNoScript = {
       ...mockPlan,
-      selectedUtxos: [{ ...mockPlan.selectedUtxos[0], scriptPublicKey: undefined }]
+      inputs: [{ ...mockPlan.inputs[0], scriptPublicKey: undefined }]
     };
 
     const signer = new KaspaSdkRealTxSigner({
-      sdkLoader: async () => ({ PrivateKey: vi.fn() })
+      sdkLoader: async () => ({ 
+        PrivateKey: vi.fn(),
+        UtxoEntry: vi.fn() 
+      })
     });
 
     await expect(signer.sign({ plan: planNoScript as any, account: mockAccount }))

@@ -1,6 +1,7 @@
 import { calculateContentHash } from "./canonical.js";
 import { ARTIFACT_V2_VERSION } from "./schemas.js";
 import { sortUtxosByOutpoint } from "./verify.js";
+import { HARDKAS_VERSION } from "./constants.js";
 
 /**
  * Migrates a v1 artifact to v2 by updating the schema, version, 
@@ -30,6 +31,9 @@ export function migrateV1ToV2(v1Artifact: any): any {
   }
 
   // 3. Ensure required v2 fields
+  if (!v2Artifact.hardkasVersion) {
+    v2Artifact.hardkasVersion = HARDKAS_VERSION;
+  }
   if (!v2Artifact.createdAt) {
     v2Artifact.createdAt = new Date().toISOString();
   }

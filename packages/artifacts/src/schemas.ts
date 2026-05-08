@@ -10,18 +10,19 @@ export const BaseArtifactSchema = z.object({
   createdAt: z.string().datetime()
 });
 
+export const AccountRefSchema = z.object({
+  address: z.string(),
+  accountName: z.string().optional(),
+  input: z.string().optional()
+});
+
 export const TxPlanSchemaV2 = BaseArtifactSchema.extend({
   schema: z.literal("hardkas.txPlan.v2"),
   networkId: z.string(),
   mode: z.enum(["real", "simulated"]),
   planId: z.string(),
-  from: z.object({
-    address: z.string(),
-    accountName: z.string().optional()
-  }),
-  to: z.object({
-    address: z.string()
-  }),
+  from: AccountRefSchema,
+  to: AccountRefSchema,
   amountSompi: z.string(),
   estimatedFeeSompi: z.string(),
   estimatedMass: z.string(),
@@ -35,7 +36,11 @@ export const TxPlanSchemaV2 = BaseArtifactSchema.extend({
   outputs: z.array(z.object({
     address: z.string(),
     amountSompi: z.string()
-  }))
+  })),
+  change: z.object({
+    address: z.string(),
+    amountSompi: z.string()
+  }).optional()
 });
 
 export const DagContextSchema = z.object({
@@ -78,11 +83,11 @@ export const SnapshotSchemaV2 = BaseArtifactSchema.extend({
 export const TxReceiptSchemaV2 = BaseArtifactSchema.extend({
   schema: z.literal("hardkas.txReceipt.v2"),
   txId: z.string(),
-  status: z.enum(["pending", "accepted", "confirmed", "failed"]),
-  mode: z.enum(["real", "simulated"]),
+  status: z.enum(["pending", "submitted", "accepted", "confirmed", "failed"]),
+  mode: z.enum(["real", "simulated", "node", "rpc"]),
   networkId: z.string(),
-  from: z.object({ address: z.string() }),
-  to: z.object({ address: z.string() }),
+  from: AccountRefSchema,
+  to: AccountRefSchema,
   amountSompi: z.string(),
   feeSompi: z.string(),
   mass: z.string().optional(),
@@ -92,7 +97,13 @@ export const TxReceiptSchemaV2 = BaseArtifactSchema.extend({
   daaScore: z.string().optional(),
   preStateHash: z.string().optional(),
   postStateHash: z.string().optional(),
-  dagContext: DagContextSchema.optional()
+  submittedAt: z.string().optional(),
+  confirmedAt: z.string().optional(),
+  dagContext: DagContextSchema.optional(),
+  tracePath: z.string().optional(),
+  rpcUrl: z.string().optional(),
+  sourceSignedId: z.string().optional(),
+  metadata: z.any().optional()
 });
 
 export const SignedTxSchemaV2 = BaseArtifactSchema.extend({
@@ -102,14 +113,15 @@ export const SignedTxSchemaV2 = BaseArtifactSchema.extend({
   sourcePlanId: z.string(),
   networkId: z.string(),
   mode: z.enum(["real", "simulated"]),
-  from: z.object({ address: z.string() }),
-  to: z.object({ address: z.string() }),
+  from: AccountRefSchema,
+  to: AccountRefSchema,
   amountSompi: z.string(),
   signedTransaction: z.object({
     format: z.string(),
     payload: z.string()
   }),
-  txId: z.string().optional()
+  txId: z.string().optional(),
+  metadata: z.any().optional()
 });
 
 export const TxTraceSchemaV2 = BaseArtifactSchema.extend({

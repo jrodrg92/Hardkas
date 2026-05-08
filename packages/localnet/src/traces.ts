@@ -27,7 +27,7 @@ export type StoredTraceEvent =
     };
 
 export interface StoredSimulatedTxTrace extends HardkasArtifactBase {
-  readonly schema: "hardkas.simulatedTxTrace.v1";
+  readonly schema: typeof ARTIFACT_SCHEMAS.TX_TRACE;
   readonly txId: string;
   readonly mode: "simulated";
   readonly networkId: "simnet";

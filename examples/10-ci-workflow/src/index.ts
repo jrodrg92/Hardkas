@@ -73,11 +73,11 @@ async function main() {
   // 4. Replay Verification
   console.log("[CI] Phase 4: Replay Determinism Check");
   const replayedPlan = buildPaymentPlan({
-    fromAddress: result.receipt.fromAddress,
-    outputs: [{ address: result.receipt.toAddress, amountSompi: amount }],
+    fromAddress: (result.receipt as any).from.address,
+    outputs: [{ address: (result.receipt as any).to.address, amountSompi: amount }],
     availableUtxos: [{
       outpoint: { transactionId: "genesis:alice", index: 0 },
-      address: result.receipt.fromAddress,
+      address: (result.receipt as any).from.address,
       amountSompi: initialAliceBal,
       scriptPublicKey: "mock"
     }],

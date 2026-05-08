@@ -1,6 +1,6 @@
 import { UI } from "../ui.js";
 import { KaspaJsonRpcClient, LoadBalancedRpcProvider } from "@hardkas/kaspa-rpc";
-import { loadHardkasConfig } from "@hardkas/core";
+import { loadHardkasConfig } from "@hardkas/config";
 
 export interface RpcDoctorOptions {
   endpoints?: string[];

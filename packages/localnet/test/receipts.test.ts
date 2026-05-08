@@ -9,6 +9,7 @@ import {
   getReceiptPath,
   StoredSimulatedTxReceipt
 } from "../src/receipts";
+import { ARTIFACT_SCHEMAS } from "@hardkas/artifacts";
 
 describe("receipts store", () => {
   let tempDir: string;
@@ -21,7 +22,10 @@ describe("receipts store", () => {
     await fs.rm(tempDir, { recursive: true, force: true });
   });
 
-  const mockReceipt: StoredSimulatedTxReceipt = {
+  const mockReceipt: any = {
+    schema: ARTIFACT_SCHEMAS.TX_RECEIPT,
+    hardkasVersion: "0.2.0",
+    version: "2.0.0",
     txId: "simtx_test_123",
     mode: "simulated",
     networkId: "simnet",
@@ -44,16 +48,16 @@ describe("receipts store", () => {
   });
 
   it("should list receipts sorted by date", async () => {
-    const r1 = { ...mockReceipt, txId: "tx1", createdAt: "2026-01-01T10:00:00Z" };
-    const r2 = { ...mockReceipt, txId: "tx2", createdAt: "2026-01-01T11:00:00Z" };
+    const r1: any = { ...mockReceipt, txId: "tx1", createdAt: "2026-01-01T10:00:00Z" };
+    const r2: any = { ...mockReceipt, txId: "tx2", createdAt: "2026-01-01T11:00:00Z" };
     
     await saveSimulatedReceipt(r1, { cwd: tempDir });
     await saveSimulatedReceipt(r2, { cwd: tempDir });
     
     const list = await listSimulatedReceipts({ cwd: tempDir });
     expect(list.length).toBe(2);
-    expect(list[0].txId).toBe("tx2"); // Newest first
-    expect(list[1].txId).toBe("tx1");
+    expect(list[0]!.txId).toBe("tx2"); // Newest first
+    expect(list[1]!.txId).toBe("tx1");
   });
 
   it("should throw error for invalid txId (path traversal)", async () => {

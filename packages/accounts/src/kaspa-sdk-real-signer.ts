@@ -46,8 +46,10 @@ export class KaspaSdkRealTxSigner implements RealTxSigner {
 
       // 2. Prepare UTXOs
       const utxos = plan.inputs.map((u: any) => {
-        // Validation: SDK requires scriptPublicKey for signing
-        const spk = u.scriptPublicKey || "mock-script"; 
+        if (!u.scriptPublicKey) {
+          throw new Error(`UTXO ${u.outpoint.transactionId}:${u.outpoint.index} is missing scriptPublicKey required for signing.`);
+        }
+        const spk = u.scriptPublicKey;
 
         return new sdk.UtxoEntry(
           BigInt(u.amountSompi),

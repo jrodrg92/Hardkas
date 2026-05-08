@@ -31,7 +31,7 @@ describe("Persistent Localnet State", () => {
     const state = createInitialLocalnetState({ accounts: 3, initialBalanceSompi: 500n });
     expect(state.accounts).toHaveLength(3);
     expect(state.utxos).toHaveLength(3);
-    expect(state.utxos[0].amountSompi).toBe("500");
+    expect(state.utxos[0]!.amountSompi).toBe("500");
     expect(state.daaScore).toBe("0");
   });
 
@@ -49,34 +49,34 @@ describe("Persistent Localnet State", () => {
 
   it("should fund an address and increment DAA score", () => {
     let state = createInitialLocalnetState({ accounts: 1 });
-    const address = state.accounts[0].address;
+    const address = state.accounts[0]!.address;
     
     state = fundAddress(state, { address, amountSompi: 100n });
     expect(state.daaScore).toBe("1");
     expect(state.utxos).toHaveLength(2);
-    expect(state.utxos[1].address).toBe(address);
-    expect(state.utxos[1].amountSompi).toBe("100");
+    expect(state.utxos[1]!.address).toBe(address);
+    expect(state.utxos[1]!.amountSompi).toBe("100");
     
-    expect(getAddressBalanceSompi(state, address)).toBe(BigInt(state.utxos[0].amountSompi) + 100n);
+    expect(getAddressBalanceSompi(state, address)).toBe(BigInt(state.utxos[0]!.amountSompi) + 100n);
   });
 
   it("should create and restore snapshots", () => {
     let state = createInitialLocalnetState({ accounts: 1 });
-    const address = state.accounts[0].address;
+    const address = state.accounts[0]!.address;
     
     state = createLocalnetSnapshot(state, "original");
     
     state = fundAddress(state, { address, amountSompi: 100n });
-    expect(getAddressBalanceSompi(state, address)).toBe(BigInt(state.utxos[0].amountSompi) + 100n);
+    expect(getAddressBalanceSompi(state, address)).toBe(BigInt(state.utxos[0]!.amountSompi) + 100n);
     
     state = restoreLocalnetSnapshot(state, "original");
     expect(state.daaScore).toBe("0");
-    expect(getAddressBalanceSompi(state, address)).toBe(BigInt(state.utxos[0].amountSompi));
+    expect(getAddressBalanceSompi(state, address)).toBe(BigInt(state.utxos[0]!.amountSompi));
   });
 
   it("should resolve account addresses", () => {
     const state = createInitialLocalnetState({ accounts: 2 });
-    const aliceAddr = state.accounts[0].address;
+    const aliceAddr = state.accounts[0]!.address;
     
     expect(resolveAccountAddressFromState(state, "alice")).toBe(aliceAddr);
     expect(resolveAccountAddressFromState(state, aliceAddr)).toBe(aliceAddr);

@@ -255,10 +255,11 @@ const artifactCmd = program.command("artifact").description("Manage HardKAS arti
 
 artifactCmd.command("verify <path>")
   .description("Verify an artifact's integrity and schema")
+  .option("--recursive", "Recursively verify all artifacts in a directory", false)
   .option("--json", "Output as JSON", false)
-  .action(async (path: string, options: { json: boolean }) => {
+  .action(async (path: string, options: { json: boolean, recursive: boolean }) => {
     try {
-      await runArtifactVerify({ path, json: options.json });
+      await runArtifactVerify({ path, json: options.json, recursive: options.recursive });
     } catch (e) {
       handleError(e);
       process.exitCode = 1;
@@ -707,6 +708,36 @@ dagCmd.command("simulate-reorg")
       process.exitCode = 1;
     }
   });
+
+// --- RPC Commands ---
+const rpcCmd = program.command("rpc").description("Kaspa RPC diagnostics and queries");
+
+rpcCmd.command("info")
+  .description("Show RPC connection info")
+  .action(async () => { try { await runRpcInfo(); } catch (e) { handleError(e); } });
+
+rpcCmd.command("health")
+  .description("Check RPC health")
+  .action(async () => { try { await runRpcHealth(); } catch (e) { handleError(e); } });
+
+rpcCmd.command("doctor")
+  .description("Run comprehensive RPC diagnostics")
+  .action(async () => { 
+    const { runRpcDoctor } = await import("./runners/rpc-doctor-runner.js");
+    try { await runRpcDoctor({}); } catch (e) { handleError(e); } 
+  });
+
+rpcCmd.command("dag")
+  .description("Show DAG information from node")
+  .action(async () => { try { await runRpcDag(); } catch (e) { handleError(e); } });
+
+rpcCmd.command("utxos <address>")
+  .description("Show UTXOs for an address from node")
+  .action(async (address) => { try { await runRpcUtxos({ address }); } catch (e) { handleError(e); } });
+
+rpcCmd.command("mempool")
+  .description("Show mempool status from node")
+  .action(async () => { try { await runRpcMempool(); } catch (e) { handleError(e); } });
 
 // --- Misc ---
 program.command("dev")

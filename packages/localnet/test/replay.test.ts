@@ -5,6 +5,7 @@ import os from "node:os";
 import { saveSimulatedReceipt } from "../src/receipts";
 import { saveSimulatedTrace } from "../src/traces";
 import { getSimulatedReplaySummary } from "../src/replay";
+import { ARTIFACT_SCHEMAS } from "@hardkas/artifacts";
 
 describe("replay summary", () => {
   let tempDir: string;
@@ -19,7 +20,10 @@ describe("replay summary", () => {
 
   it("should construct a replay summary from receipt and trace", async () => {
     const txId = "simtx_replay_123";
-    const receipt = {
+    const receipt: any = {
+      schema: ARTIFACT_SCHEMAS.TX_RECEIPT,
+      hardkasVersion: "0.2.0",
+      version: "2.0.0",
       txId,
       mode: "simulated" as const,
       networkId: "simnet" as const,
@@ -34,7 +38,10 @@ describe("replay summary", () => {
       createdAt: new Date().toISOString()
     };
 
-    const trace = {
+    const trace: any = {
+      schema: ARTIFACT_SCHEMAS.TX_TRACE,
+      hardkasVersion: "0.2.0",
+      version: "2.0.0",
       txId,
       mode: "simulated" as const,
       networkId: "simnet" as const,

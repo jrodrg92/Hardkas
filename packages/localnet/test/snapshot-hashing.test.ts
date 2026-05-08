@@ -37,7 +37,7 @@ describe("Snapshot Hashing", () => {
     const state = createInitialLocalnetState({ accounts: 2 });
     const hash1 = calculateAccountsHash(state.accounts);
 
-    state.accounts[0].address = "something-else"; // Mutation
+    (state.accounts[0] as any).address = "something-else"; // Mutation
     const hash2 = calculateAccountsHash(state.accounts);
 
     expect(hash1).not.toBe(hash2);
@@ -87,7 +87,7 @@ describe("Snapshot Hashing", () => {
     state = createLocalnetSnapshot(state, "original");
     
     // Corrupt it
-    state.snapshots![0].daaScore = "999";
+    state.snapshots![0]!.daaScore = "999";
     
     const preHash = calculateStateHash(state);
     

@@ -44,7 +44,7 @@ describe("KeystoreManager", () => {
 
     // Corrupt one byte of encrypted payload
     const buffer = Buffer.from(keystore.encryptedPayload, "base64");
-    buffer[0] ^= 0xff;
+    buffer[0]! ^= 0xff;
     keystore.encryptedPayload = buffer.toString("base64");
 
     const result = await KeystoreManager.decryptEncryptedKeystore(keystore, password);
@@ -59,7 +59,7 @@ describe("KeystoreManager", () => {
 
     // Corrupt auth tag
     const tag = Buffer.from(keystore.cipher.tag, "base64");
-    tag[0] ^= 0xff;
+    tag[0]! ^= 0xff;
     keystore.cipher.tag = tag.toString("base64");
 
     const result = await KeystoreManager.decryptEncryptedKeystore(keystore, password);

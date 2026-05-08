@@ -22,8 +22,8 @@ describe("Simulated Transactions", () => {
 
   it("should spend sender UTXOs and create recipient/change UTXOs", () => {
     const initialState = createInitialLocalnetState({ accounts: 2, initialBalanceSompi: 1000n });
-    const alice = initialState.accounts[0].address;
-    const bob = initialState.accounts[1].address;
+    const alice = initialState.accounts[0]!.address;
+    const bob = initialState.accounts[1]!.address;
 
     const { state, receipt } = applySimulatedPayment(initialState, {
       from: "alice",
@@ -38,7 +38,7 @@ describe("Simulated Transactions", () => {
     // Verify Alice's original UTXO is spent
     const aliceSpentUtxos = state.utxos.filter(u => u.address === alice && u.spent);
     expect(aliceSpentUtxos).toHaveLength(1);
-    expect(aliceSpentUtxos[0].spentAtDaaScore).toBe("1");
+    expect(aliceSpentUtxos[0]!.spentAtDaaScore).toBe("1");
 
     // Verify Bob received a UTXO
     const bobUtxos = state.utxos.filter(u => u.address === bob && !u.spent);
@@ -51,7 +51,7 @@ describe("Simulated Transactions", () => {
     const aliceUtxos = state.utxos.filter(u => u.address === alice && !u.spent);
     expect(aliceUtxos).toHaveLength(1);
     const changeAmount = 1000n - 100n - BigInt(receipt.feeSompi);
-    expect(aliceUtxos[0].amountSompi).toBe(changeAmount.toString());
+    expect(aliceUtxos[0]!.amountSompi).toBe(changeAmount.toString());
 
     // Verify balances
     expect(getAddressBalanceSompi(state, alice)).toBe(changeAmount);
@@ -86,7 +86,7 @@ describe("Simulated Transactions", () => {
 
   it("should handle address as recipient", () => {
     const state = createInitialLocalnetState({ accounts: 2, initialBalanceSompi: 1000n });
-    const bobAddr = state.accounts[1].address;
+    const bobAddr = state.accounts[1]!.address;
 
     const { state: nextState } = applySimulatedPayment(state, {
       from: "alice",

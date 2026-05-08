@@ -22,6 +22,7 @@ export function createInitialLocalnetState(
   return {
     schema: ARTIFACT_SCHEMAS.LOCALNET_STATE,
     hardkasVersion: HARDKAS_VERSION,
+    version: "2.0.0",
     createdAt: new Date().toISOString(),
     mode: "simulated",
     networkId: "simnet",

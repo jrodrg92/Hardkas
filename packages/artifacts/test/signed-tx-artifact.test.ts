@@ -1,71 +1,62 @@
 import { describe, it, expect } from "vitest";
 import { 
+  calculateContentHash, 
   createTxPlanArtifact, 
   createSimulatedSignedTxArtifact, 
   validateSignedTxArtifact,
-  hashTxPlanArtifact,
   HARDKAS_VERSION,
   ARTIFACT_SCHEMAS
 } from "../src";
 
 describe("SignedTxArtifact", () => {
-  const mockPlan = {
+  const mockPlan: any = {
     schema: ARTIFACT_SCHEMAS.TX_PLAN,
     hardkasVersion: HARDKAS_VERSION,
-    status: "unsigned",
+    version: "2.0.0",
     createdAt: new Date().toISOString(),
     networkId: "simnet",
     mode: "simulated",
-    from: { input: "alice", address: "addr1" },
-    to: { input: "bob", address: "addr2" },
+    planId: "p123",
+    from: { address: "addr1" },
+    to: { address: "addr2" },
     amountSompi: "500",
-    amount: "0.00000500 KAS",
-    selectedUtxos: [
-      { id: "tx1:0", txId: "tx1", outputIndex: 0, address: "addr1", amountSompi: "1000", amount: "0.00001000 KAS" }
-    ],
-    outputs: [
-      { kind: "payment", address: "addr2", amountSompi: "500", amount: "0.00000500 KAS" }
-    ],
+    inputs: [],
+    outputs: [],
     estimatedMass: "350",
-    estimatedFeeSompi: "10",
-    estimatedFee: "0.00000010 KAS",
-    changeSompi: "490",
-    change: "0.00000490 KAS"
+    estimatedFeeSompi: "10"
   };
 
   it("should generate a stable hash for the same artifact", () => {
-    const hash1 = hashTxPlanArtifact(mockPlan as any);
-    const hash2 = hashTxPlanArtifact(mockPlan as any);
+    const hash1 = calculateContentHash(mockPlan as any);
+    const hash2 = calculateContentHash(mockPlan as any);
     expect(hash1).toBe(hash2);
     expect(hash1).toHaveLength(64);
   });
 
   it("should generate different hashes for different artifacts", () => {
-    const hash1 = hashTxPlanArtifact(mockPlan as any);
+    const hash1 = calculateContentHash(mockPlan as any);
     const mockPlan2 = { ...mockPlan, amountSompi: "501" };
-    const hash2 = hashTxPlanArtifact(mockPlan2 as any);
+    const hash2 = calculateContentHash(mockPlan2 as any);
     expect(hash1).not.toBe(hash2);
   });
 
   it("should create a simulated signed artifact", () => {
-    const signed = createSimulatedSignedTxArtifact({
-      plan: mockPlan as any,
-      account: "alice",
-      signerAddress: "addr1"
-    });
+    const signed = createSimulatedSignedTxArtifact(
+      mockPlan as any,
+      "simulated-payload"
+    );
 
     expect(signed.schema).toBe(ARTIFACT_SCHEMAS.SIGNED_TX);
     expect(signed.status).toBe("signed");
-    expect(signed.signature.kind).toBe("simulated");
-    expect(signed.signature.value).toContain("simulated:alice:");
-    expect(signed.source.planHash).toBe(hashTxPlanArtifact(mockPlan as any));
+    expect(signed.signedTransaction?.payload).toBe("simulated-payload");
+    expect(signed.sourcePlanId).toBe(mockPlan.planId);
   });
 
   it("should validate a correct signed artifact", () => {
-    const signed = createSimulatedSignedTxArtifact({
-      plan: mockPlan as any,
-      account: "alice"
-    });
+    const signed = createSimulatedSignedTxArtifact(
+      mockPlan as any,
+      "simulated-payload"
+    );
 
     const result = validateSignedTxArtifact(signed);
     expect(result.ok).toBe(true);

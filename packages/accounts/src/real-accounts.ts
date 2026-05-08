@@ -26,6 +26,7 @@ export function createEmptyRealAccountStore(): RealAccountStore {
   return {
     schema: ARTIFACT_SCHEMAS.REAL_ACCOUNT_STORE,
     hardkasVersion: HARDKAS_VERSION,
+    version: "2.0.0",
     createdAt: new Date().toISOString(),
     networkId: "simnet",
     mode: "node",

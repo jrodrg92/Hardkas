@@ -18,7 +18,7 @@ describe("mapKaspaNodeInfo", () => {
     expect(info.isUtxoIndexed).toBe(false);
     expect(info.p2pId).toBe("abc-123");
     expect(info.mempoolSize).toBe(42);
-    expect(info.virtualDaaScore).toBe("1000");
+    expect(info.virtualDaaScore).toBe(1000n);
     expect(info.networkId).toBe("devnet");
     expect(info.raw).toBe(raw);
   });
@@ -39,7 +39,7 @@ describe("mapKaspaNodeInfo", () => {
     expect(info.isUtxoIndexed).toBe(true);
     expect(info.p2pId).toBe("xyz-789");
     expect(info.mempoolSize).toBe(10);
-    expect(info.virtualDaaScore).toBe(5000);
+    expect(info.virtualDaaScore).toBe(5000n);
     expect(info.networkId).toBe("mainnet");
   });
 });

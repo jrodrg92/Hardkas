@@ -4,30 +4,27 @@ import { TxPlanArtifact } from "@hardkas/artifacts";
 import { HardkasAccount } from "../src/types.js";
 
 describe("signTxPlanArtifact", () => {
-  const mockSimulatedPlan: TxPlanArtifact = {
-    schema: "hardkas.txPlan",
-    version: 1,
-    status: "unsigned",
+  const mockSimulatedPlan: any = {
+    schema: "hardkas.txPlan.v2",
+    version: "2.0.0",
+    hardkasVersion: "0.2.0",
     createdAt: new Date().toISOString(),
-    network: "simnet",
+    networkId: "simnet",
     mode: "simulated",
-    from: { input: "alice", address: "kaspa:sim_alice" },
-    to: { input: "bob", address: "kaspa:sim_bob" },
+    planId: "plan123",
+    from: { address: "kaspa:sim_alice" },
+    to: { address: "kaspa:sim_bob" },
     amountSompi: "1000",
-    amount: "1 KAS",
-    selectedUtxos: [],
+    inputs: [],
     outputs: [],
     estimatedMass: "300",
-    estimatedFeeSompi: "300",
-    estimatedFee: "0.00000300 KAS",
-    changeSompi: "700",
-    change: "0.00000700 KAS"
+    estimatedFeeSompi: "300"
   };
 
-  const mockRealPlan: TxPlanArtifact = {
+  const mockRealPlan: any = {
     ...mockSimulatedPlan,
-    network: "devnet",
-    mode: "kaspa-node"
+    networkId: "devnet",
+    mode: "real"
   };
 
   const aliceAccount: HardkasAccount = {
@@ -76,9 +73,9 @@ describe("signTxPlanArtifact", () => {
   });
 
   it("should block mainnet signing by default", async () => {
-    const mainnetPlan: TxPlanArtifact = {
+    const mainnetPlan: any = {
       ...mockRealPlan,
-      network: "mainnet"
+      networkId: "mainnet"
     };
 
     await expect(signTxPlanArtifact({

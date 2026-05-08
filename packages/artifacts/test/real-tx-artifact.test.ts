@@ -4,8 +4,8 @@ import {
   utxoFromArtifact, 
   txOutputToArtifact, 
   txOutputFromArtifact,
-  validateRealTxPlanArtifact,
-  RealTxPlanArtifact,
+  txOutputFromArtifact,
+  validateTxPlanArtifact,
   HARDKAS_VERSION,
   ARTIFACT_SCHEMAS
 } from "../src/index.js";
@@ -55,19 +55,18 @@ describe("Real Transaction Artifacts", () => {
   });
 
   describe("Validation", () => {
-    const validArtifact: RealTxPlanArtifact = {
-      schema: ARTIFACT_SCHEMAS.REAL_TX_PLAN,
+    const validArtifact: any = {
+      schema: ARTIFACT_SCHEMAS.TX_PLAN,
       hardkasVersion: HARDKAS_VERSION,
-      status: "built",
+      version: "2.0.0",
       createdAt: new Date().toISOString(),
       networkId: "simnet",
-      mode: "node",
+      mode: "real",
       planId: "p123",
       from: { address: "addr1" },
       to: { address: "addr2" },
       amountSompi: "100",
-      feeRateSompiPerMass: "1",
-      selectedUtxos: [{
+      inputs: [{
         outpoint: { transactionId: "tx1", index: 0 },
         address: "addr1",
         amountSompi: "1000",
@@ -79,28 +78,28 @@ describe("Real Transaction Artifacts", () => {
     };
 
     it("should accept a valid artifact", () => {
-      const res = validateRealTxPlanArtifact(validArtifact);
+      const res = validateTxPlanArtifact(validArtifact);
       expect(res.ok).toBe(true);
       expect(res.errors).toHaveLength(0);
     });
 
     it("should reject wrong schema", () => {
-      const res = validateRealTxPlanArtifact({ ...validArtifact, schema: "wrong" });
+      const res = validateTxPlanArtifact({ ...validArtifact, schema: "wrong" });
       expect(res.ok).toBe(false);
       expect(res.errors[0]).toContain("Invalid schema");
     });
 
     it("should reject invalid bigint strings", () => {
-      const res = validateRealTxPlanArtifact({ ...validArtifact, amountSompi: "abc" });
+      const res = validateTxPlanArtifact({ ...validArtifact, amountSompi: "abc" });
       expect(res.ok).toBe(false);
       expect(res.errors[0]).toContain("Invalid amountSompi");
     });
 
     it("should reject missing required fields", () => {
       const { networkId, ...invalid } = validArtifact as any;
-      const res = validateRealTxPlanArtifact(invalid);
+      const res = validateTxPlanArtifact(invalid);
       expect(res.ok).toBe(false);
-      expect(res.errors).toContain("Missing or invalid networkId");
+      expect(res.errors).toContain("Missing networkId");
     });
   });
 });

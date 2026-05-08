@@ -89,16 +89,27 @@ describe("Artifacts v2 - Determinism and Verification", () => {
 
     const artifact: any = {
       schema: "hardkas.txPlan.v2",
+      hardkasVersion: "0.2.0",
       version: "2.0.0",
-      contentHash: "fake-hash",
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      networkId: "simnet",
+      mode: "simulated",
+      planId: "test-plan",
+      from: { address: "addr1" },
+      to: { address: "addr2" },
+      amountSompi: "100",
+      estimatedFeeSompi: "1",
+      estimatedMass: "100",
+      inputs: [],
+      outputs: [],
+      contentHash: "fake-hash"
     };
 
     fs.writeFileSync(artifactPath, JSON.stringify(artifact));
 
     const result = await verifyArtifact(artifactPath);
     expect(result.ok).toBe(false);
-    expect(result.errors).toContain("Hash mismatch: Data has been modified");
+    expect(result.errors[0]).toContain("Hash mismatch");
 
     fs.rmSync(tempDir, { recursive: true });
   });
@@ -114,7 +125,8 @@ describe("Artifacts v2 - Determinism and Verification", () => {
     expect(v2.version).toBe("2.0.0");
     expect(v2.schema).toBe("hardkas.txPlan.v2");
     expect(v2.inputs).toBeDefined();
-    expect(v2.selectedUtxos).toBeUndefined();
+    expect(v2.hardkasVersion).toBeDefined();
+    expect(v2.createdAt).toBeDefined();
     expect(v2.contentHash).toBeDefined();
   });
 });

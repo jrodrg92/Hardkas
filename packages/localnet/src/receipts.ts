@@ -4,7 +4,7 @@ import { existsSync } from "node:fs";
 import { HardkasArtifactBase, HARDKAS_VERSION, ARTIFACT_SCHEMAS } from "@hardkas/artifacts";
 
 export interface StoredSimulatedTxReceipt extends HardkasArtifactBase {
-  readonly schema: "hardkas.simulatedTxReceipt.v1";
+  readonly schema: typeof ARTIFACT_SCHEMAS.TX_RECEIPT;
   readonly txId: string;
   readonly mode: "simulated";
   readonly networkId: "simnet";

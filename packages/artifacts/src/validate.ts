@@ -1,9 +1,9 @@
 import type { 
-  TxPlanArtifact, 
-  SignedTxArtifact, 
-  TxReceiptArtifact,
-  TxTraceArtifact
-} from "./types.js";
+  TxPlanV2 as TxPlanArtifact, 
+  SignedTxV2 as SignedTxArtifact, 
+  TxReceiptV2 as TxReceiptArtifact,
+  TxTraceV2 as TxTraceArtifact
+} from "./schemas.js";
 import { ARTIFACT_SCHEMAS } from "./constants.js";
 import { 
   validateIgraTxPlanArtifact, 
@@ -24,14 +24,13 @@ export function validateTxPlanArtifact(value: unknown): ArtifactValidationResult
   if (v.schema !== ARTIFACT_SCHEMAS.TX_PLAN) errors.push(`Invalid schema: expected '${ARTIFACT_SCHEMAS.TX_PLAN}'`);
   validateCommon(v, errors);
   
-  if (!["built", "unsigned"].includes(v.status)) errors.push("Invalid status");
   if (typeof v.planId !== "string" || !v.planId) errors.push("Missing planId");
   
   if (!v.from || typeof v.from.address !== "string") errors.push("Missing or invalid 'from' address");
   if (!v.to || typeof v.to.address !== "string") errors.push("Missing or invalid 'to' address");
   
   assertDecimalBigIntString(v.amountSompi, "amountSompi", errors);
-  if (!Array.isArray(v.selectedUtxos)) errors.push("Missing or invalid 'selectedUtxos' array");
+  if (!Array.isArray(v.inputs)) errors.push("Missing or invalid 'inputs' array");
   if (!Array.isArray(v.outputs)) errors.push("Missing or invalid 'outputs' array");
 
   return { ok: errors.length === 0, errors };
@@ -117,7 +116,7 @@ export function validateArtifact(data: unknown): ArtifactValidationResult {
 function validateCommon(v: any, errors: string[]): void {
   if (!v.hardkasVersion) errors.push("Missing hardkasVersion");
   if (typeof v.networkId !== "string" || !v.networkId) errors.push("Missing networkId");
-  if (!["simulated", "node", "rpc", "l2-rpc"].includes(v.mode)) errors.push("Invalid mode");
+  if (!["simulated", "node", "rpc", "l2-rpc", "real"].includes(v.mode)) errors.push("Invalid mode");
   if (!v.createdAt) errors.push("Missing createdAt");
 }
 
