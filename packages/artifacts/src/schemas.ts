@@ -70,6 +70,7 @@ export const TxReceiptSchemaV2 = BaseArtifactSchema.extend({
   to: z.object({ address: z.string() }),
   amountSompi: z.string(),
   feeSompi: z.string(),
+  mass: z.string().optional(),
   changeSompi: z.string().optional(),
   spentUtxoIds: z.array(z.string()).optional(),
   createdUtxoIds: z.array(z.string()).optional(),

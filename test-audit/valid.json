@@ -1,0 +1,26 @@
+{
+  "schema": "hardkas.txPlan.v2",
+  "hardkasVersion": "0.2.0",
+  "version": "2.0.0",
+  "createdAt": "2026-05-08T11:02:00.495Z",
+  "networkId": "simnet",
+  "mode": "simulated",
+  "planId": "valid-1",
+  "from": {
+    "address": "kaspa:alice"
+  },
+  "to": {
+    "address": "kaspa:bob"
+  },
+  "amountSompi": "1000",
+  "estimatedFeeSompi": "1",
+  "estimatedMass": "100",
+  "inputs": [],
+  "outputs": [
+    {
+      "address": "kaspa:bob",
+      "amountSompi": "1000"
+    }
+  ],
+  "contentHash": "d8b5a9ff7765f7b0f7c140e682265c81deedb52d8db694901c20979ab3b25a89"
+}

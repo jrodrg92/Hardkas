@@ -5,7 +5,8 @@ import {
   TxPlanSchemaV2, 
   TxReceiptSchemaV2, 
   TxTraceSchemaV2,
-  SignedTxSchemaV2
+  SignedTxSchemaV2,
+  ARTIFACT_V2_VERSION
 } from "./schemas.js";
 
 export type ArtifactVerificationResult = {
@@ -29,34 +30,54 @@ export function sortUtxosByOutpoint(utxos: any[]): any[] {
 }
 
 /**
- * Verifies an artifact object's integrity.
+ * Verifies an artifact's integrity.
+ * Can take a raw object or a file path.
  */
-export function verifyArtifactIntegrity(artifact: any): ArtifactVerificationResult {
+export async function verifyArtifactIntegrity(artifactOrPath: any): Promise<ArtifactVerificationResult> {
   const result: ArtifactVerificationResult = {
     ok: false,
     errors: []
   };
 
+  let artifact: any;
+
   try {
+    // 1. Resolve Artifact Source
+    if (typeof artifactOrPath === "string") {
+      if (!fs.existsSync(artifactOrPath)) {
+        result.errors.push(`File not found: ${artifactOrPath}`);
+        return result;
+      }
+      const content = fs.readFileSync(artifactOrPath, "utf-8");
+      artifact = JSON.parse(content);
+    } else {
+      artifact = artifactOrPath;
+    }
+
+    // console.log("Verifying artifact:", artifact.schema, artifact.version);
+
     result.artifactType = artifact.schema;
     result.version = artifact.version;
     result.expectedHash = artifact.contentHash;
 
+    // 2. Basic Version & Schema Check
     if (!artifact.version || !artifact.schema) {
-      result.errors.push("Missing version or schema (Artifact might be v1)");
+      result.errors.push("Missing version or schema (Artifact might be v1 or legacy)");
       return result;
     }
 
-    // Schema Specific Pre-processing
-    let processedArtifact = artifact;
-    if (artifact.schema === "hardkas.snapshot.v2" && artifact.utxos) {
-      processedArtifact = {
-        ...artifact,
-        utxos: sortUtxosByOutpoint(artifact.utxos)
-      };
+    // Version Compatibility (reject if major version is different)
+    const [currentMajor] = ARTIFACT_V2_VERSION.split(".");
+    const [artifactMajor] = artifact.version.split(".");
+    if (currentMajor !== artifactMajor) {
+      result.errors.push(`Incompatible version: current system is v${currentMajor}, artifact is v${artifactMajor}`);
+      return result;
     }
 
-    const actualHash = calculateContentHash(processedArtifact);
+    // 3. Hash Verification
+    // We hash the PARSED object, so CRLF/LF in the original file doesn't matter.
+    // We must ensure the object doesn't contain path-dependent metadata in fields included in hash.
+    const actualHash = calculateContentHash(artifact);
     result.actualHash = actualHash;
 
     if (!artifact.contentHash) {
@@ -65,7 +86,7 @@ export function verifyArtifactIntegrity(artifact: any): ArtifactVerificationResu
       result.errors.push(`Hash mismatch: expected ${artifact.contentHash}, got ${actualHash}`);
     }
 
-    // Schema Validation
+    // 4. Zod Schema Validation
     let schema;
     switch (artifact.schema) {
       case "hardkas.snapshot.v2": schema = SnapshotSchemaV2; break;
@@ -81,36 +102,20 @@ export function verifyArtifactIntegrity(artifact: any): ArtifactVerificationResu
         result.errors.push(...validation.error.issues.map((e: any) => `${e.path.join(".")}: ${e.message}`));
       }
     } else {
-      result.errors.push(`Unknown artifact schema: ${artifact.schema}`);
+      result.errors.push(`Unsupported or unknown artifact schema: ${artifact.schema}`);
     }
 
     result.ok = result.errors.length === 0;
     return result;
 
   } catch (e: any) {
-    result.errors.push(`Integrity verification failed: ${e.message}`);
+    result.errors.push(`Integrity verification error: ${e.message}`);
     return result;
   }
 }
 
 /**
- * Verifies an artifact file's integrity and schema.
+ * @deprecated Use verifyArtifactIntegrity instead.
  */
-export async function verifyArtifactFile(filePath: string): Promise<ArtifactVerificationResult> {
-  try {
-    if (!fs.existsSync(filePath)) {
-      return { ok: false, errors: [`File not found: ${filePath}`] };
-    }
-
-    const content = fs.readFileSync(filePath, "utf-8");
-    const artifact = JSON.parse(content);
-    return verifyArtifactIntegrity(artifact);
-  } catch (e: any) {
-    return { ok: false, errors: [`Failed to read or parse artifact file: ${e.message}`] };
-  }
-}
-
-/**
- * @deprecated Use verifyArtifactFile instead.
- */
-export const verifyArtifact = verifyArtifactFile;
+export const verifyArtifact = verifyArtifactIntegrity;
+export const verifyArtifactFile = verifyArtifactIntegrity;

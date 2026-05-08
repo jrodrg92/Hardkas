@@ -7,7 +7,7 @@ export interface KaspaNodeInfo {
   isUtxoIndexed?: boolean;
   p2pId?: string;
   mempoolSize?: number;
-  virtualDaaScore?: number | string;
+  virtualDaaScore?: bigint;
   networkId?: string;
   raw?: unknown;
 }
@@ -15,8 +15,13 @@ export interface KaspaNodeInfo {
 export interface KaspaRpcHealth {
   reachable: boolean;
   rpcUrl: string;
+  status: "healthy" | "degraded" | "unavailable";
   info?: KaspaNodeInfo;
   error?: string;
+  latencyMs?: number;
+  lastError?: string;
+  successRate?: number;
+  circuitState?: "CLOSED" | "OPEN" | "HALF_OPEN";
 }
 
 export interface KaspaAddressBalance {
@@ -47,19 +52,19 @@ export interface JsonWrpcKaspaClientOptions {
 
 export interface BlockDagInfo {
   readonly networkId: KaspaNetworkId;
-  readonly virtualDaaScore?: bigint | undefined;
-  readonly tipHashes?: readonly string[] | undefined;
+  readonly virtualDaaScore?: bigint;
+  readonly tipHashes?: readonly string[];
 }
 
 export interface ServerInfo {
   readonly networkId: KaspaNetworkId;
-  readonly serverVersion?: string | undefined;
-  readonly isSynced?: boolean | undefined;
+  readonly serverVersion?: string;
+  readonly isSynced?: boolean;
 }
 
 export interface MempoolEntry {
   readonly txId: string;
-  readonly acceptedAt?: string | undefined;
+  readonly acceptedAt?: string;
 }
 
 export interface KaspaSubmitTransactionResult {
@@ -102,7 +107,7 @@ export class JsonWrpcKaspaClient implements KaspaRpcClient {
         const dagResponse = await this.safeRequest(["GetBlockDagInfo", "getBlockDagInfo", "get_block_dag_info"]);
         const dagData = (dagResponse as any)?.params || (dagResponse as any);
         if (dagData?.virtualDaaScore !== undefined) {
-          (info as any).virtualDaaScore = dagData.virtualDaaScore;
+          info.virtualDaaScore = BigInt(dagData.virtualDaaScore);
         }
       } catch (e) {
         // Ignore errors supplementing info
@@ -114,11 +119,12 @@ export class JsonWrpcKaspaClient implements KaspaRpcClient {
   async healthCheck(): Promise<KaspaRpcHealth> {
     try {
       const info = await this.getInfo();
-      return { reachable: true, rpcUrl: this.rpcUrl, info };
+      return { reachable: true, rpcUrl: this.rpcUrl, info, status: "healthy" };
     } catch (error) {
       return {
         reachable: false,
         rpcUrl: this.rpcUrl,
+        status: "unavailable",
         error: error instanceof Error ? error.message : String(error)
       };
     }
@@ -178,20 +184,24 @@ export class JsonWrpcKaspaClient implements KaspaRpcClient {
 
   async getBlockDagInfo(): Promise<BlockDagInfo> {
     const info = await this.getInfo();
-    return {
+    const result: any = {
       networkId: (info.networkId as KaspaNetworkId) || "unknown",
-      virtualDaaScore: info.virtualDaaScore ? BigInt(info.virtualDaaScore) : undefined,
       tipHashes: []
     };
+    if (info.virtualDaaScore !== undefined) {
+      result.virtualDaaScore = BigInt(info.virtualDaaScore);
+    }
+    return result;
   }
 
   async getServerInfo(): Promise<ServerInfo> {
     const info = await this.getInfo();
-    return {
-      networkId: (info.networkId as KaspaNetworkId) || "unknown",
-      serverVersion: info.serverVersion,
-      isSynced: info.isSynced
+    const result: any = {
+      networkId: (info.networkId as KaspaNetworkId) || "unknown"
     };
+    if (info.serverVersion !== undefined) result.serverVersion = info.serverVersion;
+    if (info.isSynced !== undefined) result.isSynced = info.isSynced;
+    return result;
   }
 
   async close(): Promise<void> {
@@ -325,16 +335,22 @@ export class JsonWrpcKaspaClient implements KaspaRpcClient {
 export function mapKaspaNodeInfo(result: any): KaspaNodeInfo {
   if (!result) return { raw: result };
 
-  return {
+  const info: any = {
     serverVersion: result.serverVersion || result.server_version,
     isSynced: result.isSynced !== undefined ? result.isSynced : result.is_synced,
     isUtxoIndexed: result.isUtxoIndexed !== undefined ? result.isUtxoIndexed : result.is_utxo_indexed,
     p2pId: result.p2pId || result.p2p_id,
     mempoolSize: result.mempoolSize !== undefined ? result.mempoolSize : result.mempool_size,
-    virtualDaaScore: result.virtualDaaScore !== undefined ? result.virtualDaaScore : (result.virtual_daa_score !== undefined ? result.virtual_daa_score : (result.params?.virtualDaaScore)),
     networkId: result.networkId || result.network_id,
     raw: result
   };
+
+  const score = result.virtualDaaScore !== undefined ? result.virtualDaaScore : (result.virtual_daa_score !== undefined ? result.virtual_daa_score : (result.params?.virtualDaaScore));
+  if (score !== undefined) {
+    info.virtualDaaScore = BigInt(score);
+  }
+
+  return info;
 }
 
 export function mapKaspaAddressBalance(result: any, address: string): KaspaAddressBalance {
@@ -422,11 +438,11 @@ export class MockKaspaRpcClient implements KaspaRpcClient {
   constructor(private readonly networkId: KaspaNetworkId = "simnet") {}
 
   async getInfo(): Promise<KaspaNodeInfo> {
-    return { networkId: this.networkId, serverVersion: "mock", isSynced: true, virtualDaaScore: 0, raw: {} };
+    return { networkId: this.networkId, serverVersion: "mock", isSynced: true, virtualDaaScore: 0n, raw: {} };
   }
 
   async healthCheck(): Promise<KaspaRpcHealth> {
-    return { reachable: true, rpcUrl: "mock://local", info: await this.getInfo() };
+    return { reachable: true, rpcUrl: "mock://local", info: await this.getInfo(), status: "healthy" };
   }
 
   async getBalanceByAddress(address: string): Promise<KaspaAddressBalance> {
@@ -472,3 +488,5 @@ export class MockKaspaRpcClient implements KaspaRpcClient {
 
 export * from "./json-rpc-client.js";
 export * from "./health.js";
+export * from "./errors.js";
+export * from "./provider.js";

@@ -1,98 +1,166 @@
-import { KaspaNetworkId } from "@hardkas/core";
 import { 
   KaspaRpcClient, 
   KaspaNodeInfo, 
-  KaspaRpcHealth, 
-  KaspaAddressBalance, 
-  KaspaRpcUtxo, 
-  KaspaSubmitTransactionResult, 
-  MempoolEntry, 
-  BlockDagInfo, 
-  ServerInfo,
-  mapKaspaNodeInfo,
-  mapKaspaAddressBalance,
-  mapKaspaRpcUtxos
+  KaspaRpcHealth,
+  KaspaAddressBalance,
+  KaspaRpcUtxo,
+  MempoolEntry,
+  BlockDagInfo,
+  ServerInfo
 } from "./index.js";
+import { type KaspaNetworkId } from "@hardkas/core";
+import { 
+  RpcError, 
+  RpcTimeoutError, 
+  RpcUnavailableError, 
+  RpcCircuitOpenError, 
+  RpcRateLimitError,
+  RpcValidationError
+} from "./errors.js";
 
-export const RPC_METHODS = {
-  GET_SERVER_INFO: "getServerInfo",
-  GET_BLOCK_DAG_INFO: "getBlockDagInfo",
-  GET_UTXOS_BY_ADDRESSES: "getUtxosByAddresses",
-  GET_MEMPOOL_ENTRY: "getMempoolEntry",
-  GET_TRANSACTION: "getTransaction",
-  SUBMIT_TRANSACTION: "submitTransaction",
-  GET_INFO: "getInfo"
-} as const;
+export enum CircuitState {
+  CLOSED = "CLOSED",
+  OPEN = "OPEN",
+  HALF_OPEN = "HALF_OPEN"
+}
 
-export type RpcFetcher = (url: string, init?: RequestInit) => Promise<Response>;
+export interface RetryOptions {
+  maxRetries: number;
+  baseDelayMs: number;
+  maxDelayMs: number;
+}
 
-export interface KaspaJsonRpcClientOptions {
-  readonly url?: string | undefined;
-  readonly timeoutMs?: number | undefined;
-  readonly fetcher?: RpcFetcher | undefined;
+export interface CircuitBreakerOptions {
+  failureThreshold: number;
+  resetTimeoutMs: number;
+}
+
+export interface RpcClientOptions {
+  url: string;
+  timeoutMs?: number | undefined;
+  retry?: Partial<RetryOptions>;
+  circuitBreaker?: Partial<CircuitBreakerOptions>;
+  fetcher?: typeof fetch;
 }
 
 export class KaspaJsonRpcClient implements KaspaRpcClient {
-  private readonly url: string;
+  public readonly url: string;
   private readonly timeoutMs: number;
-  private readonly fetcher: RpcFetcher;
-  private requestId = 1;
+  private readonly retry: RetryOptions;
+  private readonly circuitBreaker: CircuitBreakerOptions;
+  private readonly fetcher: typeof fetch;
 
-  constructor(options?: KaspaJsonRpcClientOptions) {
-    this.url = options?.url || "http://127.0.0.1:18210";
-    this.timeoutMs = options?.timeoutMs || 10000;
-    this.fetcher = options?.fetcher || (globalThis.fetch.bind(globalThis) as RpcFetcher);
-  }
+  // State & Metrics
+  private circuitState: CircuitState = CircuitState.CLOSED;
+  private failureCount: number = 0;
+  private lastFailureTime: number = 0;
+  private lastError: string | null = null;
+  private lastLatencyMs: number | null = null;
+  private totalRequests: number = 0;
+  private successfulRequests: number = 0;
 
-  async getInfo(): Promise<KaspaNodeInfo> {
-    const result = await this.callRpc(RPC_METHODS.GET_INFO);
-    return mapKaspaNodeInfo(result);
+  constructor(options: RpcClientOptions) {
+    this.url = options.url || "http://127.0.0.1:18210";
+    this.timeoutMs = options.timeoutMs || 10000;
+    this.retry = {
+      maxRetries: options.retry?.maxRetries ?? 3,
+      baseDelayMs: options.retry?.baseDelayMs ?? 500,
+      maxDelayMs: options.retry?.maxDelayMs ?? 5000
+    };
+    this.circuitBreaker = {
+      failureThreshold: options.circuitBreaker?.failureThreshold ?? 5,
+      resetTimeoutMs: options.circuitBreaker?.resetTimeoutMs ?? 30000
+    };
+    this.fetcher = options.fetcher || globalThis.fetch;
   }
 
   async healthCheck(): Promise<KaspaRpcHealth> {
+    this.checkCircuit();
+    const start = Date.now();
     try {
       const info = await this.getInfo();
-      return { reachable: true, rpcUrl: this.url, info };
-    } catch (error) {
+      const latency = Date.now() - start;
+      return {
+        reachable: true,
+        rpcUrl: this.url,
+        status: this.circuitState === CircuitState.CLOSED ? "healthy" : "degraded",
+        info,
+        latencyMs: latency,
+        successRate: this.getSuccessRate(),
+        circuitState: this.circuitState
+      };
+    } catch (e: any) {
       return {
         reachable: false,
         rpcUrl: this.url,
-        error: error instanceof Error ? error.message : String(error)
+        status: "unavailable",
+        error: e.message,
+        lastError: this.lastError || e.message,
+        successRate: this.getSuccessRate(),
+        circuitState: this.circuitState
       };
     }
   }
 
-  async getBalanceByAddress(address: string): Promise<KaspaAddressBalance> {
-    try {
-      const result = await this.callRpc("getBalanceByAddress", { address });
-      return mapKaspaAddressBalance(result, address);
-    } catch (e) {
-      const utxos = await this.getUtxosByAddress(address);
-      const balanceSompi = utxos.reduce((acc, u) => acc + u.amountSompi, 0n);
-      return { address, balanceSompi };
+  async getInfo(): Promise<KaspaNodeInfo> {
+    const result = await this.callRpc("getInfoRequest");
+    const data = result as any;
+    const info: any = {
+      serverVersion: data.serverVersion,
+      networkId: data.networkId,
+      isSynced: data.isSynced
+    };
+    if (data.virtualDaaScore !== undefined) info.virtualDaaScore = BigInt(data.virtualDaaScore);
+    if (data.mempoolSize !== undefined) info.mempoolSize = Number(data.mempoolSize);
+    return info;
+  }
+
+  async getBlockDagInfo(): Promise<BlockDagInfo> {
+    const result = await this.callRpc("getBlockDagInfoRequest");
+    const data = result as any;
+    const dagInfo: any = {
+      networkId: data.networkId as KaspaNetworkId,
+      tipHashes: data.tipHashes
+    };
+    if (data.virtualDaaScore !== undefined) {
+      dagInfo.virtualDaaScore = BigInt(data.virtualDaaScore);
     }
+    return dagInfo;
   }
 
   async getUtxosByAddress(address: string): Promise<KaspaRpcUtxo[]> {
-    const result = await this.callRpc(RPC_METHODS.GET_UTXOS_BY_ADDRESSES, { addresses: [address] });
-    return mapKaspaRpcUtxos(result, address);
+    const result = await this.callRpc("getUtxosByAddressesRequest", { addresses: [address] });
+    const data = result as any;
+    const entries = data.entries || [];
+    return entries.map((e: any) => ({
+      address: e.address,
+      outpoint: {
+        transactionId: e.outpoint.transactionId,
+        index: e.outpoint.index
+      },
+      amountSompi: BigInt(e.utxoEntry.amount),
+      scriptPublicKey: e.utxoEntry.scriptPublicKey,
+      blockDaaScore: BigInt(e.utxoEntry.blockDaaScore),
+      isCoinbase: e.utxoEntry.isCoinbase
+    }));
   }
 
-  async submitTransaction(rawTransaction: string): Promise<KaspaSubmitTransactionResult> {
-    const result = await this.callRpc<any>(RPC_METHODS.SUBMIT_TRANSACTION, { 
-      transaction: rawTransaction 
-    });
-    const { mapKaspaSubmitTransactionResult } = await import("./index.js");
-    return mapKaspaSubmitTransactionResult(result);
+  async getBalanceByAddress(address: string): Promise<KaspaAddressBalance> {
+    const result = await this.callRpc("getBalanceByAddressRequest", { address });
+    const data = result as any;
+    return {
+      address: data.address,
+      balanceSompi: BigInt(data.balance)
+    };
   }
 
   async getMempoolEntry(txId: string): Promise<MempoolEntry | null> {
     try {
-      const result = await this.callRpc(RPC_METHODS.GET_MEMPOOL_ENTRY, { txId, includeOrphanPool: true });
-      if (!result) return null;
+      const result = await this.callRpc("getMempoolEntryRequest", { txId, includeOrphanPool: true });
+      const data = (result as any).entry;
       return {
-        txId: (result as any).transactionId || txId,
-        acceptedAt: (result as any).timestamp
+        txId,
+        acceptedAt: data.acceptedAt
       };
     } catch (e) {
       return null;
@@ -101,70 +169,168 @@ export class KaspaJsonRpcClient implements KaspaRpcClient {
 
   async getTransaction(txId: string): Promise<unknown | null> {
     try {
-      const result = await this.callRpc(RPC_METHODS.GET_TRANSACTION, { txId, transactionId: txId });
+      const result = await this.callRpc("getTransactionRequest", { transactionId: txId });
       return result;
     } catch (e) {
       return null;
     }
   }
 
-  async getBlockDagInfo(): Promise<BlockDagInfo> {
-    const result = await this.callRpc(RPC_METHODS.GET_BLOCK_DAG_INFO);
-    const data = result as any;
-    return {
-      networkId: data.networkId as KaspaNetworkId,
-      virtualDaaScore: data.virtualDaaScore !== undefined ? BigInt(data.virtualDaaScore) : undefined,
-      tipHashes: data.tipHashes
-    };
+  async submitTransaction(rawTx: any): Promise<{ transactionId: string }> {
+    const result = await this.callRpc("submitTransactionRequest", { transaction: rawTx });
+    return { transactionId: (result as any).transactionId };
   }
 
   async getServerInfo(): Promise<ServerInfo> {
-    const result = await this.callRpc(RPC_METHODS.GET_SERVER_INFO);
-    const data = result as any;
-    return {
-      networkId: data.networkId as KaspaNetworkId,
-      serverVersion: data.serverVersion,
-      isSynced: data.isSynced
+    const info = await this.getInfo();
+    const result: any = {
+      networkId: info.networkId as KaspaNetworkId
     };
+    if (info.serverVersion !== undefined) result.serverVersion = info.serverVersion;
+    if (info.isSynced !== undefined) result.isSynced = info.isSynced;
+    return result;
   }
 
   async close(): Promise<void> {
-    // HTTP client doesn't need to close persistent connections in this implementation
+    // No-op for HTTP
   }
 
   private async callRpc<T>(method: string, params: unknown = {}): Promise<T> {
+    return this.withResilience(() => this.internalCall<T>(method, params));
+  }
+
+  private async withResilience<T>(fn: () => Promise<T>): Promise<T> {
+    this.checkCircuit();
+
+    if (this.circuitState === CircuitState.OPEN) {
+      throw new RpcCircuitOpenError();
+    }
+
+    let lastErr: any;
+    for (let attempt = 0; attempt <= this.retry.maxRetries; attempt++) {
+      const start = Date.now();
+      try {
+        this.totalRequests++;
+        const result = await fn();
+        this.onSuccess(Date.now() - start);
+        return result;
+      } catch (e: any) {
+        this.onFailure(e);
+        lastErr = e;
+
+        // Don't retry if it's a non-retriable error
+        if (e instanceof RpcError && !e.isRetriable) {
+          throw e;
+        }
+
+        // Don't retry on deterministic protocol errors (e.g. invalid address, insufficient funds)
+        if (this.isDeterministicError(e)) {
+          throw new RpcValidationError(e.message, e.code, e.data);
+        }
+
+        if (attempt === this.retry.maxRetries) break;
+
+        const delay = Math.min(
+          this.retry.baseDelayMs * Math.pow(2, attempt),
+          this.retry.maxDelayMs
+        );
+        const jitter = Math.random() * 0.1 * delay;
+        await new Promise(resolve => setTimeout(resolve, delay + jitter));
+      }
+    }
+    throw lastErr;
+  }
+
+  private async internalCall<T>(method: string, params: unknown): Promise<T> {
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), this.timeoutMs);
 
     try {
       const response = await this.fetcher(this.url, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           jsonrpc: "2.0",
-          id: this.requestId++,
+          id: Date.now(),
           method,
           params
         }),
         signal: controller.signal
       });
 
+      clearTimeout(id);
+
+      if (response.status === 429) {
+        throw new RpcRateLimitError();
+      }
+
       if (!response.ok) {
-        throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
+        throw new RpcUnavailableError(`HTTP Error ${response.status}`, response.status);
       }
 
       const body = await response.json();
-
       if (body.error) {
-        const error = body.error;
-        throw new Error(`JSON-RPC error ${error.code}: ${error.message}${error.data ? ` (${JSON.stringify(error.data)})` : ""}`);
+        throw new RpcError(body.error.message, body.error.code, body.error.data);
       }
 
-      return body.result as T;
-    } finally {
+      return body.result;
+    } catch (e: any) {
       clearTimeout(id);
+      if (e.name === "AbortError") throw new RpcTimeoutError();
+      throw e;
     }
+  }
+
+  private checkCircuit() {
+    if (this.circuitState === CircuitState.OPEN) {
+      const now = Date.now();
+      if (now - this.lastFailureTime > this.circuitBreaker.resetTimeoutMs) {
+        this.circuitState = CircuitState.HALF_OPEN;
+      }
+    }
+  }
+
+  private onSuccess(latency: number) {
+    this.lastLatencyMs = latency;
+    this.successfulRequests++;
+    this.failureCount = 0;
+    this.circuitState = CircuitState.CLOSED;
+  }
+
+  private onFailure(e: any) {
+    this.lastError = e.message;
+    
+    // Only count as failure for circuit breaking if it's NOT a validation error
+    if (e instanceof RpcValidationError || (e instanceof RpcError && !e.isRetriable)) {
+      return;
+    }
+
+    this.failureCount++;
+    this.lastFailureTime = Date.now();
+
+    if (this.failureCount >= this.circuitBreaker.failureThreshold) {
+      this.circuitState = CircuitState.OPEN;
+    }
+  }
+
+  private isDeterministicError(e: any): boolean {
+    const msg = (e.message || "").toLowerCase();
+    const deterministicMarkers = [
+      "invalid address",
+      "insufficient funds",
+      "schema validation",
+      "artifact hash mismatch",
+      "simulation error",
+      "dust",
+      "missing required",
+      "outpoint already spent",
+      "method not found"
+    ];
+    return deterministicMarkers.some(marker => msg.includes(marker));
+  }
+
+  private getSuccessRate(): number {
+    if (this.totalRequests === 0) return 100;
+    return (this.successfulRequests / this.totalRequests) * 100;
   }
 }

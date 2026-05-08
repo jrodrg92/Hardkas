@@ -1,6 +1,6 @@
 import { 
-  TxPlanArtifact, 
-  TxReceiptArtifact, 
+  TxPlanV2, 
+  TxReceiptV2, 
   calculateContentHash 
 } from "@hardkas/artifacts";
 import { applySimulatedPlan } from "./transactions.js";
@@ -11,8 +11,8 @@ import { LocalnetState, ReplayVerificationReport } from "./types.js";
  */
 export function verifyReplay(
   state: LocalnetState,
-  originalPlan: TxPlanArtifact,
-  originalReceipt: TxReceiptArtifact
+  originalPlan: TxPlanV2,
+  originalReceipt: TxReceiptV2
 ): ReplayVerificationReport {
   const errors: string[] = [];
   
@@ -31,12 +31,12 @@ export function verifyReplay(
     errors.push(`Status mismatch: expected ${originalReceipt.status}, got ${replayReceipt.status}`);
   }
 
-  if (replayReceipt.estimatedMass !== originalReceipt.estimatedMass) {
-    errors.push(`Mass mismatch: expected ${originalReceipt.estimatedMass}, got ${replayReceipt.estimatedMass}`);
+  if (replayReceipt.mass !== originalReceipt.mass) {
+    errors.push(`Mass mismatch: expected ${originalReceipt.mass}, got ${replayReceipt.mass}`);
   }
 
-  if (replayReceipt.estimatedFeeSompi !== originalReceipt.estimatedFeeSompi) {
-    errors.push(`Fee mismatch: expected ${originalReceipt.estimatedFeeSompi}, got ${replayReceipt.estimatedFeeSompi}`);
+  if (replayReceipt.feeSompi !== originalReceipt.feeSompi) {
+    errors.push(`Fee mismatch: expected ${originalReceipt.feeSompi}, got ${replayReceipt.feeSompi}`);
   }
 
   if (replayReceipt.preStateHash !== originalReceipt.preStateHash) {
