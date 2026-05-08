@@ -10,7 +10,18 @@ export const UI = {
   },
 
   success(text: string) {
-    console.log(`\n✅ ${text}`);
+    console.log(`  \x1b[32m✔\x1b[0m ${text}`);
+  },
+
+  box(title: string, subtitle?: string) {
+    console.log("\x1b[35m╔══════════════════════════════╗\x1b[0m");
+    console.log(`\x1b[35m║         \x1b[1m${title.padEnd(7)}\x1b[0m\x1b[35m              ║\x1b[0m`);
+    if (subtitle) {
+      const padding = Math.max(0, Math.floor((26 - subtitle.length) / 2));
+      console.log(`\x1b[35m║${"".padEnd(padding + 2)}\x1b[3m${subtitle}\x1b[0m${"".padEnd(28 - padding - 2 - subtitle.length)}║\x1b[0m`);
+    }
+    console.log("\x1b[35m╚══════════════════════════════╝\x1b[0m");
+    console.log("");
   },
 
   warning(text: string) {

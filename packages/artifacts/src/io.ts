@@ -25,6 +25,10 @@ export async function writeArtifact(filePath: string, artifact: unknown): Promis
   }
 }
 
+export function getDefaultReceiptPath(txId: string, cwd: string = process.cwd()): string {
+  return path.join(cwd, ".hardkas", "receipts", `${txId}.json`);
+}
+
 export async function readArtifact(filePath: string): Promise<unknown> {
   try {
     const content = await fs.readFile(filePath, "utf-8");

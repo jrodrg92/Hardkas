@@ -20,6 +20,9 @@ importers:
       tsup:
         specifier: ^8.3.5
         version: 8.5.1(jiti@2.7.0)(postcss@8.5.14)(tsx@4.21.0)(typescript@5.9.3)
+      tsx:
+        specifier: ^4.19.2
+        version: 4.21.0
       turbo:
         specifier: ^2.3.3
         version: 2.9.9
@@ -29,6 +32,24 @@ importers:
       vitest:
         specifier: ^2.1.8
         version: 2.1.9(@types/node@22.19.17)
+
+  examples/01-hello-kaspa:
+    dependencies:
+      '@hardkas/sdk':
+        specifier: workspace:*
+        version: link:../../packages/sdk
+
+  examples/02-basic-transfer:
+    dependencies:
+      '@hardkas/sdk':
+        specifier: workspace:*
+        version: link:../../packages/sdk
+
+  examples/03-localnet-demo:
+    dependencies:
+      '@hardkas/sdk':
+        specifier: workspace:*
+        version: link:../../packages/sdk
 
   packages/accounts:
     dependencies:
@@ -270,6 +291,15 @@ importers:
 
   packages/sdk:
     dependencies:
+      '@hardkas/accounts':
+        specifier: workspace:*
+        version: link:../accounts
+      '@hardkas/artifacts':
+        specifier: workspace:*
+        version: link:../artifacts
+      '@hardkas/config':
+        specifier: workspace:*
+        version: link:../config
       '@hardkas/core':
         specifier: workspace:*
         version: link:../core

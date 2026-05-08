@@ -11,6 +11,7 @@ export interface CreateTxPlanArtifactInput {
   from: {
     input: string;
     address: string;
+    accountName?: string;
   };
   to: {
     input: string;
@@ -22,15 +23,17 @@ export interface CreateTxPlanArtifactInput {
 }
 
 export function createTxPlanArtifact(input: CreateTxPlanArtifactInput): TxPlanArtifact {
-  const artifact: TxPlanArtifact = {
+  // We need to build a partial object first to calculate the hash, 
+  // or just accept that planId will be calculated from everything else.
+  
+  const baseData = {
     schema: ARTIFACT_SCHEMAS.TX_PLAN,
     hardkasVersion: HARDKAS_VERSION,
-    status: "built", // Changed from "unsigned" to "built" to match new types
+    status: "built",
     createdAt: new Date().toISOString(),
     networkId: input.networkId,
     mode: input.mode,
-    planId: "", // Placeholder
-    rpcUrl: input.rpcUrl,
+    rpcUrl: input.rpcUrl ?? null,
     from: input.from,
     to: input.to,
     amountSompi: input.amountSompi.toString(),
@@ -50,19 +53,31 @@ export function createTxPlanArtifact(input: CreateTxPlanArtifactInput): TxPlanAr
       amount: formatSompi(output.amountSompi),
       script: output.scriptPublicKey
     })),
-    change: input.plan.change ? {
-      address: input.plan.change.address,
-      amountSompi: input.plan.change.amountSompi.toString(),
-      amount: formatSompi(input.plan.change.amountSompi),
-      script: input.plan.change.scriptPublicKey
-    } : undefined,
     estimatedMass: input.plan.estimatedMass.toString(),
     estimatedFeeSompi: input.plan.estimatedFeeSompi.toString(),
     estimatedFee: formatSompi(input.plan.estimatedFeeSompi),
     metadata: input.metadata
   };
 
-  artifact.planId = hashTxPlanArtifact(artifact).substring(0, 16);
+  const change = input.plan.change ? {
+    address: input.plan.change.address,
+    amountSompi: input.plan.change.amountSompi.toString(),
+    amount: formatSompi(input.plan.change.amountSompi),
+    script: input.plan.change.scriptPublicKey
+  } : undefined;
+
+  // Calculate planId from the base data
+  const planId = createHash("sha256")
+    .update(JSON.stringify(baseData))
+    .digest("hex")
+    .substring(0, 16);
+
+  const artifact: TxPlanArtifact = {
+    ...baseData,
+    planId,
+    ...(change ? { change } : {})
+  } as TxPlanArtifact;
+
   return artifact;
 }
 

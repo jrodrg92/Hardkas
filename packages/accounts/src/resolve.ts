@@ -1,11 +1,11 @@
 import type { HardkasConfig } from "@hardkas/config";
 import { createDeterministicAccounts } from "@hardkas/localnet";
-import type { HardkasAccount } from "./types";
+import type { HardkasAccount } from "./types.js";
 import { 
   loadRealAccountStoreSync, 
   getRealDevAccount, 
   listRealDevAccounts 
-} from "./real-accounts";
+} from "./real-accounts.js";
 
 export interface ResolveAccountOptions {
   nameOrAddress: string;
@@ -100,7 +100,7 @@ export function listHardkasAccounts(config?: HardkasConfig): HardkasAccount[] {
   return Array.from(accounts.values());
 }
 
-export function resolveAccountAddress(
+export function resolveHardkasAccountAddress(
   accountOrAddress: string,
   config?: HardkasConfig
 ): string {

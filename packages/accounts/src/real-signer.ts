@@ -1,14 +1,14 @@
-import { RealTxPlanArtifact } from "@hardkas/artifacts";
-import { RealDevAccount } from "@hardkas/localnet";
+import { TxPlanArtifact } from "@hardkas/artifacts";
+import { RealDevAccount } from "./real-accounts.js";
 
 export interface RealTxSigningInput {
-  readonly plan: RealTxPlanArtifact;
+  readonly plan: TxPlanArtifact;
   readonly account: RealDevAccount;
 }
 
 export interface RealTxSigningResult {
   readonly signedTransaction: {
-    readonly format: "kaspa-sdk" | "hex" | "json" | "unknown";
+    readonly format: "kaspa-sdk" | "hex" | "json" | "simulated" | "unknown";
     readonly payload: string;
   };
   readonly txId?: string;

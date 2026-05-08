@@ -4,7 +4,7 @@ import {
   importRealDevAccount,
   KaspaSdkKeyGenerator,
   RealDevAccount
-} from "@hardkas/localnet";
+} from "@hardkas/accounts";
 
 export interface AccountsRealGenerateOptions {
   name?: string;

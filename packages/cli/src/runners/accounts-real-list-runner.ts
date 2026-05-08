@@ -1,52 +1,29 @@
 import { 
   loadRealAccountStore, 
-  listRealDevAccounts,
-  RealDevAccount 
-} from "@hardkas/localnet";
+  listRealDevAccounts 
+} from "@hardkas/accounts";
 
 export interface AccountsRealListOptions {
-  showPrivate?: boolean;
+  // Add filters if needed
 }
 
 export async function runAccountsRealList(options: AccountsRealListOptions = {}): Promise<{
-  accounts: readonly RealDevAccount[];
   formatted: string;
 }> {
   const store = await loadRealAccountStore();
-  if (!store || store.accounts.length === 0) {
-    return {
-      accounts: [],
-      formatted: "No real dev accounts found. Use 'hardkas accounts real import' to add one."
-    };
-  }
+  if (!store) return { formatted: "Real account store not found (run 'hardkas accounts real init')." };
 
   const accounts = listRealDevAccounts(store);
-  
+  if (accounts.length === 0) return { formatted: "No real dev accounts found." };
+
   const lines = [
-    "Real dev accounts",
+    "Real dev accounts:",
     ""
   ];
 
-  accounts.forEach(a => {
-    let privateInfo = "no";
-    if (a.privateKey) {
-      if (options.showPrivate) {
-        privateInfo = a.privateKey;
-      } else {
-        const prefix = a.privateKey.substring(0, 8);
-        privateInfo = `${prefix}... (masked)`;
-      }
-    }
-    lines.push(`${a.name.padEnd(12)} ${a.address.padEnd(24)} private: ${privateInfo}`);
+  accounts.forEach(acc => {
+    lines.push(`${acc.name.padEnd(12)} ${acc.address}`);
   });
 
-  if (options.showPrivate) {
-    lines.push("");
-    lines.push("WARNING: Private keys were shown. Ensure your terminal screen is cleared.");
-  }
-
-  return {
-    accounts,
-    formatted: lines.join("\n")
-  };
+  return { formatted: lines.join("\n") };
 }

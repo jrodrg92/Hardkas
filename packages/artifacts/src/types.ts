@@ -16,15 +16,15 @@ export interface UtxoArtifact {
   readonly address: string;
   readonly amountSompi: string;
   readonly scriptPublicKey: string;
-  readonly blockDaaScore?: string;
-  readonly isCoinbase?: boolean;
+  readonly blockDaaScore?: string | undefined;
+  readonly isCoinbase?: boolean | undefined;
 }
 
 export interface TxOutputArtifact {
   readonly address: string;
   readonly amountSompi: string;
-  readonly amount?: string;
-  readonly script?: string;
+  readonly amount?: string | undefined;
+  readonly script?: string | undefined;
 }
 
 export interface TxPlanArtifact extends HardkasArtifactBase {
@@ -36,7 +36,7 @@ export interface TxPlanArtifact extends HardkasArtifactBase {
   readonly from: {
     readonly input: string;
     readonly address: string;
-    readonly accountName?: string;
+    readonly accountName?: string | undefined;
   };
   
   readonly to: {
@@ -49,14 +49,14 @@ export interface TxPlanArtifact extends HardkasArtifactBase {
   
   readonly selectedUtxos: readonly UtxoArtifact[];
   readonly outputs: readonly TxOutputArtifact[];
-  readonly change?: TxOutputArtifact;
+  readonly change?: TxOutputArtifact | undefined;
   
   readonly estimatedMass: string;
   readonly estimatedFeeSompi: string;
   readonly estimatedFee: string;
   
-  readonly rpcUrl?: string | null;
-  readonly metadata?: Record<string, any>;
+  readonly rpcUrl?: string | null | undefined;
+  readonly metadata?: Record<string, any> | undefined;
 }
 
 export interface SignedTxArtifact extends HardkasArtifactBase {
@@ -65,12 +65,12 @@ export interface SignedTxArtifact extends HardkasArtifactBase {
   
   readonly signedId: string;
   readonly sourcePlanId: string;
-  readonly sourcePlanPath?: string;
+  readonly sourcePlanPath?: string | undefined;
   
   readonly from: {
     readonly input: string;
     readonly address: string;
-    readonly accountName?: string;
+    readonly accountName?: string | undefined;
   };
   
   readonly to: {
@@ -86,30 +86,42 @@ export interface SignedTxArtifact extends HardkasArtifactBase {
     readonly payload: string;
   };
   
-  readonly txId?: string; // Proposed TxID if deterministic
-  readonly metadata?: Record<string, any>;
+  readonly txId?: string | undefined; // Proposed TxID if deterministic
+  readonly metadata?: Record<string, any> | undefined;
 }
 
 export interface TxReceiptArtifact extends HardkasArtifactBase {
   readonly schema: "hardkas.txReceipt.v1";
-  readonly status: "submitted" | "confirmed" | "failed";
+  readonly status: "submitted" | "accepted" | "confirmed" | "finalized" | "failed";
   
   readonly txId: string;
-  readonly sourceSignedId?: string;
-  readonly sourceSignedPath?: string;
+  readonly sourceSignedId?: string | undefined;
+  readonly sourceSignedPath?: string | undefined;
+  
+  readonly from: {
+    readonly address: string;
+    readonly accountName?: string | undefined;
+  };
+  
+  readonly to: {
+    readonly address: string;
+  };
   
   readonly amountSompi: string;
+  readonly amount: string;
   readonly feeSompi: string;
-  readonly daaScore?: string;
+  
+  readonly daaScore?: string | undefined;
+  readonly blueScore?: string | undefined;
   
   readonly submittedAt: string;
-  readonly confirmedAt?: string;
+  readonly confirmedAt?: string | undefined;
   readonly rpcUrl: string;
   
-  readonly receiptPath?: string; // Link to detailed receipt if applicable
-  readonly tracePath?: string;   // Link to trace artifact
+  readonly receiptPath?: string | undefined; // Link to detailed receipt if applicable
+  readonly tracePath?: string | undefined;   // Link to trace artifact
   
-  readonly metadata?: Record<string, any>;
+  readonly metadata?: Record<string, any> | undefined;
 }
 
 export interface TxTraceArtifact extends HardkasArtifactBase {

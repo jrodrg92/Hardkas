@@ -2,7 +2,7 @@ import {
   parseKasToSompi 
 } from "@hardkas/core";
 import {
-  resolveAccountAddress
+  resolveHardkasAccountAddress
 } from "@hardkas/accounts";
 import { 
   buildPaymentPlan, 
@@ -33,8 +33,8 @@ export interface TxPlanRunnerInput {
 export async function runTxPlan(input: TxPlanRunnerInput): Promise<TxPlanArtifact> {
   const { from, to, amount, networkId, feeRate, config, url } = input;
   
-  const fromAddress = resolveAccountAddress(from, config);
-  const toAddress = resolveAccountAddress(to, config);
+  const fromAddress = resolveHardkasAccountAddress(from, config);
+  const toAddress = resolveHardkasAccountAddress(to, config);
   const amountSompi = parseKasToSompi(amount);
   const feeRateSompiPerMass = BigInt(feeRate);
 

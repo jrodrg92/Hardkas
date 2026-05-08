@@ -1,6 +1,5 @@
 import { 
   TxPlanArtifact, 
-  SignedTxArtifact, 
   hashTxPlanArtifact
 } from "@hardkas/artifacts";
 import { 
@@ -41,52 +40,47 @@ export class KaspaWasmPrivateKeySigner implements HardkasTxPlanSigner {
     });
 
     // 3. Resolve Private Key
-    const pkValue = process.env[account.privateKeyEnv];
+    const pkValue = account.privateKeyEnv ? process.env[account.privateKeyEnv] : undefined;
     if (!pkValue) {
-      throw new Error(`Missing required environment variable '${account.privateKeyEnv}' for account '${account.name}'.`);
+      throw new Error(`Missing required private key for account '${account.name}'.`);
     }
 
     try {
       // 4. Map Artifact to SDK objects
-      // Note: We use dynamic access or casting because we don't have types for 'kaspa' package yet
       const privateKey = new sdk.PrivateKey(pkValue);
       
       const utxos = plan.selectedUtxos.map(u => {
-        if (!u.txId || u.outputIndex === undefined) {
-          throw new Error(`UTXO ${u.id} is missing txId or outputIndex. Re-run tx plan.`);
+        if (!u.outpoint.transactionId || u.outpoint.index === undefined) {
+          throw new Error(`UTXO is missing transactionId or index. Re-run tx plan.`);
         }
         if (!u.scriptPublicKey) {
-          throw new Error(`UTXO ${u.id} is missing scriptPublicKey. Signing requires the scriptPublicKey. Re-run tx plan using a real RPC node.`);
+          throw new Error(`UTXO is missing scriptPublicKey. Signing requires the scriptPublicKey. Re-run tx plan using a real RPC node.`);
         }
         
         return new sdk.UtxoEntry(
           BigInt(u.amountSompi),
           u.scriptPublicKey,
-          u.txId,
-          u.outputIndex,
+          u.outpoint.transactionId,
+          u.outpoint.index,
           u.address
         );
       });
 
-      const outputs = plan.outputs
-        .filter(o => o.kind === "payment")
-        .map(o => {
-          if (!o.address) throw new Error("Payment output is missing address.");
-          return new sdk.PaymentOutput(
-            new sdk.Address(o.address),
-            BigInt(o.amountSompi)
-          );
-        });
+      const outputs = plan.outputs.map(o => {
+        if (!o.address) throw new Error("Output is missing address.");
+        return new sdk.PaymentOutput(
+          new sdk.Address(o.address),
+          BigInt(o.amountSompi)
+        );
+      });
 
-      const changeOutput = plan.outputs.find(o => o.kind === "change");
-      const changeAddress = changeOutput?.address 
-        ? new sdk.Address(changeOutput.address)
+      const changeAddress = plan.change?.address 
+        ? new sdk.Address(plan.change.address)
         : undefined;
 
       const priorityFee = BigInt(plan.estimatedFeeSompi);
 
       // 5. Create and Sign Transaction
-      // The API might vary, using common pattern: createTransaction -> signTransaction
       const unsignedTx = sdk.createTransaction(
         utxos,
         outputs,
@@ -97,7 +91,6 @@ export class KaspaWasmPrivateKeySigner implements HardkasTxPlanSigner {
       const signedTx = sdk.signTransaction(unsignedTx, [privateKey], true);
       
       // 6. Serialize
-      // Most common is hex or toRpcTransaction().serialize()
       const rawTx = signedTx.serialize ? signedTx.serialize() : JSON.stringify(signedTx.toRpcTransaction());
 
       return {

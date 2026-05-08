@@ -4,13 +4,17 @@ import { Command } from "commander";
 import { formatSompi, parseKasToSompi, SOMPI_PER_KAS } from "@hardkas/core";
 import {
   startSimulatedDevnet,
-  resolveAccountAddress,
   createDeterministicAccounts,
   loadOrCreateLocalnetState,
   getDefaultLocalnetStatePath,
   getAccountBalanceSompi,
   getAddressBalanceSompi
 } from "@hardkas/localnet";
+import { 
+  resolveHardkasAccountAddress,
+  listHardkasAccounts,
+  describeAccount
+} from "@hardkas/accounts";
 import { TxSimulator } from "@hardkas/simulator";
 import { buildPaymentPlan, createMockUtxo } from "@hardkas/tx-builder";
 import { runTxPlan } from "./runners/tx-plan-runner.js";
@@ -30,6 +34,9 @@ import { runRpcDag } from "./runners/rpc-dag-runner.js";
 import { runRpcUtxos } from "./runners/rpc-utxos-runner.js";
 import { runRpcMempool } from "./runners/rpc-mempool-runner.js";
 import { runRpcHealth } from "./runners/rpc-health-runner.js";
+import { runUp } from "./runners/up-runner.js";
+import { runExampleList } from "./runners/example-list-runner.js";
+import { runExampleRun } from "./runners/example-run-runner.js";
 import { runAccountsRealInit } from "./runners/accounts-real-init-runner.js";
 import { runAccountsRealImport } from "./runners/accounts-real-import-runner.js";
 import { runAccountsRealList } from "./runners/accounts-real-list-runner.js";
@@ -129,6 +136,44 @@ export default defineHardkasConfig({
       UI.footer("Run 'hardkas dev' to start developing.");
     } catch (e) {
       handleError(e, "Initialization failed");
+      process.exitCode = 1;
+    }
+  });
+
+// --- Up Command ---
+program
+  .command("up")
+  .description("Boot or validate the HardKAS developer runtime environment")
+  .action(async () => {
+    try {
+      await runUp();
+    } catch (e) {
+      handleError(e, "Bootstrap failed");
+      process.exitCode = 1;
+    }
+  });
+
+// --- Example Commands ---
+const exampleCmd = program.command("example").description("Manage HardKAS examples");
+
+exampleCmd.command("list")
+  .description("List available HardKAS examples")
+  .action(async () => {
+    try {
+      await runExampleList();
+    } catch (e) {
+      handleError(e, "Failed to list examples");
+      process.exitCode = 1;
+    }
+  });
+
+exampleCmd.command("run <id>")
+  .description("Run a HardKAS example")
+  .action(async (id: string) => {
+    try {
+      await runExampleRun(id);
+    } catch (e) {
+      handleError(e, `Failed to run example '${id}'`);
       process.exitCode = 1;
     }
   });

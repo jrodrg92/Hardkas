@@ -19,6 +19,7 @@ export const RPC_METHODS = {
   GET_BLOCK_DAG_INFO: "getBlockDagInfo",
   GET_UTXOS_BY_ADDRESSES: "getUtxosByAddresses",
   GET_MEMPOOL_ENTRY: "getMempoolEntry",
+  GET_TRANSACTION: "getTransaction",
   SUBMIT_TRANSACTION: "submitTransaction",
   GET_INFO: "getInfo"
 } as const;
@@ -62,9 +63,6 @@ export class KaspaJsonRpcClient implements KaspaRpcClient {
   }
 
   async getBalanceByAddress(address: string): Promise<KaspaAddressBalance> {
-    // In JSON-RPC, we usually get UTXOs and sum them, or use a specific method if available.
-    // kaspad often provides getBalanceByAddressRequest in gRPC, but in JSON-RPC it might vary.
-    // We'll try to get UTXOs as a fallback if getBalance fails.
     try {
       const result = await this.callRpc("getBalanceByAddress", { address });
       return mapKaspaAddressBalance(result, address);
@@ -96,6 +94,15 @@ export class KaspaJsonRpcClient implements KaspaRpcClient {
         txId: (result as any).transactionId || txId,
         acceptedAt: (result as any).timestamp
       };
+    } catch (e) {
+      return null;
+    }
+  }
+
+  async getTransaction(txId: string): Promise<unknown | null> {
+    try {
+      const result = await this.callRpc(RPC_METHODS.GET_TRANSACTION, { txId, transactionId: txId });
+      return result;
     } catch (e) {
       return null;
     }

@@ -13,7 +13,7 @@ export interface CreateSimulatedSignedTxArtifactInput {
 export function createSimulatedSignedTxArtifact(
   input: CreateSimulatedSignedTxArtifactInput
 ): SignedTxArtifact {
-  const { plan, account } = input;
+  const { plan } = input;
   
   // Basic sanity check
   const validation = validateTxPlanArtifact(plan);
@@ -25,15 +25,17 @@ export function createSimulatedSignedTxArtifact(
     throw new Error(`Cannot sign artifact with status: ${plan.status}`);
   }
 
+  const signedId = `signed_${plan.planId.substring(0, 8)}_${Date.now().toString(36)}`;
+
   const artifact: SignedTxArtifact = {
     schema: ARTIFACT_SCHEMAS.SIGNED_TX,
     hardkasVersion: HARDKAS_VERSION,
     status: "signed",
     createdAt: new Date().toISOString(),
-    signedId: "", // Placeholder
+    signedId,
 
     sourcePlanId: plan.planId,
-    sourcePlanPath: input.artifactPath,
+    sourcePlanPath: input.artifactPath ?? undefined,
 
     networkId: plan.networkId,
     mode: plan.mode,
@@ -52,7 +54,6 @@ export function createSimulatedSignedTxArtifact(
     metadata: input.metadata
   };
 
-  artifact.signedId = `signed_${plan.planId.substring(0, 8)}_${Date.now().toString(36)}`;
   return artifact;
 }
 

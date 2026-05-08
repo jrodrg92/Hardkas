@@ -75,6 +75,7 @@ export interface KaspaRpcClient {
   getUtxosByAddress(address: string): Promise<KaspaRpcUtxo[]>;
   submitTransaction(rawTransaction: string): Promise<KaspaSubmitTransactionResult>;
   getMempoolEntry(txId: string): Promise<MempoolEntry | null>;
+  getTransaction(txId: string): Promise<unknown | null>;
   getBlockDagInfo(): Promise<BlockDagInfo>;
   getServerInfo(): Promise<ServerInfo>;
   close(): void | Promise<void>;
@@ -126,7 +127,6 @@ export class JsonWrpcKaspaClient implements KaspaRpcClient {
   }
 
   async submitTransaction(rawTransaction: string): Promise<KaspaSubmitTransactionResult> {
-    // We try multiple payload formats for compatibility
     const response = await this.safeRequest(
       ["submitTransactionRequest", "submitTransaction"],
       { transaction: rawTransaction, transactionHex: rawTransaction, rawTransaction }
@@ -134,8 +134,32 @@ export class JsonWrpcKaspaClient implements KaspaRpcClient {
     return mapKaspaSubmitTransactionResult(response);
   }
 
-  async getMempoolEntry(_txId: string): Promise<MempoolEntry | null> {
-    throw new Error("getMempoolEntry not implemented in Phase 6.");
+  async getMempoolEntry(txId: string): Promise<MempoolEntry | null> {
+    try {
+      const response = await this.safeRequest(
+        ["getMempoolEntryRequest", "getMempoolEntry"],
+        { txId, transactionId: txId }
+      );
+      if (!response) return null;
+      return {
+        txId,
+        acceptedAt: (response as any).acceptedAt || (response as any).accepted_at
+      };
+    } catch (e) {
+      return null;
+    }
+  }
+
+  async getTransaction(txId: string): Promise<unknown | null> {
+    try {
+      const response = await this.safeRequest(
+        ["getTransactionRequest", "getTransaction"],
+        { txId, transactionId: txId }
+      );
+      return response;
+    } catch (e) {
+      return null;
+    }
   }
 
   async getBlockDagInfo(): Promise<BlockDagInfo> {
@@ -171,7 +195,6 @@ export class JsonWrpcKaspaClient implements KaspaRpcClient {
       } catch (error) {
         lastError = error;
         if ((error as any).code === -32601) {
-          // Method not found, try next
           continue;
         }
         throw error;
@@ -301,7 +324,6 @@ export function mapKaspaRpcUtxos(result: any, address: string): KaspaRpcUtxo[] {
   }
   
   if (!Array.isArray(entries)) {
-    // Handle { "address": [...] } format
     if (typeof entries === "object" && entries !== null) {
        const keys = Object.keys(entries);
        const firstKey = keys[0];
@@ -380,6 +402,10 @@ export class MockKaspaRpcClient implements KaspaRpcClient {
   }
 
   async getMempoolEntry(_txId: string): Promise<MempoolEntry | null> {
+    return null;
+  }
+
+  async getTransaction(_txId: string): Promise<unknown | null> {
     return null;
   }
 

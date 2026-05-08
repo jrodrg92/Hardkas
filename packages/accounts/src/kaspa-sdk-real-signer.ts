@@ -4,6 +4,7 @@ import {
   RealTxSigningResult 
 } from "./real-signer.js";
 import { loadKaspaWasm } from "./signer-backend.js";
+import { UtxoArtifact } from "@hardkas/artifacts";
 
 export interface KaspaSdkRealTxSignerOptions {
   readonly sdkLoader?: () => Promise<any>;
@@ -44,7 +45,7 @@ export class KaspaSdkRealTxSigner implements RealTxSigner {
       const privateKey = new sdk.PrivateKey(account.privateKey);
 
       // 2. Prepare UTXOs
-      const utxos = plan.selectedUtxos.map(u => {
+      const utxos = plan.selectedUtxos.map((u: UtxoArtifact) => {
         // Validation: SDK requires scriptPublicKey for signing
         if (!u.scriptPublicKey) {
           throw new Error(`UTXO from ${u.outpoint.transactionId}:${u.outpoint.index} is missing scriptPublicKey. Signing requires it.`);
@@ -73,12 +74,8 @@ export class KaspaSdkRealTxSigner implements RealTxSigner {
         : undefined;
 
       // 5. Build and Sign
-      // Using createTransaction -> signTransaction pattern (standard for Kaspa WASM)
-      // Note: priorityFee in SDK usually covers the whole fee if using createTransaction manual mode
       const priorityFee = BigInt(plan.estimatedFeeSompi);
 
-      // We use the helper createTransaction if available, otherwise we might need manual construction
-      // Most versions of Kaspa WASM expose this high-level helper
       const unsignedTx = sdk.createTransaction(
         utxos,
         outputs,
@@ -86,11 +83,9 @@ export class KaspaSdkRealTxSigner implements RealTxSigner {
         priorityFee
       );
 
-      // Sign (3rd param is true to automatically complete the tx)
       const signedTx = sdk.signTransaction(unsignedTx, [privateKey], true);
 
       // 6. Serialize result
-      // Format can be hex or RPC-compatible JSON
       const payload = signedTx.serialize ? signedTx.serialize() : JSON.stringify(signedTx.toRpcTransaction());
       const txId = signedTx.id;
 
@@ -103,7 +98,6 @@ export class KaspaSdkRealTxSigner implements RealTxSigner {
       };
 
     } catch (e) {
-      // Improve error message if it's an SDK mismatch or missing primitives
       const msg = e instanceof Error ? e.message : String(e);
       if (msg.includes("is not a constructor") || msg.includes("is not a function")) {
         throw new Error(`Kaspa SDK signer adapter could not find required transaction signing primitives: ${msg}`);

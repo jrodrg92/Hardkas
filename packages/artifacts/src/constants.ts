@@ -7,6 +7,8 @@ export const ARTIFACT_SCHEMAS = {
   SIGNED_TX: "hardkas.signedTx.v1",
   TX_RECEIPT: "hardkas.txReceipt.v1",
   TX_TRACE: "hardkas.txTrace.v1",
+  SIMULATED_TX_RECEIPT: "hardkas.simulatedTxReceipt.v1",
+  SIMULATED_TX_TRACE: "hardkas.simulatedTxTrace.v1",
   IGRA_TX_PLAN: "hardkas.igraTxPlan.v1",
   IGRA_SIGNED_TX: "hardkas.igraSignedTx.v1",
   IGRA_TX_RECEIPT: "hardkas.igraTxReceipt.v1"

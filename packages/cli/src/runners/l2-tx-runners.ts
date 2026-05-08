@@ -29,7 +29,7 @@ import {
 import { 
   loadRealAccountStore, 
   resolveRealAccountOrAddress 
-} from "@hardkas/localnet";
+} from "@hardkas/accounts";
 
 export interface L2TxBuildOptions {
   network?: string;

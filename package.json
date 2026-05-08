@@ -8,13 +8,18 @@
     "test": "turbo test",
     "typecheck": "turbo typecheck",
     "lint": "turbo lint",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "hardkas": "pnpm --filter @hardkas/cli run dev",
+    "example:hello": "tsx examples/01-hello-kaspa/main.ts",
+    "example:transfer": "tsx examples/02-basic-transfer/main.ts",
+    "example:localnet": "tsx examples/03-localnet-demo/main.ts"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
     "eslint": "^9.17.0",
     "prettier": "^3.4.2",
     "tsup": "^8.3.5",
+    "tsx": "^4.19.2",
     "turbo": "^2.3.3",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"

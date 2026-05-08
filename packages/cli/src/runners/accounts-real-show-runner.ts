@@ -1,51 +1,32 @@
 import { 
   loadRealAccountStore, 
   getRealDevAccount,
-  RealDevAccount 
-} from "@hardkas/localnet";
+  getDefaultRealAccountsPath 
+} from "@hardkas/accounts";
 
 export interface AccountsRealShowOptions {
   name: string;
-  showPrivate?: boolean;
 }
 
 export async function runAccountsRealShow(options: AccountsRealShowOptions): Promise<{
-  account: RealDevAccount;
   formatted: string;
 }> {
   const store = await loadRealAccountStore();
-  if (!store) {
-    throw new Error("No real account store found. Use 'hardkas accounts real init'.");
-  }
-
-  const account = getRealDevAccount(store, options.name);
+  const account = store ? getRealDevAccount(store, options.name) : null;
+  
   if (!account) {
-    throw new Error(`Account '${options.name}' not found.`);
-  }
-
-  let privateKey = account.privateKey || "none";
-  if (account.privateKey && !options.showPrivate) {
-    const prefix = account.privateKey.substring(0, 8);
-    privateKey = `${prefix}... (masked)`;
+    throw new Error(`Account '${options.name}' not found in real store.`);
   }
 
   const lines = [
-    "Real dev account",
-    "",
-    `Name:       ${account.name}`,
-    `Address:    ${account.address}`,
-    `Public key: ${account.publicKey || "none"}`,
-    `Private key: ${privateKey}`,
-    `Created at: ${account.createdAt}`
+    `Account: ${account.name}`,
+    `Address: ${account.address}`,
+    `Created: ${account.createdAt}`,
+    ""
   ];
 
-  if (options.showPrivate && account.privateKey) {
-    lines.push("");
-    lines.push("WARNING: Private key is shown. Do not share this information.");
-  }
+  if (account.publicKey) lines.push(`Public Key:  ${account.publicKey}`);
+  if (account.privateKey) lines.push(`Private Key: ${account.privateKey} (plaintext)`);
 
-  return {
-    account,
-    formatted: lines.join("\n")
-  };
+  return { formatted: lines.join("\n") };
 }

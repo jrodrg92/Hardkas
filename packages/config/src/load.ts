@@ -19,7 +19,7 @@ export async function loadHardkasConfig(
     if (!fs.existsSync(absolutePath)) {
       throw new Error(`HardKAS config file not found at ${absolutePath}`);
     }
-    return loadConfigFile(absolutePath);
+    return loadConfigFile(absolutePath, cwd);
   }
 
   const indicators = [
@@ -36,7 +36,7 @@ export async function loadHardkasConfig(
     for (const indicator of indicators) {
       const p = path.join(current, indicator);
       if (fs.existsSync(p)) {
-        return loadConfigFile(p);
+        return loadConfigFile(p, current);
       }
     }
     const parent = path.dirname(current);
@@ -44,10 +44,13 @@ export async function loadHardkasConfig(
     current = parent;
   }
 
-  return { config: DEFAULT_HARDKAS_CONFIG };
+  return { 
+    cwd,
+    config: DEFAULT_HARDKAS_CONFIG 
+  };
 }
 
-async function loadConfigFile(filePath: string): Promise<LoadedHardkasConfig> {
+async function loadConfigFile(filePath: string, cwd: string): Promise<LoadedHardkasConfig> {
   try {
     const jiti = createJiti(import.meta.url);
     const module = await jiti.import(filePath) as any;
@@ -55,6 +58,7 @@ async function loadConfigFile(filePath: string): Promise<LoadedHardkasConfig> {
 
     return {
       path: filePath,
+      cwd: cwd,
       config: config
     };
   } catch (error) {

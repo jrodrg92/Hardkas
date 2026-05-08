@@ -51,5 +51,6 @@ export interface HardkasConfig {
 
 export interface LoadedHardkasConfig {
   path?: string;
+  cwd: string;
   config: HardkasConfig;
 }

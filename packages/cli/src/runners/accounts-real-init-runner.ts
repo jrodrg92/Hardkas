@@ -3,7 +3,7 @@ import {
   saveRealAccountStore, 
   createEmptyRealAccountStore,
   getDefaultRealAccountsPath 
-} from "@hardkas/localnet";
+} from "@hardkas/accounts";
 
 export interface AccountsRealInitOptions {
   force?: boolean;

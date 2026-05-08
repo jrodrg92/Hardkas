@@ -1,9 +1,8 @@
 import { 
   loadOrCreateRealAccountStore, 
   saveRealAccountStore, 
-  importRealDevAccount,
-  RealDevAccount 
-} from "@hardkas/localnet";
+  importRealDevAccount 
+} from "@hardkas/accounts";
 
 export interface AccountsRealImportOptions {
   name: string;
@@ -13,11 +12,10 @@ export interface AccountsRealImportOptions {
 }
 
 export async function runAccountsRealImport(options: AccountsRealImportOptions): Promise<{
-  account: RealDevAccount;
   formatted: string;
 }> {
   let store = await loadOrCreateRealAccountStore();
-  
+
   store = importRealDevAccount(store, {
     name: options.name,
     address: options.address,
@@ -27,21 +25,5 @@ export async function runAccountsRealImport(options: AccountsRealImportOptions):
 
   await saveRealAccountStore(store);
 
-  const account = store.accounts[store.accounts.length - 1];
-
-  const lines = [
-    "Real dev account imported",
-    "",
-    `Name:    ${account.name}`,
-    `Address: ${account.address}`,
-    `Private: ${account.privateKey ? "yes" : "no"}`,
-    "",
-    "WARNING:",
-    "  Private keys are stored in plaintext for local development only."
-  ];
-
-  return {
-    account,
-    formatted: lines.join("\n")
-  };
+  return { formatted: `Account '${options.name}' imported successfully.` };
 }

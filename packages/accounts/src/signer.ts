@@ -2,14 +2,13 @@ import {
   TxPlanArtifact, 
   SignedTxArtifact,
   createSimulatedSignedTxArtifact,
-  hashTxPlanArtifact,
   HARDKAS_VERSION,
   ARTIFACT_SCHEMAS
 } from "@hardkas/artifacts";
 import { HardkasAccount, HardkasTxPlanSigner, SignTxPlanInput, SignTxPlanResult, HardkasSignerKind, HardkasKaspaPrivateKeyAccount } from "./types.js";
 import { HardkasConfig } from "@hardkas/config";
 import { getKaspaSigningBackendStatus } from "./signer-backend.js";
-import { KaspaWasmPrivateKeySigner, assertSigningNetworkAllowed } from "./kaspa-wasm-signer.js";
+import { KaspaWasmPrivateKeySigner } from "./kaspa-wasm-signer.js";
 
 /**
  * Simulated signer for simnet development.
@@ -20,17 +19,12 @@ export class SimulatedTxPlanSigner implements HardkasTxPlanSigner {
 
   async signTxPlan(input: SignTxPlanInput): Promise<SignTxPlanResult> {
     const plan = input.planArtifact as TxPlanArtifact;
-    const planHash = hashTxPlanArtifact(plan);
-
     return {
       signatureKind: "simulated",
       signerAddress: plan.from.address,
       signedTransaction: {
-        format: "hex",
-        payload: `simulated-signed-tx:${planHash}`
-      },
-      signature: {
-        value: `simulated:${input.accountName}:${planHash}`
+        format: "simulated",
+        payload: `simulated-signed-tx:${plan.planId}`
       }
     };
   }
@@ -38,7 +32,6 @@ export class SimulatedTxPlanSigner implements HardkasTxPlanSigner {
 
 /**
  * Placeholder for real Kaspa signing.
- * Throws error until an official Kaspa signing library is integrated.
  */
 export class UnsupportedRealKaspaSigner implements HardkasTxPlanSigner {
   kind: HardkasSignerKind = "unsupported";
@@ -53,7 +46,6 @@ export class UnsupportedRealKaspaSigner implements HardkasTxPlanSigner {
 
 /**
  * Main entry point for signing transaction plan artifacts.
- * Resolves the appropriate signer based on the account kind and network.
  */
 export async function signTxPlanArtifact(input: {
   planArtifact: TxPlanArtifact;
@@ -64,7 +56,7 @@ export async function signTxPlanArtifact(input: {
   const { planArtifact, account } = input;
 
   // Security guardrails
-  if (planArtifact.status !== "unsigned") {
+  if (planArtifact.status !== "built" && (planArtifact as any).status !== "unsigned") {
     throw new Error(`Cannot sign artifact with status: ${planArtifact.status}`);
   }
 
@@ -79,7 +71,6 @@ export async function signTxPlanArtifact(input: {
     }
   }
 
-  // Block mainnet by default for safety
   // Block mainnet by default for safety
   if ((planArtifact.networkId === "mainnet" || planArtifact.networkId === "kaspa") && !input.allowMainnet) {
      throw new Error("Mainnet signing is disabled by default. Use --allow-mainnet-signing only if you understand the risks.");
@@ -110,44 +101,34 @@ export async function signTxPlanArtifact(input: {
       accountName: account.name
     });
 
-    return {
+    const artifact: SignedTxArtifact = {
       schema: ARTIFACT_SCHEMAS.SIGNED_TX,
       hardkasVersion: HARDKAS_VERSION,
       status: "signed",
       createdAt: new Date().toISOString(),
-      source: {
-        schema: ARTIFACT_SCHEMAS.TX_PLAN,
-        planHash: hashTxPlanArtifact(planArtifact)
-      },
+      signedId: `signed_${planArtifact.planId}_${Date.now().toString(36)}`,
+      sourcePlanId: planArtifact.planId,
+      
       networkId: planArtifact.networkId,
       mode: planArtifact.mode,
+      
       from: planArtifact.from,
       to: planArtifact.to,
+      
       amountSompi: planArtifact.amountSompi,
       amount: planArtifact.amount,
-      selectedUtxos: planArtifact.selectedUtxos,
-      outputs: planArtifact.outputs,
-      estimatedMass: planArtifact.estimatedMass,
-      estimatedFeeSompi: planArtifact.estimatedFeeSompi,
-      estimatedFee: planArtifact.estimatedFee,
-      changeSompi: planArtifact.changeSompi,
-      change: planArtifact.change,
-      signature: {
-        kind: "kaspa",
-        account: account.name,
-        signerAddress: result.signerAddress,
-        value: result.signature?.value || "unknown"
+      
+      signedTransaction: {
+        format: result.signedTransaction?.format === "hex" ? "hex" : "unknown",
+        payload: result.signedTransaction?.payload || ""
       },
-      signedTransaction: result.signedTransaction ? {
-        encoding: result.signedTransaction.format === "hex" ? "kaspa-raw" : "unknown",
-        value: result.signedTransaction.payload
-      } : undefined,
+      
       metadata: {
-        hardkasVersion: HARDKAS_VERSION,
-        signingBackend: status.name,
-        warning: "Broadcast not performed"
+        signingBackend: status.name
       }
-    } as any;
+    };
+
+    return artifact;
   }
 
   if (account.kind === "external-wallet") {
