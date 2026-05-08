@@ -18,7 +18,7 @@ export function canonicalStringify(obj: any): string {
   }
 
   const sortedKeys = Object.keys(obj)
-    .filter(key => key !== "contentHash")
+    .filter(key => key !== "contentHash" && key !== "artifactId")
     .sort();
 
   const result = sortedKeys

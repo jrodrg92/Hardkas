@@ -17,6 +17,7 @@ import {
   RpcRateLimitError,
   RpcValidationError
 } from "./errors.js";
+import { calculateConfidence } from "./resilience.js";
 
 export enum CircuitState {
   CLOSED = "CLOSED",
@@ -98,9 +99,20 @@ export class KaspaJsonRpcClient implements KaspaRpcClient {
         this.lastDaaCheckTime = now;
       }
 
+      const resilience = calculateConfidence({
+        latencyMs: latency,
+        successRate: this.getSuccessRate(),
+        retries: this.retriesCount,
+        stale,
+        reachable: true,
+        circuitOpen: this.circuitState === CircuitState.OPEN
+      });
+
       return {
         endpoint: this.url,
-        status: (this.circuitState === CircuitState.CLOSED && !stale) ? "healthy" : "degraded",
+        status: resilience.state,
+        confidence: resilience.confidence,
+        score: resilience.score,
         latencyMs: latency,
         lastError: this.lastError,
         retries: this.retriesCount,
@@ -111,9 +123,20 @@ export class KaspaJsonRpcClient implements KaspaRpcClient {
         successRate: this.getSuccessRate()
       };
     } catch (e: any) {
+      const resilience = calculateConfidence({
+        latencyMs: null,
+        successRate: this.getSuccessRate(),
+        retries: this.retriesCount,
+        stale: false,
+        reachable: false,
+        circuitOpen: this.circuitState === CircuitState.OPEN
+      });
+
       return {
         endpoint: this.url,
-        status: "unavailable",
+        status: resilience.state,
+        confidence: resilience.confidence,
+        score: resilience.score,
         lastError: e.message,
         retries: this.retriesCount,
         circuitState: this.circuitState,

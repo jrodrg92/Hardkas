@@ -30,22 +30,45 @@ export async function runRpcDoctor(options: RpcDoctorOptions) {
 
   for (const url of endpoints) {
     const client = new KaspaJsonRpcClient({ url, timeoutMs: 5000 });
-    const start = Date.now();
     const health = await client.healthCheck();
-    const latency = Date.now() - start;
 
-    results.push({ url, health, latency });
+    results.push({ url, health });
 
-    if (health.reachable) {
-      UI.success(`[HEALTHY] ${url}`);
-      console.log(`  Latency: ${latency}ms`);
-      console.log(`  Version: ${health.info?.serverVersion || "unknown"}`);
-      console.log(`  Synced:  ${health.info?.isSynced ? "Yes" : "No"}`);
-      console.log(`  Network: ${health.info?.networkId || "unknown"}`);
+    const statusIcon = health.status === "healthy" ? "✓" : health.status === "stale" ? "⚠" : "✗";
+    
+    console.log("┌── RPC HEALTH ────────────────────────────────────────────────");
+    console.log(`│ ENDPOINT:   ${url.padEnd(48)} │`);
+    console.log(`│ STATE:      ${health.status.toUpperCase().padEnd(48)} │`);
+    console.log(`│ CONFIDENCE: ${health.confidence?.toUpperCase().padEnd(36)} [${(health.score ?? 0).toString().padStart(3)}%] │`);
+    console.log(`│ LATENCY:    ${(health.latencyMs + "ms").padEnd(48)} │`);
+    console.log(`│ NETWORK:    ${(health.info?.networkId || "unknown").padEnd(48)} │`);
+    console.log(`│ DAA SCORE:  ${(health.info?.virtualDaaScore || "0").padEnd(48)} │`);
+    console.log("└──────────────────────────────────────────────────────────────");
+
+    // Issues Section
+    const { calculateConfidence } = await import("@hardkas/kaspa-rpc");
+    const resilience = calculateConfidence({
+      latencyMs: health.latencyMs || null,
+      successRate: health.successRate ?? 100,
+      retries: health.retries ?? 0,
+      stale: !!health.stale,
+      reachable: !!health.reachable,
+      circuitOpen: health.circuitState === "OPEN"
+    });
+
+    if (resilience.issues.length > 0) {
+      console.log("\n[ ISSUES ]");
+      resilience.issues.forEach(issue => console.log(`  • ${issue}`));
     } else {
-      UI.error(`[UNREACHABLE] ${url}`);
-      console.log(`  Error:   ${health.error}`);
+      UI.success("\n  ✓ No operational issues detected.");
     }
+
+    // Trace Section
+    console.log("\n[ TRACE ]");
+    console.log(`  - Retries:      ${health.retries ?? 0}`);
+    console.log(`  - Circuit:      ${health.circuitState || "CLOSED"}`);
+    console.log(`  - Sync Status:  ${health.info?.isSynced ? "SYNCED" : "STALE"}`);
+    console.log(`  - Version:      ${health.info?.serverVersion || "unknown"}`);
     console.log("");
   }
 

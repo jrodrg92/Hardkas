@@ -40,7 +40,7 @@ export async function runRpcHealth(options: RpcHealthRunnerOptions): Promise<{
     formatted += [
       "Kaspa RPC health",
       "",
-      `URL:      ${result.url}`,
+      `URL:      ${result.endpoint}`,
       `Status:   ready`,
       `Latency:  ${result.latencyMs}ms`,
       `Network:  ${result.networkId}`,
@@ -55,7 +55,7 @@ export async function runRpcHealth(options: RpcHealthRunnerOptions): Promise<{
     formatted += [
       "Kaspa RPC health",
       "",
-      `URL:      ${result.url}`,
+      `URL:      ${result.endpoint}`,
       `Status:   not ready`,
       `Error:    ${result.error}`,
       "",

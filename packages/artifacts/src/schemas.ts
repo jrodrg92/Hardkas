@@ -2,12 +2,21 @@ import { z } from "zod";
 
 export const ARTIFACT_V2_VERSION = "2.0.0";
 
+export const ArtifactLineageSchema = z.object({
+  artifactId: z.string(),
+  lineageId: z.string(),
+  parentArtifactId: z.string().optional(),
+  rootArtifactId: z.string(),
+  sequence: z.number().optional()
+});
+
 export const BaseArtifactSchema = z.object({
   schema: z.string(),
   hardkasVersion: z.string(),
   version: z.literal(ARTIFACT_V2_VERSION),
   contentHash: z.string().optional(),
-  createdAt: z.string().datetime()
+  createdAt: z.string().datetime(),
+  lineage: ArtifactLineageSchema.optional()
 });
 
 export const AccountRefSchema = z.object({

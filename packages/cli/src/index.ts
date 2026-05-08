@@ -281,6 +281,19 @@ artifactCmd
     }
   });
 
+artifactCmd
+  .command("lineage <path>")
+  .description("Show the provenance and operational history of an artifact")
+  .action(async (path: string) => {
+    try {
+      const { runArtifactLineage } = await import("./runners/artifact-lineage-runner.js");
+      await runArtifactLineage({ path });
+    } catch (e) {
+      handleError(e);
+      process.exitCode = 1;
+    }
+  });
+
 // --- Accounts Command ---
 const accountsCmd = program.command("accounts").description("Manage HardKAS accounts");
 
@@ -747,9 +760,10 @@ rpcCmd.command("health")
 
 rpcCmd.command("doctor")
   .description("Run comprehensive RPC diagnostics")
-  .action(async () => { 
+  .option("--endpoints <urls...>", "Specific endpoints to audit")
+  .action(async (options: { endpoints?: string[] }) => { 
     const { runRpcDoctor } = await import("./runners/rpc-doctor-runner.js");
-    try { await runRpcDoctor({}); } catch (e) { handleError(e); } 
+    try { await runRpcDoctor(options); } catch (e) { handleError(e); } 
   });
 
 rpcCmd.command("dag")

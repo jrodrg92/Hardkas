@@ -48,7 +48,7 @@ describe("RPC Health API", () => {
 
   it("should wait for ready=true", async () => {
     const mockClientFail = {
-      healthCheck: vi.fn().mockResolvedValue({ status: "unavailable" })
+      healthCheck: vi.fn().mockResolvedValue({ status: "unreachable" })
     };
     
     const mockClientSuccess = {
@@ -71,7 +71,7 @@ describe("RPC Health API", () => {
 
   it("should timeout if never ready", async () => {
     const mockClient = {
-      healthCheck: vi.fn().mockResolvedValue({ status: "unavailable" })
+      healthCheck: vi.fn().mockResolvedValue({ status: "unreachable" })
     };
     
     vi.mocked(KaspaJsonRpcClient).mockReturnValue(mockClient as any);

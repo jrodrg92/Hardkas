@@ -14,16 +14,20 @@ export interface KaspaNodeInfo {
 
 export interface KaspaRpcHealth {
   readonly endpoint: string;
-  readonly status: "healthy" | "degraded" | "unavailable";
+  readonly status: RpcHealthState;
+  readonly confidence?: RpcConfidence;
+  readonly score?: number;
   readonly latencyMs?: number | undefined;
   readonly lastError?: string | null | undefined;
   readonly retries?: number | undefined;
   readonly circuitState?: string | undefined;
   readonly stale?: boolean | undefined;
   readonly info?: KaspaNodeInfo | undefined;
-  readonly reachable?: boolean | undefined; // Keep for compat
-  readonly successRate?: number | undefined; // Keep for compat
+  readonly reachable?: boolean | undefined;
+  readonly successRate?: number | undefined;
 }
+
+import { RpcHealthState, RpcConfidence } from "./resilience.js";
 
 export interface KaspaAddressBalance {
   address: string;
@@ -129,7 +133,7 @@ export class JsonWrpcKaspaClient implements KaspaRpcClient {
     } catch (error) {
       return {
         endpoint: this.rpcUrl,
-        status: "unavailable",
+        status: "unreachable",
         lastError: error instanceof Error ? error.message : String(error),
         reachable: false
       };
@@ -501,3 +505,4 @@ export * from "./json-rpc-client.js";
 export * from "./health.js";
 export * from "./errors.js";
 export * from "./provider.js";
+export * from "./resilience.js";

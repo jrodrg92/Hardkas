@@ -35,15 +35,13 @@ export async function runArtifactVerify(options: ArtifactVerifyOptions) {
   // Single file verification
   let result = await verifyArtifactIntegrity(absolutePath);
 
-  if (result.ok && options.strict) {
-    const artifact = JSON.parse(fs.readFileSync(absolutePath, "utf-8"));
-    const semanticResult = verifyArtifactSemantics(artifact, { strict: true });
-    
-    // Merge semantic issues into result
-    result.issues.push(...semanticResult.issues);
-    result.errors.push(...semanticResult.errors);
-    result.ok = result.ok && semanticResult.ok;
-  }
+  const artifact = JSON.parse(fs.readFileSync(absolutePath, "utf-8"));
+  const semanticResult = verifyArtifactSemantics(artifact, { strict: options.strict ?? false });
+  
+  // Merge semantic issues into result
+  result.issues.push(...semanticResult.issues);
+  result.errors.push(...semanticResult.errors);
+  result.ok = result.ok && semanticResult.ok;
 
   if (options.json) {
     console.log(JSON.stringify(result, null, 2));
@@ -57,6 +55,16 @@ export async function runArtifactVerify(options: ArtifactVerifyOptions) {
     console.log(`  Type:    ${result.artifactType}`);
     console.log(`  Version: ${result.version}`);
     console.log(`  Hash:    ${result.actualHash}`);
+    
+    if (options.strict) {
+      console.log(`\nOperational Audit (STRICT):`);
+      const feeAudit = verifyArtifactSemantics(artifact, { strict: true });
+      if (feeAudit.ok) {
+        UI.success("  ✓ Economic invariants verified.");
+      } else {
+        UI.error("  ✗ Economic invariants VIOLATED.");
+      }
+    }
   } else {
     UI.error("VERIFICATION FAILED");
     renderErrors(result);
@@ -76,8 +84,19 @@ async function runRecursiveVerify(dir: string, options: ArtifactVerifyOptions) {
 
   for (const file of files) {
     const relativePath = path.relative(dir, file);
+    
+    // 1. Integrity Check
     const result = await verifyArtifactIntegrity(file);
     
+    // 2. Semantic & Lineage Audit
+    const artifact = JSON.parse(fs.readFileSync(file, "utf-8"));
+    const semanticResult = verifyArtifactSemantics(artifact, { strict: options.strict ?? false });
+    
+    // Merge results
+    result.issues.push(...semanticResult.issues);
+    result.errors.push(...semanticResult.errors);
+    result.ok = result.ok && semanticResult.ok;
+
     if (result.ok) {
       console.log(`  ✓ ${relativePath.padEnd(40)} [MATCH]`);
       successCount++;

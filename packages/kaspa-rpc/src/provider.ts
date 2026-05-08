@@ -30,7 +30,7 @@ export class LoadBalancedRpcProvider implements KaspaRpcClient {
 
     return {
       endpoint: `LoadBalancedProvider(${this.clients.length} nodes)`,
-      status: allHealthy ? "healthy" : anyHealthy ? "degraded" : "unavailable",
+      status: allHealthy ? "healthy" : anyHealthy ? "degraded" : "unreachable",
       latencyMs: primaryHealth.latencyMs,
       lastError: primaryHealth.lastError,
       retries: healths.reduce((sum, h) => sum + (h.retries || 0), 0),

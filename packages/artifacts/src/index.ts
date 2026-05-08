@@ -13,6 +13,8 @@ export * from "./validate.js";
 export * from "./explain.js";
 export * from "./igra-artifacts.js";
 export * from "./igra-io.js";
+export * from "./feeVerify.js";
+export * from "./lineage.js";
 
 // Compatibility exports for v1 dependents
 export { calculateContentHash as hashTxPlanArtifact } from "./canonical.js";

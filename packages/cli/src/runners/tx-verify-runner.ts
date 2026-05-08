@@ -18,7 +18,7 @@ export async function runTxVerify(options: TxVerifyOptions) {
     const artifact = await readTxPlanArtifact(absolutePath);
     
     // Perform semantic verification
-    const result = verifyTxPlanSemantics(artifact.plan as any);
+    const result = verifyTxPlanSemantics(artifact as any);
 
     if (options.json) {
       console.log(JSON.stringify(result, (key, value) => 

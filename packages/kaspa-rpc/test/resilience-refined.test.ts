@@ -106,7 +106,7 @@ describe("RPC Resilience Refined (P1.2)", () => {
       // Total 3 calls, 2 successful
       expect(health.successRate).toBeCloseTo(66.67, 1);
       expect(health.latencyMs).toBeGreaterThanOrEqual(0);
-      expect(health.status).toBe("healthy");
+      expect(health.status).toBe("degraded");
     });
   });
 });

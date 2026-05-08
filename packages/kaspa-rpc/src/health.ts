@@ -13,8 +13,8 @@ export interface RpcReadinessWaitOptions extends RpcHealthCheckOptions {
 
 export interface RpcHealthResult {
   readonly endpoint: string;
-  readonly status: "healthy" | "degraded" | "unavailable";
-  readonly ready: boolean; // Alias for status !== "unavailable"
+  readonly status: RpcHealthState;
+  readonly ready: boolean; 
   readonly checkedAt: string;
   readonly latencyMs?: number | undefined;
   readonly networkId?: string | undefined;
@@ -28,6 +28,8 @@ export interface RpcHealthResult {
   readonly stale?: boolean | undefined;
 }
 
+import { RpcHealthState } from "./resilience.js";
+
 export async function checkKaspaRpcHealth(options?: RpcHealthCheckOptions): Promise<RpcHealthResult> {
   const url = options?.url || "http://127.0.0.1:18210";
   const client = new KaspaJsonRpcClient({ url, timeoutMs: options?.timeoutMs });
@@ -39,7 +41,7 @@ export async function checkKaspaRpcHealth(options?: RpcHealthCheckOptions): Prom
     return {
       endpoint: url,
       status: health.status,
-      ready: health.status !== "unavailable",
+      ready: health.status === "healthy" || health.status === "degraded",
       checkedAt,
       ...(health.latencyMs !== undefined ? { latencyMs: health.latencyMs } : {}),
       ...(health.info?.networkId !== undefined ? { networkId: health.info.networkId } : {}),
@@ -54,7 +56,7 @@ export async function checkKaspaRpcHealth(options?: RpcHealthCheckOptions): Prom
   } catch (e: any) {
     return {
       endpoint: url,
-      status: "unavailable",
+      status: "unreachable",
       ready: false,
       checkedAt,
       error: e.message,
@@ -85,7 +87,7 @@ export async function waitForKaspaRpcReady(options?: RpcReadinessWaitOptions): P
 
   return lastResult || {
     endpoint: options?.url || "http://127.0.0.1:18210",
-    status: "unavailable",
+    status: "unreachable",
     ready: false,
     checkedAt: new Date().toISOString(),
     error: "Timed out waiting for RPC to be ready"
