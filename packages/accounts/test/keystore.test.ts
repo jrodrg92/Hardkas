@@ -99,4 +99,53 @@ describe("KeystoreManager", () => {
     expect(newResult.success).toBe(true);
     expect(newResult.payload).toEqual(mockPayload);
   });
+
+  it("should not contain private key in plaintext in the keystore JSON", async () => {
+    const keystore = await KeystoreManager.createEncryptedKeystore(mockPayload, password, {
+      label: "test",
+      network: "devnet"
+    });
+
+    const json = JSON.stringify(keystore);
+    expect(json).not.toContain(mockPayload.privateKey);
+  });
+
+  it("should support loading and saving from filesystem", async () => {
+    const keystore = await KeystoreManager.createEncryptedKeystore(mockPayload, password, {
+      label: "test-io",
+      network: "devnet"
+    });
+
+    const tempPath = "test-keystore.json";
+    await KeystoreManager.saveEncryptedKeystore(tempPath, keystore);
+    
+    const loaded = await KeystoreManager.loadEncryptedKeystore(tempPath);
+    expect(loaded).toEqual(keystore);
+
+    const result = await KeystoreManager.decryptEncryptedKeystore(loaded, password);
+    expect(result.success).toBe(true);
+    expect(result.payload).toEqual(mockPayload);
+
+    // Cleanup
+    import("node:fs").then(fs => fs.unlinkSync(tempPath));
+  });
+
+  it("should reject empty passwords", async () => {
+    await expect(KeystoreManager.createEncryptedKeystore(mockPayload, "", {
+      label: "test",
+      network: "devnet"
+    })).rejects.toThrow(/Password cannot be empty/);
+  });
+
+  it("should reject unsupported version", async () => {
+    const keystore = await KeystoreManager.createEncryptedKeystore(mockPayload, password, {
+      label: "test",
+      network: "devnet"
+    });
+
+    (keystore as any).version = "1.0.0";
+    const result = await KeystoreManager.decryptEncryptedKeystore(keystore, password);
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("Unsupported keystore version");
+  });
 });

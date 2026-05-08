@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import crypto from "node:crypto";
 import { argon2id } from "hash-wasm";
 import { 
@@ -166,5 +168,36 @@ export class KeystoreManager {
       memory: keystore.kdf.memory,
       parallelism: keystore.kdf.parallelism
     });
+  }
+
+  /**
+   * Loads an encrypted keystore from the filesystem.
+   */
+  static async loadEncryptedKeystore(filePath: string): Promise<EncryptedKeystoreV2> {
+    try {
+      const data = await fs.promises.readFile(filePath, "utf-8");
+      const keystore = JSON.parse(data);
+      if (keystore.type !== this.TYPE) {
+        throw new Error(`Invalid keystore type: ${keystore.type}`);
+      }
+      return keystore as EncryptedKeystoreV2;
+    } catch (e) {
+      throw new Error(`Failed to load keystore at ${filePath}: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
+
+  /**
+   * Saves an encrypted keystore to the filesystem.
+   */
+  static async saveEncryptedKeystore(filePath: string, keystore: EncryptedKeystoreV2): Promise<void> {
+    try {
+      const dir = path.dirname(filePath);
+      if (!fs.existsSync(dir)) {
+        await fs.promises.mkdir(dir, { recursive: true });
+      }
+      await fs.promises.writeFile(filePath, JSON.stringify(keystore, null, 2), "utf-8");
+    } catch (e) {
+      throw new Error(`Failed to save keystore at ${filePath}: ${e instanceof Error ? e.message : String(e)}`);
+    }
   }
 }

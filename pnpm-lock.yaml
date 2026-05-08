@@ -165,6 +165,15 @@ importers:
         specifier: ^5.7.2
         version: 5.9.3
 
+  examples/11-dag-reorg-simulation:
+    dependencies:
+      '@hardkas/localnet':
+        specifier: workspace:*
+        version: link:../../packages/localnet
+      '@hardkas/sdk':
+        specifier: workspace:*
+        version: link:../../packages/sdk
+
   packages/accounts:
     dependencies:
       '@hardkas/artifacts':

@@ -19,7 +19,8 @@
     "example:failure": "pnpm --filter @examples/failure-debugging start",
     "example:igra-readonly": "pnpm --filter @examples/igra-l2-readonly start",
     "example:bridge-assumptions": "pnpm --filter @examples/bridge-assumptions start",
-    "example:ci": "pnpm --filter @examples/ci-workflow start"
+    "example:ci": "pnpm --filter @examples/ci-workflow start",
+    "example:dag-reorg": "pnpm --filter @examples/dag-reorg-simulation start"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

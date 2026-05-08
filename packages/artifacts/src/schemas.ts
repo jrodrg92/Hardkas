@@ -38,6 +38,21 @@ export const TxPlanSchemaV2 = BaseArtifactSchema.extend({
   }))
 });
 
+export const DagContextSchema = z.object({
+  mode: z.enum(["linear", "dag-light"]),
+  sink: z.string(),
+  selectedParent: z.string().optional(),
+  branchId: z.string().optional(),
+  acceptedTxIds: z.array(z.string()).optional(),
+  displacedTxIds: z.array(z.string()).optional(),
+  conflictSet: z.array(z.object({
+    outpoint: z.string(),
+    winnerTxId: z.string(),
+    loserTxIds: z.array(z.string())
+  })).optional(),
+  nonSelectedContext: z.boolean().optional()
+});
+
 export const LocalnetUtxoSchemaV2 = z.object({
   id: z.string(),
   address: z.string(),
@@ -76,7 +91,8 @@ export const TxReceiptSchemaV2 = BaseArtifactSchema.extend({
   createdUtxoIds: z.array(z.string()).optional(),
   daaScore: z.string().optional(),
   preStateHash: z.string().optional(),
-  postStateHash: z.string().optional()
+  postStateHash: z.string().optional(),
+  dagContext: DagContextSchema.optional()
 });
 
 export const SignedTxSchemaV2 = BaseArtifactSchema.extend({
@@ -104,7 +120,8 @@ export const TxTraceSchemaV2 = BaseArtifactSchema.extend({
     status: z.string(),
     timestamp: z.string().datetime(),
     details: z.any().optional()
-  }))
+  })),
+  dagContext: DagContextSchema.optional()
 });
 
 export type TxPlanV2 = z.infer<typeof TxPlanSchemaV2>;
@@ -112,3 +129,4 @@ export type SnapshotV2 = z.infer<typeof SnapshotSchemaV2>;
 export type TxReceiptV2 = z.infer<typeof TxReceiptSchemaV2>;
 export type SignedTxV2 = z.infer<typeof SignedTxSchemaV2>;
 export type TxTraceV2 = z.infer<typeof TxTraceSchemaV2>;
+export type DagContext = z.infer<typeof DagContextSchema>;

@@ -59,3 +59,31 @@ export function verifyReplay(
     errors
   };
 }
+
+/**
+ * Loads receipt and trace for a transaction and produces a summary.
+ */
+export async function getSimulatedReplaySummary(txId: string, options: { cwd?: string } = {}) {
+  const { loadSimulatedReceipt } = await import("./receipts.js");
+  const { loadSimulatedTrace } = await import("./traces.js");
+
+  const receipt = await loadSimulatedReceipt(txId, options);
+  const trace = await loadSimulatedTrace(txId, options);
+
+  if (!receipt || !trace) {
+    throw new Error(`Receipt or trace not found for transaction: ${txId}`);
+  }
+
+  return {
+    receipt,
+    trace,
+    summary: {
+      spentCount: receipt.spentUtxoIds?.length || 0,
+      createdCount: receipt.createdUtxoIds?.length || 0,
+      transferredSompi: BigInt(receipt.amountSompi),
+      feeSompi: BigInt(receipt.feeSompi || "0"),
+      changeSompi: BigInt(receipt.changeSompi || "0"),
+      finalDaaScore: receipt.daaScore || "0"
+    }
+  };
+}

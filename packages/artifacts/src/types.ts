@@ -8,6 +8,21 @@ export interface HardkasArtifactBase {
   createdAt: string;
 }
 
+export interface DagContext {
+  mode: "linear" | "dag-light";
+  sink: string;
+  selectedParent?: string;
+  branchId?: string;
+  acceptedTxIds?: string[];
+  displacedTxIds?: string[];
+  conflictSet?: Array<{
+    outpoint: string;
+    winnerTxId: string;
+    loserTxIds: string[];
+  }>;
+  nonSelectedContext?: boolean;
+}
+
 export interface UtxoArtifact {
   readonly outpoint: {
     readonly transactionId: string;

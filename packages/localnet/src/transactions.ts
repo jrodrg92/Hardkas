@@ -154,6 +154,18 @@ export function applySimulatedPayment(
     (receipt as any).preStateHash = preStateHash;
     (receipt as any).postStateHash = postStateHash;
 
+    if (state.dag) {
+      (receipt as any).dagContext = {
+        mode: "dag-light",
+        sink: state.dag.sink,
+        acceptedTxIds: state.dag.acceptedTxIds,
+        displacedTxIds: state.dag.displacedTxIds,
+        conflictSet: state.dag.conflictSet
+      };
+    } else {
+      (receipt as any).dagContext = { mode: "linear", sink: "linear-pseudo-sink" };
+    }
+
     return {
       ok: true,
       state: nextState,
@@ -254,6 +266,18 @@ export function applySimulatedPlan(
 
     (receipt as any).preStateHash = preStateHash;
     (receipt as any).postStateHash = postStateHash;
+
+    if (state.dag) {
+      (receipt as any).dagContext = {
+        mode: "dag-light",
+        sink: state.dag.sink,
+        acceptedTxIds: state.dag.acceptedTxIds,
+        displacedTxIds: state.dag.displacedTxIds,
+        conflictSet: state.dag.conflictSet
+      };
+    } else {
+      (receipt as any).dagContext = { mode: "linear", sink: "linear-pseudo-sink" };
+    }
 
     return { ok: true, state: nextState, receipt, planArtifact, errors };
 

@@ -22,6 +22,29 @@ export interface LocalnetState extends HardkasArtifactBase {
   accounts: LocalnetAccount[];
   utxos: LocalnetUtxo[];
   snapshots?: SnapshotV2[];
+  dag?: SimulatedDag;
+}
+
+export interface SimulatedBlock {
+  id: string;
+  parents: string[];
+  blueScore: string;
+  daaScore: string;
+  acceptedTxIds: string[];
+  isGenesis?: boolean;
+}
+
+export interface SimulatedDag {
+  blocks: Record<string, SimulatedBlock>;
+  sink: string;
+  selectedPathToSink: string[]; // instead of selectedChain
+  acceptedTxIds: string[];
+  displacedTxIds: string[];
+  conflictSet: Array<{
+    outpoint: string;
+    winnerTxId: string;
+    loserTxIds: string[];
+  }>;
 }
 
 export interface StateTransition {

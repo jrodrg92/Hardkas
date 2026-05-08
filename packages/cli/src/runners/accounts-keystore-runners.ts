@@ -67,12 +67,8 @@ export async function runAccountsKeystoreImport(options: {
 
   // Save to .hardkas/keystore/<name>.json
   const keystoreDir = path.join(process.cwd(), ".hardkas", "keystore");
-  if (!fs.existsSync(keystoreDir)) {
-    fs.mkdirSync(keystoreDir, { recursive: true });
-  }
-
   const filePath = path.join(keystoreDir, `${name}.json`);
-  fs.writeFileSync(filePath, JSON.stringify(keystore, null, 2), "utf-8");
+  await KeystoreManager.saveEncryptedKeystore(filePath, keystore);
 
   return {
     success: true,
@@ -89,12 +85,7 @@ export async function runAccountsKeystoreUnlock(options: { name: string }) {
   const { name } = options;
   const filePath = path.join(process.cwd(), ".hardkas", "keystore", `${name}.json`);
 
-  if (!fs.existsSync(filePath)) {
-    throw new Error(`Keystore file for '${name}' not found at ${filePath}`);
-  }
-
-  const data = fs.readFileSync(filePath, "utf-8");
-  const keystore = JSON.parse(data);
+  const keystore = await KeystoreManager.loadEncryptedKeystore(filePath);
 
   const passwordPrompt = new Password({
     name: 'password',
@@ -119,12 +110,7 @@ export async function runAccountsKeystoreChangePassword(options: { name: string 
   const { name } = options;
   const filePath = path.join(process.cwd(), ".hardkas", "keystore", `${name}.json`);
 
-  if (!fs.existsSync(filePath)) {
-    throw new Error(`Keystore file for '${name}' not found at ${filePath}`);
-  }
-
-  const data = fs.readFileSync(filePath, "utf-8");
-  const keystore = JSON.parse(data);
+  const keystore = await KeystoreManager.loadEncryptedKeystore(filePath);
 
   const oldPasswordPrompt = new Password({
     name: 'old',
@@ -154,6 +140,6 @@ export async function runAccountsKeystoreChangePassword(options: { name: string 
     newPassword
   );
 
-  fs.writeFileSync(filePath, JSON.stringify(updatedKeystore, null, 2), "utf-8");
+  await KeystoreManager.saveEncryptedKeystore(filePath, updatedKeystore);
   UI.success(`Successfully changed password for account '${name}'.`);
 }
