@@ -1,4 +1,4 @@
-import { HardkasArtifactBase } from "@hardkas/artifacts";
+import { HardkasArtifactBase, SnapshotV2 } from "@hardkas/artifacts";
 
 export interface LocalnetAccount {
   name: string;
@@ -8,19 +8,10 @@ export interface LocalnetAccount {
 export interface LocalnetUtxo {
   id: string;
   address: string;
-  amountSompi: string; // string for JSON compatibility (BigInt)
+  amountSompi: string; 
   spent: boolean;
   createdAtDaaScore: string;
   spentAtDaaScore?: string;
-}
-
-export interface LocalnetSnapshot {
-  id: string;
-  name?: string | undefined;
-  createdAt: string;
-  daaScore: string;
-  accounts: LocalnetAccount[];
-  utxos: LocalnetUtxo[];
 }
 
 export interface LocalnetState extends HardkasArtifactBase {
@@ -30,5 +21,5 @@ export interface LocalnetState extends HardkasArtifactBase {
   daaScore: string;
   accounts: LocalnetAccount[];
   utxos: LocalnetUtxo[];
-  snapshots?: LocalnetSnapshot[];
+  snapshots?: SnapshotV2[];
 }

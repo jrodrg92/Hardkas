@@ -1,107 +1,82 @@
-import { validateTxPlanArtifact } from "./validate.js";
-import type { TxPlanArtifact, SignedTxArtifact } from "./types.js";
-import { HARDKAS_VERSION, ARTIFACT_SCHEMAS, HardkasArtifactMode } from "./constants.js";
+import { TxPlanV2, TxReceiptV2, SignedTxV2, ARTIFACT_V2_VERSION } from "./schemas.js";
+import { calculateContentHash } from "./canonical.js";
+import { HARDKAS_VERSION } from "./constants.js";
 
-export interface CreateSimulatedSignedTxArtifactInput {
-  plan: TxPlanArtifact;
-  account: string;
-  signerAddress?: string | undefined;
-  artifactPath?: string | undefined;
-  metadata?: SignedTxArtifact["metadata"];
-}
-
-export function createSimulatedSignedTxArtifact(
-  input: CreateSimulatedSignedTxArtifactInput
-): SignedTxArtifact {
-  const { plan } = input;
-  
-  // Basic sanity check
-  const validation = validateTxPlanArtifact(plan);
-  if (!validation.ok) {
-    throw new Error(`Cannot sign invalid TxPlanArtifact: ${validation.errors.join(", ")}`);
-  }
-
-  if (plan.status !== "built" && (plan as any).status !== "unsigned") {
-    throw new Error(`Cannot sign artifact with status: ${plan.status}`);
-  }
-
-  const signedId = `signed_${plan.planId.substring(0, 8)}_${Date.now().toString(36)}`;
-
-  const artifact: SignedTxArtifact = {
-    schema: ARTIFACT_SCHEMAS.SIGNED_TX,
+/**
+ * Creates a v2 simulated signed transaction artifact.
+ */
+export function createSimulatedSignedTxArtifact(plan: TxPlanV2, payload: string): SignedTxV2 {
+  const artifact: SignedTxV2 = {
+    schema: "hardkas.signedTx.v2",
     hardkasVersion: HARDKAS_VERSION,
-    status: "signed",
+    version: ARTIFACT_V2_VERSION,
     createdAt: new Date().toISOString(),
-    signedId,
-
+    status: "signed",
+    signedId: `signed-${Date.now()}`,
     sourcePlanId: plan.planId,
-    sourcePlanPath: input.artifactPath ?? undefined,
-
     networkId: plan.networkId,
     mode: plan.mode,
-
-    from: plan.from,
-    to: plan.to,
-
+    from: { address: plan.from.address },
+    to: { address: plan.to.address },
     amountSompi: plan.amountSompi,
-    amount: plan.amount,
-
     signedTransaction: {
       format: "simulated",
-      payload: `simulated-signed-tx:${plan.planId}`
-    },
-
-    metadata: input.metadata
+      payload
+    }
   };
 
+  artifact.contentHash = calculateContentHash(artifact);
   return artifact;
 }
 
-export function signedTxArtifactToJson(artifact: SignedTxArtifact): string {
-  return JSON.stringify(artifact, null, 2) + "\n";
-}
+/**
+ * Creates a v2 simulated receipt.
+ */
+export function createSimulatedTxReceipt(
+  plan: TxPlanV2, 
+  txId: string, 
+  extra?: { 
+    spentUtxoIds?: string[], 
+    createdUtxoIds?: string[], 
+    daaScore?: string 
+  }
+): TxReceiptV2 {
+  const artifact: TxReceiptV2 = {
+    schema: "hardkas.txReceipt.v2",
+    hardkasVersion: HARDKAS_VERSION,
+    version: ARTIFACT_V2_VERSION,
+    createdAt: new Date().toISOString(),
+    txId,
+    status: "accepted",
+    mode: "simulated",
+    networkId: plan.networkId,
+    from: { address: plan.from.address },
+    to: { address: plan.to.address },
+    amountSompi: plan.amountSompi,
+    feeSompi: plan.estimatedFeeSompi,
+    changeSompi: (plan as any).change?.amountSompi,
+    spentUtxoIds: extra?.spentUtxoIds,
+    createdUtxoIds: extra?.createdUtxoIds,
+    daaScore: extra?.daaScore
+  };
 
-export interface BroadcastableSignedTx {
-  readonly networkId: string;
-  readonly mode: HardkasArtifactMode;
-  readonly rawTransaction: string;
+  artifact.contentHash = calculateContentHash(artifact);
+  return artifact;
 }
 
 /**
- * Extracts and validates a broadcastable transaction from a signed artifact.
+ * Validates and extracts the raw transaction from a signed artifact.
  */
-export function getBroadcastableSignedTransaction(
-  artifact: SignedTxArtifact
-): BroadcastableSignedTx {
-  if (artifact.status !== "signed") {
-    throw new Error(`Signed artifact is in invalid state: ${artifact.status}`);
-  }
-
-  const networkId = artifact.networkId;
-
-  if (artifact.mode === "simulated") {
-    return {
-      networkId,
-      mode: "simulated",
-      rawTransaction: artifact.signedTransaction?.payload || "simulated-tx-placeholder"
-    };
-  }
-
-  if (!artifact.signedTransaction) {
-    throw new Error("Signed artifact is missing the 'signedTransaction' object.");
-  }
-
-  if (artifact.signedTransaction.format === "unknown") {
-    throw new Error("Signed artifact has an unknown transaction format.");
-  }
-
-  if (!artifact.signedTransaction.payload) {
+export function getBroadcastableSignedTransaction(artifact: any): {
+  mode: string;
+  rawTransaction: string;
+} {
+  if (!artifact.signedTransaction?.payload) {
     throw new Error("Signed artifact is missing the raw transaction payload.");
   }
 
   return {
-    networkId,
-    mode: artifact.mode,
+    mode: artifact.mode || "rpc",
     rawTransaction: artifact.signedTransaction.payload
   };
 }

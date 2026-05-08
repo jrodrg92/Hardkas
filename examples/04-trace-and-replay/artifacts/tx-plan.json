@@ -1,0 +1,39 @@
+{
+  "schema": "hardkas.txPlan.v2",
+  "hardkasVersion": "0.1.0-dev",
+  "version": "2.0.0",
+  "createdAt": "2026-05-08T10:09:37.400Z",
+  "networkId": "simnet",
+  "mode": "simulated",
+  "planId": "plan-1778234977400-c8x6t",
+  "from": {
+    "address": "kaspa:sim_alice",
+    "accountName": "alice"
+  },
+  "to": {
+    "address": "kaspa:sim_bob"
+  },
+  "amountSompi": "1000000000",
+  "estimatedFeeSompi": "350",
+  "estimatedMass": "350",
+  "inputs": [
+    {
+      "outpoint": {
+        "transactionId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "index": 0
+      },
+      "amountSompi": "10000000000"
+    }
+  ],
+  "outputs": [
+    {
+      "address": "kaspa:sim_bob",
+      "amountSompi": "1000000000"
+    }
+  ],
+  "change": {
+    "address": "kaspa:sim_alice",
+    "amountSompi": "8999999650"
+  },
+  "contentHash": "047ad9c45357cbd108d22bb47d45eeaf59cb59385e0f099963582653f6e6740b"
+}

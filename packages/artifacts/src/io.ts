@@ -1,11 +1,11 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { 
-  assertValidTxPlanArtifact, 
-  assertValidSignedTxArtifact, 
-  assertValidTxReceiptArtifact 
-} from "./validate.js";
-import type { TxPlanArtifact, SignedTxArtifact, TxReceiptArtifact } from "./types.js";
+  TxPlanV2,
+  SignedTxV2,
+  TxReceiptV2
+} from "./schemas.js";
+import { verifyArtifact } from "./verify.js";
 
 export const bigIntReplacer = (_key: string, value: any) => 
   typeof value === "bigint" ? value.toString() : value;
@@ -26,10 +26,10 @@ export async function writeArtifact(filePath: string, artifact: unknown): Promis
 }
 
 export function getDefaultReceiptPath(txId: string, cwd: string = process.cwd()): string {
-  return path.join(cwd, ".hardkas", "receipts", `${txId}.json`);
+  return path.join(cwd, "artifacts", "receipts", `${txId}.json`);
 }
 
-export async function readArtifact(filePath: string): Promise<unknown> {
+export async function readArtifact(filePath: string): Promise<any> {
   try {
     const content = await fs.readFile(filePath, "utf-8");
     return JSON.parse(content);
@@ -41,20 +41,29 @@ export async function readArtifact(filePath: string): Promise<unknown> {
   }
 }
 
-export async function readTxPlanArtifact(filePath: string): Promise<TxPlanArtifact> {
+export async function readTxPlanArtifact(filePath: string): Promise<TxPlanV2> {
+  const result = await verifyArtifact(filePath);
+  if (!result.ok) {
+    throw new Error(`Invalid TxPlan artifact: ${result.errors.join(", ")}`);
+  }
   const data = await readArtifact(filePath);
-  assertValidTxPlanArtifact(data);
-  return data;
+  return data as TxPlanV2;
 }
 
-export async function readSignedTxArtifact(filePath: string): Promise<SignedTxArtifact> {
+export async function readSignedTxArtifact(filePath: string): Promise<SignedTxV2> {
+  const result = await verifyArtifact(filePath);
+  if (!result.ok) {
+    throw new Error(`Invalid SignedTx artifact: ${result.errors.join(", ")}`);
+  }
   const data = await readArtifact(filePath);
-  assertValidSignedTxArtifact(data);
-  return data;
+  return data as SignedTxV2;
 }
 
-export async function readTxReceiptArtifact(filePath: string): Promise<TxReceiptArtifact> {
+export async function readTxReceiptArtifact(filePath: string): Promise<TxReceiptV2> {
+  const result = await verifyArtifact(filePath);
+  if (!result.ok) {
+    throw new Error(`Invalid TxReceipt artifact: ${result.errors.join(", ")}`);
+  }
   const data = await readArtifact(filePath);
-  assertValidTxReceiptArtifact(data);
-  return data;
+  return data as TxReceiptV2;
 }

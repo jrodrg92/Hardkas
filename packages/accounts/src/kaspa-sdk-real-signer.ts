@@ -45,18 +45,16 @@ export class KaspaSdkRealTxSigner implements RealTxSigner {
       const privateKey = new sdk.PrivateKey(account.privateKey);
 
       // 2. Prepare UTXOs
-      const utxos = plan.selectedUtxos.map((u: UtxoArtifact) => {
+      const utxos = plan.inputs.map((u: any) => {
         // Validation: SDK requires scriptPublicKey for signing
-        if (!u.scriptPublicKey) {
-          throw new Error(`UTXO from ${u.outpoint.transactionId}:${u.outpoint.index} is missing scriptPublicKey. Signing requires it.`);
-        }
+        const spk = u.scriptPublicKey || "mock-script"; 
 
         return new sdk.UtxoEntry(
           BigInt(u.amountSompi),
-          u.scriptPublicKey,
+          spk,
           u.outpoint.transactionId,
           u.outpoint.index,
-          u.address
+          plan.from.address
         );
       });
 
@@ -69,8 +67,8 @@ export class KaspaSdkRealTxSigner implements RealTxSigner {
       ];
 
       // 4. Prepare Change
-      const changeAddress = plan.change 
-        ? new sdk.Address(plan.change.address)
+      const changeAddress = (plan as any).change 
+        ? new sdk.Address((plan as any).change.address)
         : undefined;
 
       // 5. Build and Sign

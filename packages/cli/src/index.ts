@@ -67,6 +67,7 @@ import { runL2Call, runL2EstimateGas } from "./runners/l2-call-runners.js";
 import { runL2TxBuild, runL2TxSign, runL2TxSend, runL2TxReceipt, runL2TxReceipts, runL2TxStatus } from "./runners/l2-tx-runners.js";
 import { runL2ContractDeployPlan } from "./runners/l2-contract-runners.js";
 import { runL2BridgeStatus, runL2BridgeAssumptions } from "./runners/l2-bridge-runners.js";
+import { runArtifactVerify } from "./runners/artifact-verify-runner.js";
 import { bigIntReplacer } from "@hardkas/artifacts";
 import { UI, handleError } from "./ui.js";
 
@@ -214,6 +215,21 @@ configCmd.command("show")
           console.log(`  ${name} (${acc.kind})`);
         }
       }
+    } catch (e) {
+      handleError(e);
+      process.exitCode = 1;
+    }
+  });
+
+// --- Artifact Command ---
+const artifactCmd = program.command("artifact").description("Manage HardKAS artifacts");
+
+artifactCmd.command("verify <path>")
+  .description("Verify an artifact's integrity and schema")
+  .option("--json", "Output as JSON", false)
+  .action(async (path: string, options: { json: boolean }) => {
+    try {
+      await runArtifactVerify({ path, json: options.json });
     } catch (e) {
       handleError(e);
       process.exitCode = 1;

@@ -12,7 +12,14 @@
     "hardkas": "pnpm --filter @hardkas/cli run dev",
     "example:hello": "tsx examples/01-hello-kaspa/main.ts",
     "example:transfer": "tsx examples/02-basic-transfer/main.ts",
-    "example:localnet": "tsx examples/03-localnet-demo/main.ts"
+    "example:localnet": "tsx examples/03-localnet-demo/main.ts",
+    "example:trace": "pnpm --filter @examples/trace-and-replay start",
+    "example:snapshot": "pnpm --filter @examples/snapshot-restore start",
+    "example:rpc-health": "pnpm --filter @examples/rpc-node-health start",
+    "example:failure": "pnpm --filter @examples/failure-debugging start",
+    "example:igra-readonly": "pnpm --filter @examples/igra-l2-readonly start",
+    "example:bridge-assumptions": "pnpm --filter @examples/bridge-assumptions start",
+    "example:ci": "pnpm --filter @examples/ci-workflow start"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

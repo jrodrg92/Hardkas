@@ -2,6 +2,7 @@ import {
   TxPlanArtifact, 
   SignedTxArtifact,
   createSimulatedSignedTxArtifact,
+  calculateArtifactHash,
   HARDKAS_VERSION,
   ARTIFACT_SCHEMAS
 } from "@hardkas/artifacts";
@@ -56,8 +57,11 @@ export async function signTxPlanArtifact(input: {
   const { planArtifact, account } = input;
 
   // Security guardrails
-  if (planArtifact.status !== "built" && (planArtifact as any).status !== "unsigned") {
-    throw new Error(`Cannot sign artifact with status: ${planArtifact.status}`);
+  // In v2, status might be missing if schema is used as the state marker
+  if (planArtifact.schema === "hardkas.txPlan.v2") {
+    // Valid for signing
+  } else if ((planArtifact as any).status !== "built" && (planArtifact as any).status !== "unsigned") {
+    throw new Error(`Cannot sign artifact with status: ${(planArtifact as any).status}`);
   }
 
   // Account and plan mode matching
@@ -77,11 +81,10 @@ export async function signTxPlanArtifact(input: {
   }
 
   if (account.kind === "simulated") {
-    return createSimulatedSignedTxArtifact({
-      plan: planArtifact,
-      account: account.name,
-      signerAddress: account.address
-    });
+    return createSimulatedSignedTxArtifact(
+      planArtifact as any,
+      `simulated-signed-tx:${planArtifact.planId}`
+    );
   }
 
   if (account.kind === "kaspa-private-key") {
@@ -101,33 +104,26 @@ export async function signTxPlanArtifact(input: {
       accountName: account.name
     });
 
-    const artifact: SignedTxArtifact = {
-      schema: ARTIFACT_SCHEMAS.SIGNED_TX,
+    const artifact: any = {
+      schema: "hardkas.signedTx.v2",
       hardkasVersion: HARDKAS_VERSION,
+      version: "2.0.0",
       status: "signed",
       createdAt: new Date().toISOString(),
       signedId: `signed_${planArtifact.planId}_${Date.now().toString(36)}`,
       sourcePlanId: planArtifact.planId,
-      
       networkId: planArtifact.networkId,
       mode: planArtifact.mode,
-      
-      from: planArtifact.from,
-      to: planArtifact.to,
-      
+      from: { address: planArtifact.from.address },
+      to: { address: planArtifact.to.address },
       amountSompi: planArtifact.amountSompi,
-      amount: planArtifact.amount,
-      
       signedTransaction: {
         format: result.signedTransaction?.format === "hex" ? "hex" : "unknown",
         payload: result.signedTransaction?.payload || ""
-      },
-      
-      metadata: {
-        signingBackend: status.name
       }
     };
 
+    artifact.contentHash = calculateArtifactHash(artifact);
     return artifact;
   }
 

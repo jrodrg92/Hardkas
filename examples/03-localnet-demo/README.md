@@ -35,7 +35,7 @@ The demo uses a structured, visual output to guide you through the process, maki
 # Environment Diagnostics
 ------------------------
 Network:    simulated
-RPC Target: ws://127.0.0.1:17110
+RPC Target: ws://127.0.0.1:18210
 Status:     connected
 ...
 ```

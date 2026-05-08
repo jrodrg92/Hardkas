@@ -89,12 +89,26 @@ export class JsonWrpcKaspaClient implements KaspaRpcClient {
 
   constructor(options: JsonWrpcKaspaClientOptions) {
     this.rpcUrl = options.rpcUrl;
-    this.timeoutMs = options.timeoutMs ?? 3000;
+    this.timeoutMs = options.timeoutMs ?? 10000;
   }
 
   async getInfo(): Promise<KaspaNodeInfo> {
-    const response = await this.safeRequest(["getInfoRequest", "getInfo"]);
-    return mapKaspaNodeInfo(response);
+    const response = await this.safeRequest(["GetInfo", "getInfo", "get_info", "getInfoRequest"]);
+    const info = mapKaspaNodeInfo(response);
+    
+    // Try to supplement with DAG info if virtualDaaScore is missing
+    if (info.virtualDaaScore === undefined) {
+      try {
+        const dagResponse = await this.safeRequest(["GetBlockDagInfo", "getBlockDagInfo", "get_block_dag_info"]);
+        const dagData = (dagResponse as any)?.params || (dagResponse as any);
+        if (dagData?.virtualDaaScore !== undefined) {
+          (info as any).virtualDaaScore = dagData.virtualDaaScore;
+        }
+      } catch (e) {
+        // Ignore errors supplementing info
+      }
+    }
+    return info;
   }
 
   async healthCheck(): Promise<KaspaRpcHealth> {
@@ -112,15 +126,15 @@ export class JsonWrpcKaspaClient implements KaspaRpcClient {
 
   async getBalanceByAddress(address: string): Promise<KaspaAddressBalance> {
     const response = await this.safeRequest(
-      ["getBalanceByAddressRequest", "getBalanceByAddress"],
-      { address }
+      ["GetBalancesByAddresses", "getBalancesByAddresses", "get_balances_by_addresses", "GetBalanceByAddress", "getBalanceByAddress", "get_balance_by_address"],
+      { addresses: [address], address }
     );
     return mapKaspaAddressBalance(response, address);
   }
 
   async getUtxosByAddress(address: string): Promise<KaspaRpcUtxo[]> {
     const response = await this.safeRequest(
-      ["getUtxosByAddressesRequest", "getUtxosByAddresses", "getUtxosByAddressRequest", "getUtxosByAddress"],
+      ["GetUtxosByAddresses", "getUtxosByAddresses", "get_utxos_by_addresses", "GetUtxosByAddress", "getUtxosByAddress", "get_utxos_by_address"],
       { addresses: [address], address }
     );
     return mapKaspaRpcUtxos(response, address);
@@ -128,7 +142,7 @@ export class JsonWrpcKaspaClient implements KaspaRpcClient {
 
   async submitTransaction(rawTransaction: string): Promise<KaspaSubmitTransactionResult> {
     const response = await this.safeRequest(
-      ["submitTransactionRequest", "submitTransaction"],
+      ["SubmitTransaction", "submitTransaction", "submit_transaction"],
       { transaction: rawTransaction, transactionHex: rawTransaction, rawTransaction }
     );
     return mapKaspaSubmitTransactionResult(response);
@@ -191,13 +205,35 @@ export class JsonWrpcKaspaClient implements KaspaRpcClient {
     let lastError: any = null;
     for (const method of methods) {
       try {
-        return await this.request(method, params);
+        let actualParams: any = params;
+        const lowerMethod = method.toLowerCase();
+        // Strict mapping based on method name
+        if (lowerMethod.includes("addresses") || lowerMethod.endsWith("s")) {
+           if ((params as any).address && !(params as any).addresses) {
+             actualParams = { addresses: [(params as any).address] };
+           } else if ((params as any).addresses) {
+             actualParams = { addresses: (params as any).addresses };
+           }
+        } else if ((params as any).addresses && !(params as any).address) {
+           actualParams = { address: (params as any).addresses[0] };
+        } else if ((params as any).address) {
+           actualParams = { address: (params as any).address };
+        }
+
+        // Try object params first
+        try {
+          return await this.request(method, actualParams);
+        } catch (e: any) {
+          if (e.message?.includes("deserialization")) {
+            // Try array-based params as fallback for deserialization errors
+            const arrayParams = Object.values(actualParams);
+            return await this.request(method, arrayParams);
+          }
+          throw e;
+        }
       } catch (error) {
         lastError = error;
-        if ((error as any).code === -32601) {
-          continue;
-        }
-        throw error;
+        continue;
       }
     }
     throw lastError ?? new Error(`Methods failed: ${methods.join(", ")}`);
@@ -207,7 +243,6 @@ export class JsonWrpcKaspaClient implements KaspaRpcClient {
     const ws = await this.connect();
     const id = this.requestId++;
     const payload = JSON.stringify({
-      jsonrpc: "2.0",
       id,
       method,
       params
@@ -221,13 +256,18 @@ export class JsonWrpcKaspaClient implements KaspaRpcClient {
 
       const onMessage = (data: any) => {
         try {
-          const response = JSON.parse(data.toString());
-          if (response.id === id) {
+          const raw = data.toString();
+          console.log(`[RPC DEBUG] Received: ${raw}`);
+          const response = JSON.parse(raw);
+          if (String(response.id) === String(id)) {
             cleanup();
             if (response.error) {
-              reject(response.error);
+              const err = response.error;
+              const msg = err.message || (typeof err === "string" ? err : JSON.stringify(err));
+              reject(new Error(msg));
             } else {
-              resolve(response.result);
+              // Some wRPC implementations return data in 'params' instead of 'result'
+              resolve(response.result !== undefined ? response.result : response.params);
             }
           }
         } catch (e) {}
@@ -251,8 +291,10 @@ export class JsonWrpcKaspaClient implements KaspaRpcClient {
   }
 
   private async connect(): Promise<WebSocket> {
-    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
-      return this.socket;
+    // For debugging/fixing timeouts, let's try always creating a new connection
+    if (this.socket) {
+      this.socket.close();
+      this.socket = null;
     }
 
     return new Promise((resolve, reject) => {
@@ -289,7 +331,7 @@ export function mapKaspaNodeInfo(result: any): KaspaNodeInfo {
     isUtxoIndexed: result.isUtxoIndexed !== undefined ? result.isUtxoIndexed : result.is_utxo_indexed,
     p2pId: result.p2pId || result.p2p_id,
     mempoolSize: result.mempoolSize !== undefined ? result.mempoolSize : result.mempool_size,
-    virtualDaaScore: result.virtualDaaScore !== undefined ? result.virtualDaaScore : result.virtual_daa_score,
+    virtualDaaScore: result.virtualDaaScore !== undefined ? result.virtualDaaScore : (result.virtual_daa_score !== undefined ? result.virtual_daa_score : (result.params?.virtualDaaScore)),
     networkId: result.networkId || result.network_id,
     raw: result
   };
@@ -298,7 +340,15 @@ export function mapKaspaNodeInfo(result: any): KaspaNodeInfo {
 export function mapKaspaAddressBalance(result: any, address: string): KaspaAddressBalance {
   if (!result) return { address, balanceSompi: 0n, raw: result };
   
-  const balance = result.balance !== undefined ? result.balance : result.balanceSompi;
+  // Handle array response from getBalancesByAddresses
+  let entry = result;
+  if (Array.isArray(result)) {
+    entry = result.find((e: any) => (e.address || e.addressString || e.address_string) === address) || result[0];
+  } else if (result.entries && Array.isArray(result.entries)) {
+    entry = result.entries.find((e: any) => (e.address || e.addressString || e.address_string) === address) || result.entries[0];
+  }
+
+  const balance = entry.balance !== undefined ? entry.balance : (entry.balanceSompi !== undefined ? entry.balanceSompi : entry.amount);
   const balanceSompi = balance !== undefined ? BigInt(balance) : 0n;
 
   return {
@@ -338,13 +388,13 @@ export function mapKaspaRpcUtxos(result: any, address: string): KaspaRpcUtxo[] {
   }
 
   return (entries as any[]).map((entry: any) => {
-    const utxoEntry = entry.utxoEntry || entry.utxo_entry || entry;
+    const utxoEntry = entry.utxoEntry || entry.utxo_entry || entry.utxo || entry;
     const outpoint = entry.outpoint || entry;
 
     return {
       outpoint: {
-        transactionId: outpoint.transactionId || outpoint.transaction_id || outpoint.txId || outpoint.tx_id || "",
-        index: Number(outpoint.index !== undefined ? outpoint.index : outpoint.outputIndex)
+        transactionId: outpoint.transactionId || outpoint.transaction_id || outpoint.txId || outpoint.tx_id || outpoint.transaction_hash || "",
+        index: Number(outpoint.index !== undefined ? outpoint.index : (outpoint.outputIndex !== undefined ? outpoint.outputIndex : outpoint.output_index))
       },
       address: entry.address || address,
       amountSompi: BigInt(utxoEntry.amount || utxoEntry.amountSompi || utxoEntry.amount_sompi || 0),

@@ -2,7 +2,11 @@ import { buildPaymentPlan } from "@hardkas/tx-builder";
 import type { LocalnetState, LocalnetUtxo } from "./types";
 import { resolveAccountAddressFromState } from "./state";
 import { getSpendableUtxos } from "./balance";
-import { HardkasArtifactBase, HARDKAS_VERSION, ARTIFACT_SCHEMAS } from "@hardkas/artifacts";
+import { 
+  createTxPlanArtifact, 
+  createSimulatedTxReceipt, 
+  TxReceiptArtifact 
+} from "@hardkas/artifacts";
 
 export interface SimulatedPaymentInput {
   readonly from: string;
@@ -11,24 +15,9 @@ export interface SimulatedPaymentInput {
   readonly feeRateSompiPerMass?: bigint;
 }
 
-export interface SimulatedTxReceipt extends HardkasArtifactBase {
-  readonly schema: "hardkas.simulatedTxReceipt.v1";
-  readonly txId: string;
-  readonly mode: "simulated";
-  readonly networkId: "simnet";
-  readonly fromAddress: string;
-  readonly toAddress: string;
-  readonly amountSompi: string;
-  readonly feeSompi: string;
-  readonly changeSompi?: string | undefined;
-  readonly spentUtxoIds: readonly string[];
-  readonly createdUtxoIds: readonly string[];
-  readonly daaScore: string;
-}
-
 export interface ApplySimulatedPaymentResult {
   readonly state: LocalnetState;
-  readonly receipt: SimulatedTxReceipt;
+  readonly receipt: TxReceiptArtifact;
 }
 
 /**
@@ -79,6 +68,15 @@ export function applySimulatedPayment(
     feeRateSompiPerMass
   });
 
+  const planArtifact = createTxPlanArtifact({
+    networkId: "simnet",
+    mode: "simulated",
+    from: { input: input.from, address: fromAddress },
+    to: { input: input.to, address: toAddress },
+    amountSompi,
+    plan
+  });
+
   // Advance DAA Score
   const nextDaaScore = (BigInt(state.daaScore) + 1n).toString();
   const txId = `simtx_${nextDaaScore}_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
@@ -111,7 +109,6 @@ export function applySimulatedPayment(
   createdUtxoIds.push(recipientUtxo.id);
 
   // Create change UTXO
-  let changeSompiStr: string | undefined;
   if (plan.change) {
     const changeUtxo: LocalnetUtxo = {
       id: `${txId}:1`,
@@ -122,7 +119,6 @@ export function applySimulatedPayment(
     };
     nextUtxos.push(changeUtxo);
     createdUtxoIds.push(changeUtxo.id);
-    changeSompiStr = changeUtxo.amountSompi;
   }
 
   const nextState: LocalnetState = {
@@ -131,22 +127,11 @@ export function applySimulatedPayment(
     utxos: nextUtxos
   };
 
-  const receipt: SimulatedTxReceipt = {
-    schema: ARTIFACT_SCHEMAS.SIMULATED_TX_RECEIPT,
-    hardkasVersion: HARDKAS_VERSION,
-    createdAt: new Date().toISOString(),
-    txId,
-    mode: "simulated",
-    networkId: "simnet",
-    fromAddress,
-    toAddress,
-    amountSompi: amountSompi.toString(),
-    feeSompi: plan.estimatedFeeSompi.toString(),
-    changeSompi: changeSompiStr,
+  const receipt = createSimulatedTxReceipt(planArtifact, txId, {
     spentUtxoIds,
     createdUtxoIds,
     daaScore: nextDaaScore
-  };
+  });
 
   return {
     state: nextState,

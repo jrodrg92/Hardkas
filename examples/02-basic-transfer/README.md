@@ -15,7 +15,7 @@ This example demonstrates the complete lifecycle of a Kaspa Layer 1 transaction 
 
 ## Prerequisites
 
--   A running Kaspa node (kaspad) with JSON-RPC enabled on `ws://127.0.0.1:17110`.
+-   A running Kaspa node (kaspad) with JSON-RPC enabled on `ws://127.0.0.1:18210`.
 -   The node should have some UTXOs for the `alice` address (simulated/localnet).
 
 ## How to run

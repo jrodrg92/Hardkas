@@ -1,17 +1,30 @@
-import type { LocalnetState, LocalnetSnapshot } from "./types";
+import { 
+  SnapshotV2, 
+  HARDKAS_VERSION, 
+  ARTIFACT_V2_VERSION,
+  calculateContentHash,
+  sortUtxosByOutpoint
+} from "@hardkas/artifacts";
+import type { LocalnetState } from "./types";
 
 export function createLocalnetSnapshot(
   state: LocalnetState,
   name?: string
 ): LocalnetState {
-  const snapshot: LocalnetSnapshot = {
-    id: `snap-${Date.now().toString(36)}`,
-    name,
+  // Deterministic sorting of UTXOs for hashing
+  const sortedUtxos = sortUtxosByOutpoint(state.utxos);
+
+  const snapshot: any = {
+    schema: "hardkas.snapshot.v2",
+    hardkasVersion: HARDKAS_VERSION,
+    version: ARTIFACT_V2_VERSION,
     createdAt: new Date().toISOString(),
     daaScore: state.daaScore,
     accounts: JSON.parse(JSON.stringify(state.accounts)),
-    utxos: JSON.parse(JSON.stringify(state.utxos))
+    utxos: JSON.parse(JSON.stringify(sortedUtxos))
   };
+
+  snapshot.contentHash = calculateContentHash(snapshot);
 
   return {
     ...state,
@@ -24,7 +37,7 @@ export function restoreLocalnetSnapshot(
   snapshotIdOrName: string
 ): LocalnetState {
   const snapshot = state.snapshots?.find(
-    s => s.id === snapshotIdOrName || s.name === snapshotIdOrName
+    (s: any) => s.id === snapshotIdOrName || s.name === snapshotIdOrName || s.contentHash === snapshotIdOrName
   );
 
   if (!snapshot) {
