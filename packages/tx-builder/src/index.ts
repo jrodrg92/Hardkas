@@ -1,4 +1,6 @@
 export type Sompi = bigint;
+import { estimateTransactionMassV2 } from "./mass.js";
+export * from "./mass.js";
 
 export interface Outpoint {
   readonly transactionId: string;
@@ -63,29 +65,53 @@ export function buildPaymentPlan(request: TxBuildRequest): TxPlan {
     selected.push(utxo);
     selectedAmount += utxo.amountSompi;
 
-    const estimatedMass = estimateMass({
+    // Preliminary check if we have enough to even consider fees
+    if (selectedAmount < target) continue;
+
+    // Estimate mass with change output assumed
+    const result = estimateTransactionMassV2({
       inputCount: selected.length,
-      outputCount: request.outputs.length + 1,
-      payloadBytes: request.payloadBytes ?? 0
+      outputs: request.outputs,
+      payloadBytes: request.payloadBytes ?? 0,
+      hasChange: true // Optimistic assumption for the loop
     });
 
+    const estimatedMass = result.mass;
     const estimatedFeeSompi = estimatedMass * request.feeRateSompiPerMass;
 
     if (selectedAmount >= target + estimatedFeeSompi) {
       const changeAmount = selectedAmount - target - estimatedFeeSompi;
+      const hasActualChange = changeAmount > 0n;
+
+      // Recalculate mass if no change output is actually needed
+      let finalMass = estimatedMass;
+      let finalFee = estimatedFeeSompi;
+
+      if (!hasActualChange) {
+        const noChangeResult = estimateTransactionMassV2({
+          inputCount: selected.length,
+          outputs: request.outputs,
+          payloadBytes: request.payloadBytes ?? 0,
+          hasChange: false
+        });
+        finalMass = noChangeResult.mass;
+        finalFee = finalMass * request.feeRateSompiPerMass;
+        
+        // Re-check if still enough after potential fee change
+        if (selectedAmount < target + finalFee) continue;
+      }
 
       return {
         inputs: selected,
         outputs: request.outputs,
-        change:
-          changeAmount > 0n
+        change: hasActualChange
             ? {
                 address: request.changeAddress ?? request.fromAddress,
                 amountSompi: changeAmount
               }
             : undefined,
-        estimatedMass,
-        estimatedFeeSompi
+        estimatedMass: finalMass,
+        estimatedFeeSompi: finalFee
       };
     }
   }
@@ -93,25 +119,18 @@ export function buildPaymentPlan(request: TxBuildRequest): TxPlan {
   throw new Error("Insufficient funds for transaction amount plus estimated fee.");
 }
 
+// Legacy support or internal use
 export function estimateMass(input: {
   readonly inputCount: number;
   readonly outputCount: number;
   readonly payloadBytes: number;
 }): bigint {
-  if (input.inputCount <= 0) {
-    throw new Error("inputCount must be positive.");
-  }
-
-  if (input.outputCount <= 0) {
-    throw new Error("outputCount must be positive.");
-  }
-
-  const baseMass = 100n;
-  const inputMass = BigInt(input.inputCount) * 150n;
-  const outputMass = BigInt(input.outputCount) * 50n;
-  const payloadMass = BigInt(input.payloadBytes);
-
-  return baseMass + inputMass + outputMass + payloadMass;
+  return estimateTransactionMassV2({
+    inputCount: input.inputCount,
+    outputs: Array(input.outputCount - 1).fill({ address: "" }),
+    payloadBytes: input.payloadBytes,
+    hasChange: true
+  }).mass;
 }
 
 export function createMockUtxo(input: {

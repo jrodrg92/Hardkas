@@ -23,3 +23,47 @@ export interface LocalnetState extends HardkasArtifactBase {
   utxos: LocalnetUtxo[];
   snapshots?: SnapshotV2[];
 }
+
+export interface StateTransition {
+  preStateHash: string;
+  postStateHash: string;
+  daaScore: string;
+}
+
+export interface SimulationResult {
+  ok: boolean;
+  state: LocalnetState;
+  receipt: any; // TxReceiptV2
+  planArtifact?: any; // TxPlanArtifact
+  errors: string[];
+}
+
+export interface ReplayInvariantResult {
+  ok: boolean;
+  mismatches: string[];
+}
+
+export interface ReplayVerificationReport {
+  planOk: boolean;
+  receiptOk: boolean;
+  invariantsOk: boolean;
+  errors: string[];
+}
+
+export interface SnapshotVerificationResult {
+  ok: boolean;
+  hashes: {
+    accountsMatch: boolean;
+    utxoSetMatch: boolean;
+    stateMatch: boolean;
+    contentMatch: boolean;
+  };
+  errors: string[];
+}
+
+export interface SnapshotRestoreResult {
+  ok: boolean;
+  previousStateHash?: string;
+  newStateHash?: string;
+  error?: string;
+}

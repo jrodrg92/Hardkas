@@ -58,24 +58,30 @@ describe("Simulated Transactions", () => {
     expect(getAddressBalanceSompi(state, bob)).toBe(1100n);
   });
 
-  it("should throw error for insufficient funds", () => {
+  it("should return ok:false for insufficient funds", () => {
     const state = createInitialLocalnetState({ accounts: 1, initialBalanceSompi: 100n });
     
-    expect(() => applySimulatedPayment(state, {
+    const result = applySimulatedPayment(state, {
       from: "alice",
       to: "bob",
       amountSompi: 200n
-    })).toThrow(/Insufficient funds/i);
+    });
+    
+    expect(result.ok).toBe(false);
+    expect(result.errors[0]).toMatch(/Insufficient funds/i);
   });
 
-  it("should throw error for non-positive amount", () => {
+  it("should return ok:false for non-positive amount", () => {
     const state = createInitialLocalnetState({ accounts: 1 });
     
-    expect(() => applySimulatedPayment(state, {
+    const result = applySimulatedPayment(state, {
       from: "alice",
       to: "bob",
       amountSompi: 0n
-    })).toThrow(/Amount must be greater than 0/);
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.errors[0]).toMatch(/Amount must be greater than 0/);
   });
 
   it("should handle address as recipient", () => {

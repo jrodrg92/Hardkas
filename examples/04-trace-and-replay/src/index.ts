@@ -100,7 +100,7 @@ async function main() {
   // 4. Phase: Estimate Mass & Fee
   addTrace("estimate", "start");
   console.log(`  Estimated Mass: ${planArtifact.estimatedMass}`);
-  console.log(`  Estimated Fee:  ${planArtifact.estimatedFee}`);
+  console.log(`  Estimated Fee:  ${planArtifact.estimatedFeeSompi} sompi`);
   addTrace("estimate", "completed");
 
   // 5. Phase: Sign

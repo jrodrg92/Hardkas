@@ -31,7 +31,7 @@ async function main() {
       amount: "10 KAS"
     });
     console.log(`  \x1b[32m✔\x1b[0m Plan built (ID: ${plan.planId})`);
-    console.log(`  Fee: ${plan.estimatedFee} | Mass: ${plan.estimatedMass}`);
+    console.log(`  Fee: ${plan.estimatedFeeSompi} sompi | Mass: ${plan.estimatedMass}`);
     console.log("");
 
     // [2/4] Signing

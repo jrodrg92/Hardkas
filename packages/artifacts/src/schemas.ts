@@ -48,7 +48,11 @@ export const LocalnetUtxoSchemaV2 = z.object({
 
 export const SnapshotSchemaV2 = BaseArtifactSchema.extend({
   schema: z.literal("hardkas.snapshot.v2"),
+  name: z.string().optional(),
   daaScore: z.string(),
+  accountsHash: z.string().optional(),
+  utxoSetHash: z.string().optional(),
+  stateHash: z.string().optional(),
   accounts: z.array(z.object({
     name: z.string(),
     address: z.string()
@@ -69,7 +73,9 @@ export const TxReceiptSchemaV2 = BaseArtifactSchema.extend({
   changeSompi: z.string().optional(),
   spentUtxoIds: z.array(z.string()).optional(),
   createdUtxoIds: z.array(z.string()).optional(),
-  daaScore: z.string().optional()
+  daaScore: z.string().optional(),
+  preStateHash: z.string().optional(),
+  postStateHash: z.string().optional()
 });
 
 export const SignedTxSchemaV2 = BaseArtifactSchema.extend({

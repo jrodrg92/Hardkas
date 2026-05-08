@@ -68,6 +68,7 @@ import { runL2TxBuild, runL2TxSign, runL2TxSend, runL2TxReceipt, runL2TxReceipts
 import { runL2ContractDeployPlan } from "./runners/l2-contract-runners.js";
 import { runL2BridgeStatus, runL2BridgeAssumptions } from "./runners/l2-bridge-runners.js";
 import { runArtifactVerify } from "./runners/artifact-verify-runner.js";
+import { runTxProfile } from "./runners/tx-profile-runner.js";
 import { bigIntReplacer } from "@hardkas/artifacts";
 import { UI, handleError } from "./ui.js";
 
@@ -179,6 +180,33 @@ exampleCmd.command("run <id>")
     }
   });
 
+// --- Snapshot Commands ---
+const snapshotCmd = program.command("snapshot").description("Manage HardKAS localnet snapshots");
+
+snapshotCmd.command("verify <idOrName>")
+  .description("Verify the integrity of a snapshot")
+  .action(async (idOrName: string) => {
+    const { runSnapshotVerify } = await import("./runners/snapshot-verify-runner.js");
+    await runSnapshotVerify({ idOrName });
+  });
+
+snapshotCmd.command("restore <idOrName>")
+  .description("Restore localnet state from a snapshot")
+  .action(async (idOrName: string) => {
+    const { runSnapshotRestore } = await import("./runners/snapshot-restore-runner.js");
+    await runSnapshotRestore({ idOrName });
+  });
+
+// --- Replay Commands ---
+const replayCmd = program.command("replay").description("Manage HardKAS transaction replays");
+
+replayCmd.command("verify <path>")
+  .description("Verify replay invariants for a directory of artifacts")
+  .action(async (path: string) => {
+    const { runReplayVerify } = await import("./runners/replay-verify-runner.js");
+    await runReplayVerify({ path });
+  });
+
 // --- Config Command ---
 const configCmd = program.command("config").description("Manage HardKAS configuration");
 
@@ -220,6 +248,7 @@ configCmd.command("show")
       process.exitCode = 1;
     }
   });
+
 
 // --- Artifact Command ---
 const artifactCmd = program.command("artifact").description("Manage HardKAS artifacts");
@@ -307,6 +336,17 @@ realAccountsCmd.command("generate")
 
 // --- TX Command (Unified L1) ---
 const tx = program.command("tx").description("L1 Transaction commands");
+
+tx.command("profile <path>")
+  .description("Show detailed mass and fee breakdown for a transaction plan")
+  .action(async (path: string) => {
+    try {
+      await runTxProfile({ path });
+    } catch (e) {
+      handleError(e);
+      process.exitCode = 1;
+    }
+  });
 
 tx.command("plan")
   .description("Build a transaction plan artifact")

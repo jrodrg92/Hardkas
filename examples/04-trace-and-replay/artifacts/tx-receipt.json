@@ -4,11 +4,11 @@
   "networkId": "simnet",
   "mode": "simulated",
   "status": "accepted",
-  "createdAt": "2026-05-08T10:09:37.401Z",
-  "submittedAt": "2026-05-08T10:09:37.401Z",
-  "confirmedAt": "2026-05-08T10:09:37.401Z",
-  "txId": "simulated-lymg44jl",
-  "sourceSignedId": "signed-1778234977401",
+  "createdAt": "2026-05-08T10:14:37.783Z",
+  "submittedAt": "2026-05-08T10:14:37.783Z",
+  "confirmedAt": "2026-05-08T10:14:37.783Z",
+  "txId": "simulated-1qxierk8",
+  "sourceSignedId": "signed-1778235277783",
   "from": {
     "address": "kaspa:sim_alice",
     "accountName": "alice"
