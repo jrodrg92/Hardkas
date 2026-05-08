@@ -4,6 +4,10 @@ export const UI = {
   header(text: string) {
     console.log(`\n=== ${text} ===`);
   },
+  
+  divider() {
+    console.log("--------------------------------------------------");
+  },
 
   info(text: string) {
     console.log(`  ${text}`);
@@ -44,7 +48,7 @@ export const UI = {
   },
 
   kas(label: string, sompi: bigint | string) {
-    this.field(label, formatSompi(sompi));
+    this.field(label, formatSompi(BigInt(sompi)));
   },
 
   footer(hint?: string) {
@@ -83,7 +87,7 @@ export function handleError(e: unknown, context?: string) {
     } else if (msg.includes("RPC") || msg.includes("Connection refused")) {
       suggestion = "The Kaspa node might still be starting. Try 'hardkas rpc health --wait'.";
     } else if (msg.includes("submitTransaction is not exposed")) {
-      suggestion = "HardKAS v0.1-dev only supports transaction broadcasting in 'simulated' mode.";
+      suggestion = "Ensure your node/RPC provider supports transaction submission and you are NOT on mainnet without --allow-mainnet-signing.";
     }
   }
 

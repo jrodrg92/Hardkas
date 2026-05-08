@@ -1,4 +1,4 @@
-import { verifyArtifactIntegrity } from "@hardkas/artifacts";
+import { verifyArtifactIntegrity, verifyArtifactSemantics } from "@hardkas/artifacts";
 import { UI } from "../ui.js";
 import path from "node:path";
 import fs from "node:fs";
@@ -7,6 +7,7 @@ export interface ArtifactVerifyOptions {
   path: string;
   json?: boolean;
   recursive?: boolean;
+  strict?: boolean;
 }
 
 export async function runArtifactVerify(options: ArtifactVerifyOptions) {
@@ -32,7 +33,17 @@ export async function runArtifactVerify(options: ArtifactVerifyOptions) {
   }
 
   // Single file verification
-  const result = await verifyArtifactIntegrity(absolutePath);
+  let result = await verifyArtifactIntegrity(absolutePath);
+
+  if (result.ok && options.strict) {
+    const artifact = JSON.parse(fs.readFileSync(absolutePath, "utf-8"));
+    const semanticResult = verifyArtifactSemantics(artifact, { strict: true });
+    
+    // Merge semantic issues into result
+    result.issues.push(...semanticResult.issues);
+    result.errors.push(...semanticResult.errors);
+    result.ok = result.ok && semanticResult.ok;
+  }
 
   if (options.json) {
     console.log(JSON.stringify(result, null, 2));
@@ -72,7 +83,10 @@ async function runRecursiveVerify(dir: string, options: ArtifactVerifyOptions) {
       successCount++;
     } else {
       console.log(`  ✗ ${relativePath.padEnd(40)} [FAIL]`);
-      result.errors.forEach(err => console.log(`      [!] ${err}`));
+      result.issues.forEach(issue => {
+        const prefix = issue.severity === "critical" ? "[!!!]" : issue.severity === "error" ? "[!]" : "[?]";
+        console.log(`      ${prefix} [${issue.code}] ${issue.message}`);
+      });
       failCount++;
     }
   }
@@ -110,6 +124,9 @@ function renderErrors(result: any) {
     console.log(`  Actual Hash:   ${result.actualHash || "N/A"}`);
   }
 
-  console.log("\nErrors:");
-  result.errors.forEach((err: string) => console.log(`- ${err}`));
+  console.log("\nIssues:");
+  result.issues.forEach((issue: any) => {
+    const prefix = issue.severity === "critical" ? "CRITICAL: " : issue.severity === "error" ? "ERROR:    " : "WARNING:  ";
+    console.log(`- ${prefix}[${issue.code}] ${issue.message}`);
+  });
 }

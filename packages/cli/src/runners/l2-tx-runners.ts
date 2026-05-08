@@ -85,7 +85,7 @@ export async function runL2TxBuild(options: L2TxBuildOptions): Promise<void> {
   }
 
   const request: EvmCallRequest = {
-    from: options.from,
+    ...(options.from ? { from: options.from } : {}),
     to: options.to,
     data: options.data ?? "0x",
     value: options.value ? toHexQuantity(options.value) : "0x0"
@@ -112,13 +112,13 @@ export async function runL2TxBuild(options: L2TxBuildOptions): Promise<void> {
     l2Network: profile.name,
     chainId,
     request: {
-      from: options.from,
+      ...(options.from ? { from: options.from } : {}),
       to: options.to,
       data: options.data ?? "0x",
       valueWei: options.value ?? "0",
       gasLimit,
       gasPriceWei: gasPrice,
-      nonce
+      ...(nonce ? { nonce } : {})
     },
     estimatedGas: gasLimit,
     estimatedFeeWei,
@@ -200,17 +200,17 @@ export async function runL2TxSign(options: L2TxSignOptions): Promise<void> {
   let accountInfo: IgraTxSigningInput["account"] | undefined;
   if (options.account) {
     const store = await loadRealAccountStore();
-    const { address, name, privateKey } = resolveRealAccountOrAddress(store, options.account);
+    const accountData = resolveRealAccountOrAddress(store, options.account) as any;
     
     // Safety check: address mismatch
-    if (plan.request.from && plan.request.from.toLowerCase() !== address.toLowerCase()) {
-      throw new Error(`Account address mismatch: plan specifies '${plan.request.from}' but resolved account '${name ?? address}' is '${address}'`);
+    if (plan.request.from && plan.request.from.toLowerCase() !== accountData.address.toLowerCase()) {
+      throw new Error(`Account address mismatch: plan specifies '${plan.request.from}' but resolved account '${accountData.name ?? accountData.address}' is '${accountData.address}'`);
     }
 
     accountInfo = {
-      name: name ?? undefined,
-      address,
-      privateKey: privateKey ?? undefined
+      name: accountData.name ?? undefined,
+      address: accountData.address,
+      privateKey: accountData.privateKey ?? undefined
     };
   }
 
@@ -222,7 +222,7 @@ export async function runL2TxSign(options: L2TxSignOptions): Promise<void> {
   try {
     result = await signer.sign({
       plan,
-      account: accountInfo
+      account: accountInfo!
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
@@ -259,7 +259,7 @@ export async function runL2TxSign(options: L2TxSignOptions): Promise<void> {
     l2Network: plan.l2Network,
     chainId: plan.chainId,
     rawTransaction: result.rawTransaction,
-    txHash: result.txHash,
+    txHash: result.txHash || "unknown",
     status: "signed"
   };
 
@@ -353,7 +353,7 @@ export async function runL2TxSend(options: L2TxSendOptions): Promise<void> {
   // Mainnet/Production guardrail
   const isMainnet = networkName === "mainnet" || profile.name.includes("mainnet") || artifact.networkId === "mainnet" || artifact.chainId === 1;
   if (isMainnet) {
-    throw new Error("L2 mainnet broadcast is disabled in HardKAS v0.1-dev.");
+    throw new Error("L2 mainnet broadcast is disabled in HardKAS v0.2-alpha.");
   }
 
   const rpcUrl = options.url ?? profile.rpcUrl;

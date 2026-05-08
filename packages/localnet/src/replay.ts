@@ -5,6 +5,20 @@ import {
 } from "@hardkas/artifacts";
 import { applySimulatedPlan } from "./transactions.js";
 import { LocalnetState, ReplayVerificationReport } from "./types.js";
+import { StoredSimulatedTxTrace } from "./traces.js";
+
+export interface SimulatedReplaySummary {
+  receipt: TxReceiptV2;
+  trace: StoredSimulatedTxTrace;
+  summary: {
+    spentCount: number;
+    createdCount: number;
+    transferredSompi: bigint;
+    feeSompi: bigint;
+    changeSompi: bigint;
+    finalDaaScore: string;
+  };
+}
 
 /**
  * Verifies that a transaction replay matches the original artifacts.
@@ -63,7 +77,7 @@ export function verifyReplay(
 /**
  * Loads receipt and trace for a transaction and produces a summary.
  */
-export async function getSimulatedReplaySummary(txId: string, options: { cwd?: string } = {}) {
+export async function getSimulatedReplaySummary(txId: string, options: { cwd?: string } = {}): Promise<SimulatedReplaySummary> {
   const { loadSimulatedReceipt } = await import("./receipts.js");
   const { loadSimulatedTrace } = await import("./traces.js");
 

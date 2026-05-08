@@ -17,7 +17,7 @@ export interface TxReceiptRunnerResult {
 export async function runTxReceipt(input: TxReceiptRunnerInput): Promise<TxReceiptRunnerResult> {
   const { txId, cwd } = input;
   
-  const receipt = await loadSimulatedReceipt(txId, { cwd });
+  const receipt = await loadSimulatedReceipt(txId, cwd ? { cwd } : undefined);
   
   const lines = [
     "Transaction receipt",
@@ -25,8 +25,8 @@ export async function runTxReceipt(input: TxReceiptRunnerInput): Promise<TxRecei
     `Tx ID:     ${receipt.txId}`,
     `Mode:      ${receipt.mode}`,
     `Network:   ${receipt.networkId}`,
-    `From:      ${receipt.fromAddress}`,
-    `To:        ${receipt.toAddress}`,
+    `From:      ${receipt.from.address}`,
+    `To:        ${receipt.to.address}`,
     `Amount:    ${formatSompi(BigInt(receipt.amountSompi))}`,
     `Fee:       ${formatSompi(BigInt(receipt.feeSompi))}`,
     `Change:    ${receipt.changeSompi ? formatSompi(BigInt(receipt.changeSompi)) : "none"}`,

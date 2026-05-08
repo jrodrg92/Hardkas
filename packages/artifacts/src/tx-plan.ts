@@ -18,6 +18,7 @@ export interface CreateTxPlanArtifactOptions {
   };
   amountSompi: bigint;
   plan: TxPlan;
+  rpcUrl?: string;
 }
 
 /**
@@ -52,7 +53,8 @@ export function createTxPlanArtifact(options: CreateTxPlanArtifactOptions): TxPl
     outputs: options.plan.outputs.map(o => ({
       address: o.address,
       amountSompi: o.amountSompi.toString()
-    }))
+    })),
+    rpcUrl: options.rpcUrl
   };
 
   if (options.plan.change) {

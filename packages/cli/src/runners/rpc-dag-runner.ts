@@ -8,7 +8,7 @@ export async function runRpcDag(options: RpcDagOptions = {}): Promise<{
   dag: BlockDagInfo;
   formatted: string;
 }> {
-  const client = new KaspaJsonRpcClient({ url: options.url });
+  const client = new KaspaJsonRpcClient({ url: options.url || "http://127.0.0.1:18210" });
   const dag = await client.getBlockDagInfo();
   
   const lines = [

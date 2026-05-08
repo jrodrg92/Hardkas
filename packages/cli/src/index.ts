@@ -68,6 +68,7 @@ import { runL2TxBuild, runL2TxSign, runL2TxSend, runL2TxReceipt, runL2TxReceipts
 import { runL2ContractDeployPlan } from "./runners/l2-contract-runners.js";
 import { runL2BridgeStatus, runL2BridgeAssumptions } from "./runners/l2-bridge-runners.js";
 import { runArtifactVerify } from "./runners/artifact-verify-runner.js";
+import { runArtifactExplain } from "./runners/artifact-explain-runner.js";
 import { runTxProfile } from "./runners/tx-profile-runner.js";
 import { bigIntReplacer } from "@hardkas/artifacts";
 import { UI, handleError } from "./ui.js";
@@ -76,8 +77,8 @@ const program = new Command();
 
 program
   .name("hardkas")
-  .description("HardKAS: Production-grade developer toolkit for Kaspa")
-  .version("0.1.0-dev");
+  .description("HardKAS: Kaspa-native developer operating environment")
+  .version("0.2.0-alpha");
 
 // --- Init Command ---
 program
@@ -217,7 +218,7 @@ configCmd.command("show")
   .action(async (options: { config?: string, json: boolean }) => {
     const { loadHardkasConfig } = await import("@hardkas/config");
     try {
-      const loaded = await loadHardkasConfig({ configPath: options.config });
+      const loaded = await loadHardkasConfig(options.config ? { configPath: options.config } : {});
 
       if (options.json) {
         console.log(JSON.stringify(loaded, null, 2));
@@ -253,13 +254,27 @@ configCmd.command("show")
 // --- Artifact Command ---
 const artifactCmd = program.command("artifact").description("Manage HardKAS artifacts");
 
-artifactCmd.command("verify <path>")
+artifactCmd
+  .command("verify <path>")
   .description("Verify an artifact's integrity and schema")
+  .option("--json", "Output results as JSON", false)
   .option("--recursive", "Recursively verify all artifacts in a directory", false)
-  .option("--json", "Output as JSON", false)
-  .action(async (path: string, options: { json: boolean, recursive: boolean }) => {
+  .option("--strict", "Perform deep semantic and operational safety verification", false)
+  .action(async (path: string, options: any) => {
     try {
-      await runArtifactVerify({ path, json: options.json, recursive: options.recursive });
+      await runArtifactVerify({ path, ...options });
+    } catch (e) {
+      handleError(e);
+      process.exitCode = 1;
+    }
+  });
+
+artifactCmd
+  .command("explain <path>")
+  .description("Provide a human-readable operational summary of an artifact")
+  .action(async (path: string) => {
+    try {
+      await runArtifactExplain({ path });
     } catch (e) {
       handleError(e);
       process.exitCode = 1;
@@ -278,7 +293,7 @@ accountsCmd.command("list")
     const { listHardkasAccounts, describeAccount } = await import("@hardkas/accounts");
 
     try {
-      const loaded = await loadHardkasConfig({ configPath: options.config });
+      const loaded = await loadHardkasConfig(options.config ? { configPath: options.config } : {});
       const accounts = listHardkasAccounts(loaded.config);
 
       if (options.json) {
@@ -378,7 +393,7 @@ realAccountsCmd.command("generate")
   .action(async (options: { name?: string, count: string, network: string, json: boolean }) => {
     try {
       const result = await runAccountsRealGenerate({
-        name: options.name,
+        ...(options.name ? { name: options.name } : {}),
         count: parseInt(options.count, 10),
         networkId: options.network as any
       });
@@ -430,13 +445,13 @@ tx.command("plan")
       
       const loaded = await loadHardkasConfig();
       const artifact = await runTxPlan({
-        from: options.from,
-        to: options.to,
-        amount: options.amount,
-        network: options.network,
+        from: options.from || "alice",
+        to: options.to || "bob",
+        amount: options.amount || "1",
+        networkId: options.network,
         feeRate: options.feeRate,
         config: loaded.config,
-        url: options.url
+        ...(options.url ? { url: options.url } : {})
       });
 
       if (options.out) await writeArtifact(options.out, artifact);
@@ -471,8 +486,8 @@ tx.command("sign <planPath>")
       const loaded = await loadHardkasConfig();
 
       const signedArtifact = await runTxSign({
-        planArtifact,
-        accountName: options.account,
+        planArtifact: planArtifact as any,
+        ...(options.account ? { accountName: options.account } : {}),
         config: loaded.config,
         allowMainnetSigning: options.allowMainnetSigning
       });
@@ -522,10 +537,10 @@ tx.command("send [signedPath]")
         }
 
         const result = await runTxSend({
-          signedArtifact,
+          signedArtifact: signedArtifact as any,
           network: options.network,
           config: loaded.config,
-          url: options.url
+          ...(options.url ? { url: options.url } : {})
         });
 
         if (options.json) console.log(JSON.stringify(result, bigIntReplacer, 2));
@@ -537,7 +552,9 @@ tx.command("send [signedPath]")
           from: options.from!,
           to: options.to!,
           send: true,
-          config: loaded.config
+          feeRate: "1", // Default fee rate for shortcut
+          config: loaded.config,
+          ...(options.url ? { url: options.url } : {})
         });
         if (options.json) console.log(JSON.stringify(result, bigIntReplacer, 2));
         else console.log(result.steps.send.artifact?.formatted || "Flow completed");
@@ -718,7 +735,7 @@ rpcCmd.command("info")
 
 rpcCmd.command("health")
   .description("Check RPC health")
-  .action(async () => { try { await runRpcHealth(); } catch (e) { handleError(e); } });
+  .action(async () => { try { await runRpcHealth({}); } catch (e) { handleError(e); } });
 
 rpcCmd.command("doctor")
   .description("Run comprehensive RPC diagnostics")
@@ -735,9 +752,9 @@ rpcCmd.command("utxos <address>")
   .description("Show UTXOs for an address from node")
   .action(async (address) => { try { await runRpcUtxos({ address }); } catch (e) { handleError(e); } });
 
-rpcCmd.command("mempool")
+rpcCmd.command("mempool [txId]")
   .description("Show mempool status from node")
-  .action(async () => { try { await runRpcMempool(); } catch (e) { handleError(e); } });
+  .action(async (txId) => { try { await runRpcMempool({ txId: txId || "all" }); } catch (e) { handleError(e); } });
 
 // --- Misc ---
 program.command("dev")

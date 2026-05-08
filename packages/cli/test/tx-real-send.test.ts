@@ -85,7 +85,7 @@ describe("runTxRealSend", () => {
     })).rejects.toThrow(/Refusing to submit transaction: artifact networkId does not match RPC node networkId/);
   });
 
-  it("should fail if mainnet is attempted (always rejected in v0.1-dev)", async () => {
+  it("should fail if mainnet is attempted (always rejected in v0.2-alpha)", async () => {
     const { readArtifact } = await import("@hardkas/artifacts");
     (readArtifact as any).mockResolvedValue({
       ...mockArtifact,
@@ -96,7 +96,7 @@ describe("runTxRealSend", () => {
       signedPath: mockSignedPath,
       url: mockUrl,
       yes: true
-    })).rejects.toThrow("Mainnet broadcast is disabled in HardKAS v0.1-dev.");
+    })).rejects.toThrow("Mainnet broadcast is disabled in HardKAS v0.2-alpha.");
   });
 
   it("should succeed and create receipt in happy path", async () => {

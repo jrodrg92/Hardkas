@@ -16,7 +16,7 @@ export interface TraceRunnerResult {
 export async function runTrace(input: TraceRunnerInput): Promise<TraceRunnerResult> {
   const { txId, cwd } = input;
   
-  const trace = await loadSimulatedTrace(txId, { cwd });
+  const trace = await loadSimulatedTrace(txId, cwd ? { cwd } : undefined);
   
   const lines = [`Trace ${trace.txId}`, ""];
   

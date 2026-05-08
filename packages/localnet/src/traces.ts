@@ -30,7 +30,7 @@ export interface StoredSimulatedTxTrace extends HardkasArtifactBase {
   readonly schema: typeof ARTIFACT_SCHEMAS.TX_TRACE;
   readonly txId: string;
   readonly mode: "simulated";
-  readonly networkId: "simnet";
+  readonly networkId: string;
   readonly events: readonly StoredTraceEvent[];
   readonly receiptPath?: string | undefined;
 }

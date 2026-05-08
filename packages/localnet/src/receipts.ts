@@ -4,18 +4,20 @@ import { existsSync } from "node:fs";
 import { HardkasArtifactBase, HARDKAS_VERSION, ARTIFACT_SCHEMAS } from "@hardkas/artifacts";
 
 export interface StoredSimulatedTxReceipt extends HardkasArtifactBase {
-  readonly schema: typeof ARTIFACT_SCHEMAS.TX_RECEIPT;
-  readonly txId: string;
-  readonly mode: "simulated";
-  readonly networkId: "simnet";
-  readonly fromAddress: string;
-  readonly toAddress: string;
-  readonly amountSompi: string;
-  readonly feeSompi: string;
-  readonly changeSompi?: string | undefined;
-  readonly spentUtxoIds: readonly string[];
-  readonly createdUtxoIds: readonly string[];
-  readonly daaScore: string;
+  schema: typeof ARTIFACT_SCHEMAS.TX_RECEIPT;
+  version: "2.0.0";
+  txId: string;
+  status: "confirmed" | "failed";
+  mode: "simulated";
+  networkId: string;
+  from: { address: string };
+  to: { address: string };
+  amountSompi: string;
+  feeSompi: string;
+  changeSompi?: string | undefined;
+  spentUtxoIds: string[];
+  createdUtxoIds: string[];
+  daaScore: string;
 }
 
 export function getDefaultReceiptsDir(cwd: string = process.cwd()): string {

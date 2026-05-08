@@ -17,7 +17,7 @@ export interface ReplayRunnerResult {
 export async function runReplay(input: ReplayRunnerInput): Promise<ReplayRunnerResult> {
   const { txId, cwd } = input;
   
-  const replay = await getSimulatedReplaySummary(txId, { cwd });
+  const replay = await getSimulatedReplaySummary(txId, cwd ? { cwd } : undefined);
   const { receipt, trace, summary } = replay;
   
   const lines = [

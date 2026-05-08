@@ -108,6 +108,33 @@ export function moveSink(
     }
   }
 
+  // 5. Track newly displaced transactions (previously accepted but no longer reachable or now conflicted)
+  const newlyDisplaced = dag.acceptedTxIds.filter(id => !acceptedTxIds.includes(id));
+  for (const id of newlyDisplaced) {
+    if (!displacedTxIds.includes(id)) {
+      displacedTxIds.push(id);
+    }
+
+    // Check for explicit conflicts to populate conflictSet
+    const tx = txProvider(id);
+    if (tx) {
+      for (const input of tx.inputs) {
+        if (spentOutpoints.has(input)) {
+          const winnerTxId = spentOutpoints.get(input)!;
+          let entry = conflictSet.find(c => c.outpoint === input);
+          if (!entry) {
+            entry = { outpoint: input, winnerTxId, loserTxIds: [] };
+            conflictSet.push(entry);
+          }
+          if (!entry.loserTxIds.includes(id)) {
+            entry.loserTxIds.push(id);
+          }
+          break;
+        }
+      }
+    }
+  }
+
   return {
     ...dag,
     sink: newSinkId,

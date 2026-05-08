@@ -11,3 +11,4 @@ export * from "./kaspa-sdk-real-signer";
 export * from "./real-accounts";
 export * from "./real-keygen";
 export * from "./kaspa-sdk-keygen";
+export * from "./keystore";

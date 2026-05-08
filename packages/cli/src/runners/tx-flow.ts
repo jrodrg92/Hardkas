@@ -92,8 +92,9 @@ export async function runTxFlow(input: TxFlowInput): Promise<TxFlowResult> {
     // 1. Plan
     const planArtifact = await runTxPlan({
       from, to, amount, 
-      network: flowResult.networkId, 
-      feeRate, config, url
+      networkId: flowResult.networkId, 
+      feeRate, config, 
+      ...(url ? { url } : {})
     });
     
     flowResult.mode = planArtifact.mode;
@@ -127,7 +128,7 @@ export async function runTxFlow(input: TxFlowInput): Promise<TxFlowResult> {
       const signedArtifact = await runTxSign({
         planArtifact,
         config,
-        allowMainnetSigning
+        ...(allowMainnetSigning !== undefined ? { allowMainnetSigning } : {})
       });
 
       flowResult.steps.sign = { status: "ok", artifact: signedArtifact };
@@ -148,7 +149,7 @@ export async function runTxFlow(input: TxFlowInput): Promise<TxFlowResult> {
           const sendResult = await runTxSend({
             signedArtifact,
             config,
-            url
+            ...(url ? { url } : {})
           });
           flowResult.steps.send = { status: "ok", artifact: sendResult };
           flowResult.result = "broadcast";

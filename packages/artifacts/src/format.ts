@@ -47,3 +47,29 @@ export function formatTxReceiptArtifact(artifact: any): string {
 
   return lines.join("\n");
 }
+
+/**
+ * Formats a v2 SignedTx artifact for display.
+ */
+export function formatSignedTxArtifact(artifact: any): string {
+  const lines: string[] = [];
+
+  lines.push("HardKAS Signed Transaction Artifact (v2)");
+  lines.push("=========================================");
+  lines.push(`Signed ID:    ${artifact.signedId}`);
+  lines.push(`Plan ID:      ${artifact.sourcePlanId}`);
+  lines.push(`Hash:         ${artifact.contentHash}`);
+  lines.push("");
+  lines.push(`Network:      ${artifact.networkId}`);
+  lines.push(`Mode:         ${artifact.mode}`);
+  lines.push("");
+  lines.push(`From:         ${artifact.from.address}`);
+  lines.push(`To:           ${artifact.to.address}`);
+  lines.push(`Amount:       ${formatSompi(BigInt(artifact.amountSompi))}`);
+  lines.push("");
+  lines.push(`Format:       ${artifact.signedTransaction.format}`);
+  lines.push(`Tx ID:        ${artifact.txId || "unknown (pending broadcast)"}`);
+
+  return lines.join("\n");
+}
+

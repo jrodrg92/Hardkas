@@ -11,10 +11,10 @@ export async function runRpcDoctor(options: RpcDoctorOptions) {
   let endpoints = options.endpoints || [];
 
   if (endpoints.length === 0) {
-    const loaded = await loadHardkasConfig({ configPath: options.config });
+    const loaded = await loadHardkasConfig(options.config ? { configPath: options.config } : {});
     const networks = loaded.config.networks || {};
     const defaultNetwork = loaded.config.defaultNetwork || "simnet";
-    const network = networks[defaultNetwork];
+    const network = (networks as any)[defaultNetwork];
 
     if (network?.rpcUrl) {
       endpoints = [network.rpcUrl];

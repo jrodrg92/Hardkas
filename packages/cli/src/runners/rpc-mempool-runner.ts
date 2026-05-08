@@ -9,7 +9,7 @@ export async function runRpcMempool(options: RpcMempoolOptions): Promise<{
   entry: MempoolEntry | null;
   formatted: string;
 }> {
-  const client = new KaspaJsonRpcClient({ url: options.url });
+  const client = new KaspaJsonRpcClient({ url: options.url || "http://127.0.0.1:18210" });
   const entry = await client.getMempoolEntry(options.txId);
   
   const lines = [

@@ -69,7 +69,10 @@ export async function runTxPlan(input: TxPlanRunnerInput): Promise<TxPlanArtifac
       
       rpcUrl = url || target.rpcUrl;
       if (!rpcUrl && target.kind === "kaspa-node") {
-        rpcUrl = resolveRuntimeConfig({ network: target.network, dataDir: target.dataDir }).rpcUrl;
+        rpcUrl = resolveRuntimeConfig({ 
+          network: target.network as any, 
+          ...(target.dataDir ? { dataDir: target.dataDir } : {}) 
+        }).rpcUrl;
       }
 
       if (!rpcUrl) throw new Error("Could not resolve RPC URL");
@@ -123,8 +126,8 @@ export async function runTxPlan(input: TxPlanRunnerInput): Promise<TxPlanArtifac
 
   const artifact = createTxPlanArtifact({
     networkId: resolvedNetwork,
-    mode: mode === "kaspa-node" ? "node" : mode === "kaspa-rpc" ? "rpc" : "simulated",
-    rpcUrl,
+    mode: mode === "simulated" ? "simulated" : "real",
+    ...(rpcUrl ? { rpcUrl } : {}),
     from: { input: from, address: fromAddress },
     to: { input: to, address: toAddress },
     amountSompi,

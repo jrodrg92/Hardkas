@@ -9,13 +9,24 @@ import {
   ARTIFACT_V2_VERSION
 } from "./schemas.js";
 
+export type VerificationSeverity = "info" | "warning" | "error" | "critical";
+
+export type VerificationIssue = {
+  code: string;
+  severity: VerificationSeverity;
+  message: string;
+  path?: string | undefined;
+  artifactId?: string | undefined;
+};
+
 export type ArtifactVerificationResult = {
   ok: boolean;
   artifactType?: string;
   version?: string;
   expectedHash?: string;
   actualHash?: string;
-  errors: string[];
+  errors: string[]; // Legacy support
+  issues: VerificationIssue[];
 };
 
 /**
@@ -36,7 +47,13 @@ export function sortUtxosByOutpoint(utxos: any[]): any[] {
 export async function verifyArtifactIntegrity(artifactOrPath: any): Promise<ArtifactVerificationResult> {
   const result: ArtifactVerificationResult = {
     ok: false,
-    errors: []
+    errors: [],
+    issues: []
+  };
+
+  const addError = (code: string, message: string, path?: string) => {
+    result.errors.push(message);
+    result.issues.push({ code, severity: "error", message, path });
   };
 
   let artifact: any;
@@ -45,7 +62,7 @@ export async function verifyArtifactIntegrity(artifactOrPath: any): Promise<Arti
     // 1. Resolve Artifact Source
     if (typeof artifactOrPath === "string") {
       if (!fs.existsSync(artifactOrPath)) {
-        result.errors.push(`File not found: ${artifactOrPath}`);
+        addError("FILE_NOT_FOUND", `File not found: ${artifactOrPath}`);
         return result;
       }
       const content = fs.readFileSync(artifactOrPath, "utf-8");
@@ -54,15 +71,13 @@ export async function verifyArtifactIntegrity(artifactOrPath: any): Promise<Arti
       artifact = artifactOrPath;
     }
 
-    // console.log("Verifying artifact:", artifact.schema, artifact.version);
-
     result.artifactType = artifact.schema;
     result.version = artifact.version;
     result.expectedHash = artifact.contentHash;
 
     // 2. Basic Version & Schema Check
     if (!artifact.version || !artifact.schema) {
-      result.errors.push("Missing version or schema (Artifact might be v1 or legacy)");
+      addError("MISSING_METADATA", "Missing version or schema (Artifact might be v1 or legacy)");
       return result;
     }
 
@@ -70,20 +85,18 @@ export async function verifyArtifactIntegrity(artifactOrPath: any): Promise<Arti
     const [currentMajor] = ARTIFACT_V2_VERSION.split(".");
     const [artifactMajor] = artifact.version.split(".");
     if (currentMajor !== artifactMajor) {
-      result.errors.push(`Incompatible version: current system is v${currentMajor}, artifact is v${artifactMajor}`);
+      addError("INCOMPATIBLE_VERSION", `Incompatible version: current system is v${currentMajor}, artifact is v${artifactMajor}`);
       return result;
     }
 
     // 3. Hash Verification
-    // We hash the PARSED object, so CRLF/LF in the original file doesn't matter.
-    // We must ensure the object doesn't contain path-dependent metadata in fields included in hash.
     const actualHash = calculateContentHash(artifact);
     result.actualHash = actualHash;
 
     if (!artifact.contentHash) {
-      result.errors.push("Missing contentHash field");
+      addError("MISSING_HASH", "Missing contentHash field");
     } else if (actualHash !== artifact.contentHash) {
-      result.errors.push(`Hash mismatch: expected ${artifact.contentHash}, got ${actualHash}`);
+      addError("HASH_MISMATCH", `Hash mismatch: expected ${artifact.contentHash}, got ${actualHash}`);
     }
 
     // 4. Zod Schema Validation
@@ -99,17 +112,20 @@ export async function verifyArtifactIntegrity(artifactOrPath: any): Promise<Arti
     if (schema) {
       const validation = schema.safeParse(artifact);
       if (!validation.success) {
-        result.errors.push(...validation.error.issues.map((e: any) => `${e.path.join(".")}: ${e.message}`));
+        validation.error.issues.forEach((e: any) => {
+          const pathStr = e.path.join(".");
+          addError("SCHEMA_VALIDATION_ERROR", `${pathStr}: ${e.message}`, pathStr);
+        });
       }
     } else {
-      result.errors.push(`Unsupported or unknown artifact schema: ${artifact.schema}`);
+      addError("UNSUPPORTED_SCHEMA", `Unsupported or unknown artifact schema: ${artifact.schema}`);
     }
 
-    result.ok = result.errors.length === 0;
+    result.ok = result.issues.every(i => i.severity !== "error" && i.severity !== "critical");
     return result;
 
   } catch (e: any) {
-    result.errors.push(`Integrity verification error: ${e.message}`);
+    addError("UNEXPECTED_ERROR", `Integrity verification error: ${e.message}`);
     return result;
   }
 }

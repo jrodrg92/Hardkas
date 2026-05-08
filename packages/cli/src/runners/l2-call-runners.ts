@@ -37,10 +37,10 @@ export async function runL2Call(options: L2CallRunnerOptions): Promise<void> {
   const { client, profile, networkName, rpcUrl } = await getClient(options);
   
   const request: EvmCallRequest = {
-    from: options.from,
+    ...(options.from ? { from: options.from } : {}),
     to: options.to,
-    data: options.data,
-    value: options.value
+    ...(options.data ? { data: options.data } : {}),
+    ...(options.value ? { value: options.value } : {})
   };
 
   const blockTag = options.block ?? "latest";
@@ -79,10 +79,10 @@ export async function runL2EstimateGas(options: L2CallRunnerOptions): Promise<vo
   const { client, profile, networkName, rpcUrl } = await getClient(options);
   
   const request: EvmCallRequest = {
-    from: options.from,
+    ...(options.from ? { from: options.from } : {}),
     to: options.to,
-    data: options.data,
-    value: options.value
+    ...(options.data ? { data: options.data } : {}),
+    ...(options.value ? { value: options.value } : {})
   };
 
   const blockTag = options.block ?? "latest";

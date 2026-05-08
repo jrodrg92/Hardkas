@@ -5,6 +5,6 @@ export interface NodeStopRunnerInput {
 }
 
 export async function runNodeStop(input: NodeStopRunnerInput): Promise<KaspadNodeStatus> {
-  const runner = new DockerKaspadRunner({ containerName: input.containerName });
+  const runner = new DockerKaspadRunner(input.containerName ? { containerName: input.containerName } : {});
   return runner.stop();
 }

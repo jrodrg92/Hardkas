@@ -19,8 +19,8 @@ export async function runAccountsRealImport(options: AccountsRealImportOptions):
   store = importRealDevAccount(store, {
     name: options.name,
     address: options.address,
-    publicKey: options.publicKey,
-    privateKey: options.privateKey
+    ...(options.publicKey ? { publicKey: options.publicKey } : {}),
+    ...(options.privateKey ? { privateKey: options.privateKey } : {})
   });
 
   await saveRealAccountStore(store);

@@ -10,7 +10,7 @@ export async function runRpcUtxos(options: RpcUtxosOptions): Promise<{
   utxos: KaspaRpcUtxo[];
   formatted: string;
 }> {
-  const client = new KaspaJsonRpcClient({ url: options.url });
+  const client = new KaspaJsonRpcClient({ url: options.url || "http://127.0.0.1:18210" });
   const utxos = await client.getUtxosByAddress(options.address);
   
   const lines = [

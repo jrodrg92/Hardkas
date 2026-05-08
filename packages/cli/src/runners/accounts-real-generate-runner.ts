@@ -16,7 +16,7 @@ export async function runAccountsRealGenerate(options: AccountsRealGenerateOptio
   accounts: RealDevAccount[];
   formatted: string;
 }> {
-  const generator = new KaspaSdkKeyGenerator({ networkId: options.networkId });
+  const generator = new KaspaSdkKeyGenerator(options.networkId ? { networkId: options.networkId } : {});
   const count = options.count || 1;
   
   let store = await loadOrCreateRealAccountStore();
@@ -26,16 +26,16 @@ export async function runAccountsRealGenerate(options: AccountsRealGenerateOptio
     const name = (count === 1 && options.name) ? options.name : (options.name ? `${options.name}${i + 1}` : `account${i}`);
     
     // Attempt generation
-    const generated = await generator.generateAccount({ networkId: options.networkId });
+    const generated = await generator.generateAccount(options.networkId ? { networkId: options.networkId } : {});
     
     store = importRealDevAccount(store, {
       name,
       address: generated.address,
-      publicKey: generated.publicKey,
-      privateKey: generated.privateKey
+      ...(generated.publicKey ? { publicKey: generated.publicKey } : {}),
+      ...(generated.privateKey ? { privateKey: generated.privateKey } : {})
     });
     
-    generatedAccounts.push(store.accounts[store.accounts.length - 1]);
+    generatedAccounts.push(store.accounts[store.accounts.length - 1]!);
   }
 
   await saveRealAccountStore(store);

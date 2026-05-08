@@ -16,7 +16,7 @@ export interface TxReceiptsRunnerResult {
 export async function runTxReceipts(input: TxReceiptsRunnerInput): Promise<TxReceiptsRunnerResult> {
   const { cwd } = input;
   
-  const receipts = await listSimulatedReceipts({ cwd });
+  const receipts = await listSimulatedReceipts(cwd ? { cwd } : undefined);
   
   if (receipts.length === 0) {
     return {

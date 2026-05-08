@@ -6,7 +6,7 @@ export interface EvmJsonRpcClientOptions {
 
 export interface EvmCallRequest {
   readonly from?: string;
-  readonly to: string;
+  readonly to?: string;
   readonly gas?: string;
   readonly gasPrice?: string;
   readonly value?: string;
@@ -119,10 +119,7 @@ export class EvmJsonRpcClient {
   }
 
   private validateCallRequest(request: EvmCallRequest): void {
-    if (!request.to) {
-      throw new Error("Invalid request: 'to' address is required.");
-    }
-    this.validateAddress(request.to, "to");
+    if (request.to) this.validateAddress(request.to, "to");
     if (request.from) this.validateAddress(request.from, "from");
     if (request.data) this.validateHexData(request.data, "data");
     if (request.value) this.validateHexQuantity(request.value, "value");

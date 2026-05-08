@@ -40,7 +40,8 @@ export const TxPlanSchemaV2 = BaseArtifactSchema.extend({
   change: z.object({
     address: z.string(),
     amountSompi: z.string()
-  }).optional()
+  }).optional(),
+  rpcUrl: z.string().optional()
 });
 
 export const DagContextSchema = z.object({
@@ -127,6 +128,8 @@ export const SignedTxSchemaV2 = BaseArtifactSchema.extend({
 export const TxTraceSchemaV2 = BaseArtifactSchema.extend({
   schema: z.literal("hardkas.txTrace.v2"),
   txId: z.string(),
+  networkId: z.string(),
+  mode: z.enum(["real", "simulated"]),
   steps: z.array(z.object({
     phase: z.string(),
     status: z.string(),

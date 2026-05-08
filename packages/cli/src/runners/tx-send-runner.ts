@@ -73,24 +73,27 @@ export async function runTxSend(input: TxSendRunnerInput): Promise<TxSendRunnerR
     const receipt: TxReceiptArtifact = {
       schema: ARTIFACT_SCHEMAS.TX_RECEIPT,
       hardkasVersion: HARDKAS_VERSION,
+      version: "2.0.0",
       networkId: resolvedName,
       mode: "simulated",
       createdAt: new Date().toISOString(),
       status: "confirmed",
       txId: simResult.receipt.txId,
       sourceSignedId: signedArtifact.signedId,
+      from: { address: signedArtifact.from.address },
+      to: { address: signedArtifact.to.address },
       amountSompi: signedArtifact.amountSompi,
       feeSompi: simResult.receipt.feeSompi,
       daaScore: simResult.receipt.daaScore.toString(),
       submittedAt: simResult.receipt.createdAt,
       confirmedAt: simResult.receipt.createdAt,
-      rpcUrl: "simulated://local",
-      receiptPath
+      rpcUrl: "simulated://local"
     };
 
     const tracePath = await saveSimulatedTrace({
       schema: ARTIFACT_SCHEMAS.TX_TRACE,
       hardkasVersion: HARDKAS_VERSION,
+      version: "2.0.0",
       createdAt: receipt.createdAt,
       txId: receipt.txId,
       mode: "simulated",
@@ -104,7 +107,7 @@ export async function runTxSend(input: TxSendRunnerInput): Promise<TxSendRunnerR
     return {
       accepted: true,
       txId: receipt.txId,
-      rpcUrl: receipt.rpcUrl,
+      rpcUrl: receipt.rpcUrl || "simulated://local",
       networkName: resolvedName,
       receipt,
       receiptPath,
@@ -118,7 +121,7 @@ export async function runTxSend(input: TxSendRunnerInput): Promise<TxSendRunnerR
     selectedNetwork: networkName
   });
 
-  const rpcUrl = url || target.rpcUrl;
+  const rpcUrl = url || (target as any).rpcUrl;
   if (!rpcUrl) throw new Error(`No RPC URL found for network '${networkName}'.`);
 
   const client = new JsonWrpcKaspaClient({ rpcUrl });
@@ -128,12 +131,15 @@ export async function runTxSend(input: TxSendRunnerInput): Promise<TxSendRunnerR
     const receipt: TxReceiptArtifact = {
       schema: ARTIFACT_SCHEMAS.TX_RECEIPT,
       hardkasVersion: HARDKAS_VERSION,
+      version: "2.0.0",
       networkId: resolvedName,
       mode: target.kind === "kaspa-node" ? "node" : "rpc",
       createdAt: new Date().toISOString(),
       status: result.accepted ? "submitted" : "failed",
       txId: result.transactionId || "failed",
       sourceSignedId: signedArtifact.signedId,
+      from: { address: signedArtifact.from.address },
+      to: { address: signedArtifact.to.address },
       amountSompi: signedArtifact.amountSompi,
       feeSompi: signedArtifact.metadata?.estimatedFeeSompi || "0",
       submittedAt: new Date().toISOString(),

@@ -21,14 +21,14 @@ export interface TxSignRunnerInput {
 export async function runTxSign(input: TxSignRunnerInput): Promise<SignedTxArtifact> {
   const { planArtifact, accountName, config, allowMainnetSigning } = input;
   
-  const targetAccountName = accountName || planArtifact.from.input;
+  const targetAccountName = accountName || planArtifact.from.input || planArtifact.from.address;
   const account = resolveHardkasAccount({ nameOrAddress: targetAccountName, config });
 
   const signedArtifact = await signTxPlanArtifact({
     planArtifact,
     account,
     config,
-    allowMainnet: allowMainnetSigning
+    allowMainnet: allowMainnetSigning ?? false
   });
 
   return signedArtifact;

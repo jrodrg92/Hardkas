@@ -77,9 +77,8 @@ export async function runL2ContractDeployPlan(options: L2ContractDeployPlanOptio
 
   const request: EvmCallRequest = {
     from: options.from,
-    to: undefined, // Contract deployment has no 'to'
-    data,
-    value: options.value ? toHexQuantity(options.value) : "0x0"
+    ...(options.value ? { value: toHexQuantity(options.value) } : { value: "0x0" }),
+    data
   };
 
   let gasLimit = options.gasLimit;
@@ -105,12 +104,11 @@ export async function runL2ContractDeployPlan(options: L2ContractDeployPlanOptio
     txType: "contract-deploy",
     request: {
       from: options.from,
-      to: undefined,
       data,
       valueWei: options.value ?? "0",
       gasLimit,
       gasPriceWei: gasPrice,
-      nonce
+      ...(nonce ? { nonce } : {})
     },
     estimatedGas: gasLimit,
     estimatedFeeWei,

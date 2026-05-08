@@ -61,14 +61,17 @@ export async function runDagSimulateReorg(options: { depth: number }) {
   const currentPath = state.dag.selectedPathToSink;
   const forkPointIndex = Math.max(0, currentPath.length - 1 - options.depth);
   const forkPointId = currentPath[forkPointIndex];
+  if (!forkPointId) throw new Error("Could not find fork point in current path.");
+  
   const forkPoint = state.dag.blocks[forkPointId];
+  if (!forkPoint) throw new Error(`Fork point block ${forkPointId} not found in state.`);
 
   const sideBlockId = `reorg_side_${Date.now().toString(36)}`;
   state.dag.blocks[sideBlockId] = {
     id: sideBlockId,
     parents: [forkPointId],
-    blueScore: (BigInt(forkPoint.blueScore) + 1n).toString(),
-    daaScore: (BigInt(forkPoint.daaScore) + 1n).toString(),
+    blueScore: (BigInt(forkPoint.blueScore || "0") + 1n).toString(),
+    daaScore: (BigInt(forkPoint.daaScore || "0") + 1n).toString(),
     acceptedTxIds: []
   };
 
