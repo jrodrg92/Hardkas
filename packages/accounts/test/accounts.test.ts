@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { 
   listHardkasAccounts, 
   resolveHardkasAccount, 
-  resolveAccountAddress, 
+  resolveHardkasAccountAddress, 
   describeAccount,
   redactSecret
 } from "../src";
@@ -28,18 +28,18 @@ describe("accounts", () => {
     expect(acc.address).toBe("kaspa:sim_custom");
   });
 
-  it("resolveAccountAddress should return address for known account", () => {
-    const addr = resolveAccountAddress("bob");
+  it("resolveHardkasAccountAddress should return address for known account", () => {
+    const addr = resolveHardkasAccountAddress("bob");
     expect(addr).toBe("kaspa:sim_bob");
   });
 
-  it("resolveAccountAddress should use config if provided", () => {
+  it("resolveHardkasAccountAddress should use config if provided", () => {
     const config = {
       accounts: {
         treasury: { kind: "simulated" as const, address: "kaspa:sim_treasury" }
       }
     };
-    const addr = resolveAccountAddress("treasury", config);
+    const addr = resolveHardkasAccountAddress("treasury", config);
     expect(addr).toBe("kaspa:sim_treasury");
   });
 

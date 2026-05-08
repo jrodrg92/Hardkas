@@ -288,7 +288,8 @@ accountsCmd.command("list")
       console.log("HardKAS accounts");
       console.log("");
       for (const acc of accounts) {
-        console.log(`${acc.name.padEnd(12)} ${acc.address?.padEnd(24)} (${acc.kind})`);
+        const encrypted = acc.kind === "kaspa-private-key" && !acc.privateKeyEnv ? " (encrypted)" : "";
+        console.log(`${acc.name.padEnd(12)} ${acc.address?.padEnd(24)} (${acc.kind})${encrypted}`);
       }
     } catch (e) {
       handleError(e);
@@ -307,6 +308,60 @@ realAccountsCmd.command("init")
       const result = await runAccountsRealInit({ force: options.force });
       if (options.json) console.log(JSON.stringify(result, null, 2));
       else console.log(result.formatted);
+    } catch (e) {
+      handleError(e);
+      process.exitCode = 1;
+    }
+  });
+
+realAccountsCmd.command("import")
+  .description("Import an account into the persistent store")
+  .option("--name <name>", "Account name")
+  .option("--address <address>", "Kaspa address")
+  .option("--private-key <hex>", "Private key (plaintext, discouraged)")
+  .option("--encrypted", "Import as encrypted keystore (recommended)", false)
+  .option("--json", "Output as JSON", false)
+  .action(async (options: { name?: string, address?: string, privateKey?: string, encrypted: boolean, json: boolean }) => {
+    try {
+      const { runAccountsKeystoreImport } = await import("./runners/accounts-keystore-runners.js");
+      const result = await runAccountsKeystoreImport(options);
+      if (options.json) console.log(JSON.stringify(result, null, 2));
+      else console.log(result.formatted);
+    } catch (e) {
+      handleError(e);
+      process.exitCode = 1;
+    }
+  });
+
+realAccountsCmd.command("unlock <name>")
+  .description("Verify password for an encrypted account")
+  .action(async (name: string) => {
+    try {
+      const { runAccountsKeystoreUnlock } = await import("./runners/accounts-keystore-runners.js");
+      await runAccountsKeystoreUnlock({ name });
+    } catch (e) {
+      handleError(e);
+      process.exitCode = 1;
+    }
+  });
+
+realAccountsCmd.command("lock <name>")
+  .description("Lock an account (clear session)")
+  .action(async (name: string) => {
+    try {
+      console.log(`Account '${name}' is now locked. (Session cleared)`);
+    } catch (e) {
+      handleError(e);
+      process.exitCode = 1;
+    }
+  });
+
+realAccountsCmd.command("change-password <name>")
+  .description("Change password for an encrypted account")
+  .action(async (name: string) => {
+    try {
+      const { runAccountsKeystoreChangePassword } = await import("./runners/accounts-keystore-runners.js");
+      await runAccountsKeystoreChangePassword({ name });
     } catch (e) {
       handleError(e);
       process.exitCode = 1;

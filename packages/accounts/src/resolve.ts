@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import type { HardkasConfig } from "@hardkas/config";
 import { createDeterministicAccounts } from "@hardkas/localnet";
 import type { HardkasAccount } from "./types.js";
@@ -84,6 +86,30 @@ export function listHardkasAccounts(config?: HardkasConfig): HardkasAccount[] {
         kind: "kaspa-private-key",
         address: realAcc.address
       });
+    }
+  }
+
+  // Add from encrypted keystore directory
+  const keystoreDir = path.join(process.cwd(), ".hardkas", "keystore");
+  if (fs.existsSync(keystoreDir)) {
+    const files = fs.readdirSync(keystoreDir);
+    for (const file of files) {
+      if (file.endsWith(".json")) {
+        try {
+          const name = path.basename(file, ".json");
+          const data = fs.readFileSync(path.join(keystoreDir, file), "utf-8");
+          const keystore = JSON.parse(data);
+          if (keystore.type === "hardkas.encryptedKeystore.v2") {
+            accounts.set(name, {
+              name,
+              kind: "kaspa-private-key",
+              address: keystore.payload?.address || keystore.metadata?.address // Payloads are encrypted, but address might be in metadata
+            });
+          }
+        } catch (e) {
+          // Ignore corrupted keystores in listing
+        }
+      }
     }
   }
 

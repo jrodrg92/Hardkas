@@ -4,6 +4,47 @@ export type HardkasAccountKind =
   | "external-wallet"
   | "evm-private-key";
 
+export interface KeystorePayload {
+  address: string;
+  privateKey: string;
+  publicKey?: string;
+  network: string;
+}
+
+export interface KeystoreKdfParams {
+  algorithm: "argon2id" | "scrypt";
+  memory: number;
+  iterations: number;
+  parallelism: number;
+  salt: string; // base64
+}
+
+export interface KeystoreCipherParams {
+  algorithm: "aes-256-gcm";
+  nonce: string; // base64
+  tag: string; // base64
+}
+
+export interface EncryptedKeystoreV2 {
+  version: "2.0.0";
+  type: "hardkas.encryptedKeystore.v2";
+  kdf: KeystoreKdfParams;
+  cipher: KeystoreCipherParams;
+  encryptedPayload: string; // base64
+  createdAt: string; // ISO date
+  metadata: {
+    label: string;
+    network: string;
+    [key: string]: any;
+  };
+}
+
+export interface KeystoreUnlockResult {
+  success: boolean;
+  payload?: KeystorePayload;
+  error?: string;
+}
+
 export interface HardkasBaseAccount {
   name: string;
   kind: HardkasAccountKind;

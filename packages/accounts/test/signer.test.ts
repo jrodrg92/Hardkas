@@ -49,9 +49,8 @@ describe("signTxPlanArtifact", () => {
     });
 
     expect(signed.status).toBe("signed");
-    expect(signed.signature.kind).toBe("simulated");
-    expect(signed.signature.account).toBe("alice");
-    expect(signed.signedTransaction?.encoding).toBe("simulated");
+    expect(signed.from.address).toBe("kaspa:sim_alice");
+    expect(signed.signedTransaction?.format).toBe("simulated");
   });
 
   it("should throw error when signing real plan with simulated account", async () => {
