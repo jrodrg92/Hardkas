@@ -6,6 +6,7 @@ import {
 import { applySimulatedPlan } from "./transactions.js";
 import { LocalnetState, ReplayVerificationReport } from "./types.js";
 import { StoredSimulatedTxTrace } from "./traces.js";
+import { coreEvents } from "@hardkas/core";
 
 export interface SimulatedReplaySummary {
   receipt: TxReceipt;
@@ -33,37 +34,48 @@ export function verifyReplay(
   // 1. Plan Integrity
   const currentPlanHash = calculateContentHash(originalPlan);
   if (originalPlan.contentHash && currentPlanHash !== originalPlan.contentHash) {
-    errors.push(`TxPlan contentHash mismatch: expected ${originalPlan.contentHash}, got ${currentPlanHash}`);
+    const errorMsg = `TxPlan contentHash mismatch: expected ${originalPlan.contentHash}, got ${currentPlanHash}`;
+    errors.push(errorMsg);
+    coreEvents.emit({
+      kind: "replay.divergence",
+      txId: originalReceipt.txId,
+      field: "planHash",
+      expected: originalPlan.contentHash,
+      actual: currentPlanHash
+    });
   }
 
   // 2. Execute Replay (Dry-run by default as we don't return the new state)
   const result = applySimulatedPlan(state, originalPlan, { txId: originalReceipt.txId });
   const replayReceipt = result.receipt;
 
-  // 3. Compare Invariants
-  if (replayReceipt.status !== originalReceipt.status) {
-    errors.push(`Status mismatch: expected ${originalReceipt.status}, got ${replayReceipt.status}`);
+  const checks = [
+    { field: "status", expected: originalReceipt.status, actual: replayReceipt.status },
+    { field: "mass", expected: String(originalReceipt.mass), actual: String(replayReceipt.mass) },
+    { field: "feeSompi", expected: String(originalReceipt.feeSompi), actual: String(replayReceipt.feeSompi) },
+    { field: "preStateHash", expected: String(originalReceipt.preStateHash), actual: String(replayReceipt.preStateHash) },
+    { field: "postStateHash", expected: String(originalReceipt.postStateHash), actual: String(replayReceipt.postStateHash) },
+    { field: "spentUtxos", expected: String(originalReceipt.spentUtxoIds?.length), actual: String(replayReceipt.spentUtxoIds?.length) }
+  ];
+
+  for (const check of checks) {
+    if (check.expected !== check.actual) {
+      errors.push(`${check.field} mismatch: expected ${check.expected}, got ${check.actual}`);
+      coreEvents.emit({
+        kind: "replay.divergence",
+        txId: originalReceipt.txId,
+        field: check.field,
+        expected: check.expected,
+        actual: check.actual
+      });
+    }
   }
 
-  if (replayReceipt.mass !== originalReceipt.mass) {
-    errors.push(`Mass mismatch: expected ${originalReceipt.mass}, got ${replayReceipt.mass}`);
-  }
-
-  if (replayReceipt.feeSompi !== originalReceipt.feeSompi) {
-    errors.push(`Fee mismatch: expected ${originalReceipt.feeSompi}, got ${replayReceipt.feeSompi}`);
-  }
-
-  if (replayReceipt.preStateHash !== originalReceipt.preStateHash) {
-    errors.push(`preStateHash mismatch: expected ${originalReceipt.preStateHash}, got ${replayReceipt.preStateHash}`);
-  }
-
-  if (replayReceipt.postStateHash !== originalReceipt.postStateHash) {
-    errors.push(`postStateHash mismatch: expected ${originalReceipt.postStateHash}, got ${replayReceipt.postStateHash}`);
-  }
-
-  // Compare spent/created UTXOs count
-  if (replayReceipt.spentUtxoIds?.length !== originalReceipt.spentUtxoIds?.length) {
-    errors.push(`Spent UTXO count mismatch: expected ${originalReceipt.spentUtxoIds?.length}, got ${replayReceipt.spentUtxoIds?.length}`);
+  if (errors.length === 0) {
+    coreEvents.emit({
+      kind: "replay.verified",
+      txId: originalReceipt.txId
+    });
   }
 
   return {

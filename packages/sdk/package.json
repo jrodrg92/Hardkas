@@ -24,6 +24,7 @@
     "@hardkas/config": "workspace:*",
     "@hardkas/core": "workspace:*",
     "@hardkas/kaspa-rpc": "workspace:*",
+    "@hardkas/query": "workspace:*",
     "@hardkas/l2": "workspace:*",
     "@hardkas/localnet": "workspace:*",
     "@hardkas/simulator": "workspace:*",

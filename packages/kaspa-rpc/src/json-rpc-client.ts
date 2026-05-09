@@ -18,6 +18,10 @@ import {
   RpcValidationError
 } from "./errors.js";
 import { calculateConfidence } from "./resilience.js";
+<<<<<<< Updated upstream
+=======
+import { coreEvents } from "@hardkas/core";
+>>>>>>> Stashed changes
 
 export enum CircuitState {
   CLOSED = "CLOSED",
@@ -59,8 +63,11 @@ export class KaspaJsonRpcClient implements KaspaRpcClient {
   private lastLatencyMs: number | null = null;
   private totalRequests: number = 0;
   private successfulRequests: number = 0;
+<<<<<<< Updated upstream
   private lastDaaScore: bigint | null = null;
   private lastDaaCheckTime: number = 0;
+=======
+>>>>>>> Stashed changes
   private retriesCount: number = 0;
 
   constructor(options: RpcClientOptions) {
@@ -84,6 +91,7 @@ export class KaspaJsonRpcClient implements KaspaRpcClient {
     try {
       const info = await this.getInfo();
       const latency = Date.now() - start;
+<<<<<<< Updated upstream
       
       // Stale Detection
       let stale = false;
@@ -100,8 +108,37 @@ export class KaspaJsonRpcClient implements KaspaRpcClient {
       }
 
       const resilience = calculateConfidence({
+=======
+      const stale = false; // logic for staleness could be added here
+
+      const resilience = calculateConfidence({
         latencyMs: latency,
         successRate: this.getSuccessRate(),
+        retries: this.retriesCount,
+        stale,
+        reachable: true,
+        circuitOpen: this.circuitState === CircuitState.OPEN
+      });
+
+      coreEvents.emit({
+        kind: "rpc.health",
+        endpoint: this.url,
+        state: resilience.state,
+        score: resilience.score,
+        latencyMs: latency,
+        issues: resilience.issues
+      });
+
+      return {
+        reachable: true,
+        rpcUrl: this.url,
+        status: resilience.state as any,
+        info,
+>>>>>>> Stashed changes
+        latencyMs: latency,
+        lastError: this.lastError,
+        successRate: this.getSuccessRate(),
+<<<<<<< Updated upstream
         retries: this.retriesCount,
         stale,
         reachable: true,
@@ -142,41 +179,87 @@ export class KaspaJsonRpcClient implements KaspaRpcClient {
         circuitState: this.circuitState,
         reachable: false,
         successRate: this.getSuccessRate()
+=======
+        circuitState: this.circuitState as any,
+        score: resilience.score,
+        confidence: resilience.confidence
+      } as any;
+    } catch (e: any) {
+      const resilience = calculateConfidence({
+        latencyMs: null,
+        successRate: this.getSuccessRate(),
+        retries: this.retriesCount,
+        stale: false,
+        reachable: false,
+        circuitOpen: this.circuitState === CircuitState.OPEN
+      });
+
+      coreEvents.emit({
+        kind: "rpc.health",
+        endpoint: this.url,
+        state: resilience.state,
+        score: resilience.score,
+        latencyMs: -1,
+        issues: resilience.issues
+      });
+
+      return {
+        reachable: false,
+        rpcUrl: this.url,
+        status: "unavailable",
+        error: e.message,
+        lastError: this.lastError || e.message,
+        successRate: this.getSuccessRate(),
+        circuitState: this.circuitState as any
+>>>>>>> Stashed changes
       };
     }
   }
 
   async getInfo(): Promise<KaspaNodeInfo> {
-    const result = await this.callRpc("getInfoRequest");
-    const data = result as any;
-    const info: any = {
-      serverVersion: data.serverVersion,
-      networkId: data.networkId,
-      isSynced: data.isSynced
+    const data = await this.callRpc("getInfoRequest") as Record<string, unknown>;
+    const info: KaspaNodeInfo = {
+      serverVersion: String(data.serverVersion),
+      networkId: String(data.networkId),
+      isSynced: Boolean(data.isSynced)
     };
-    if (data.virtualDaaScore !== undefined) info.virtualDaaScore = BigInt(data.virtualDaaScore);
+    if (data.virtualDaaScore !== undefined) info.virtualDaaScore = BigInt(data.virtualDaaScore as string | number);
     if (data.mempoolSize !== undefined) info.mempoolSize = Number(data.mempoolSize);
     return info;
   }
 
   async getBlockDagInfo(): Promise<BlockDagInfo> {
+<<<<<<< Updated upstream
     const result = await this.callRpc("getBlockDagInfoRequest");
     const data = result as any;
     const dagInfo: any = {
       networkId: data.networkId as NetworkId,
       tipHashes: data.tipHashes
+=======
+    const data = await this.callRpc("getBlockDagInfoRequest") as {
+      networkId: string;
+      tipHashes: string[];
+      virtualDaaScore?: string | number;
     };
-    if (data.virtualDaaScore !== undefined) {
-      dagInfo.virtualDaaScore = BigInt(data.virtualDaaScore);
-    }
+    const dagInfo: BlockDagInfo = {
+      networkId: data.networkId as KaspaNetworkId,
+      tipHashes: data.tipHashes,
+      virtualDaaScore: data.virtualDaaScore !== undefined ? BigInt(data.virtualDaaScore) : undefined
+>>>>>>> Stashed changes
+    };
     return dagInfo;
   }
 
   async getUtxosByAddress(address: string): Promise<KaspaRpcUtxo[]> {
-    const result = await this.callRpc("getUtxosByAddressesRequest", { addresses: [address] });
-    const data = result as any;
+    const data = await this.callRpc("getUtxosByAddressesRequest", { addresses: [address] }) as {
+      entries?: Array<{
+        address: string;
+        outpoint: { transactionId: string; index: number };
+        utxoEntry: { amount: string | number; scriptPublicKey: string; blockDaaScore: string | number; isCoinbase: boolean };
+      }>;
+    };
     const entries = data.entries || [];
-    return entries.map((e: any) => ({
+    return entries.map(e => ({
       address: e.address,
       outpoint: {
         transactionId: e.outpoint.transactionId,
@@ -190,8 +273,7 @@ export class KaspaJsonRpcClient implements KaspaRpcClient {
   }
 
   async getBalanceByAddress(address: string): Promise<KaspaAddressBalance> {
-    const result = await this.callRpc("getBalanceByAddressRequest", { address });
-    const data = result as any;
+    const data = await this.callRpc("getBalanceByAddressRequest", { address }) as { address: string; balance: string | number };
     return {
       address: data.address,
       balanceSompi: BigInt(data.balance)
@@ -200,11 +282,10 @@ export class KaspaJsonRpcClient implements KaspaRpcClient {
 
   async getMempoolEntry(txId: string): Promise<MempoolEntry | null> {
     try {
-      const result = await this.callRpc("getMempoolEntryRequest", { txId, includeOrphanPool: true });
-      const data = (result as any).entry;
+      const result = await this.callRpc("getMempoolEntryRequest", { txId, includeOrphanPool: true }) as { entry: { acceptedAt: number } };
       return {
         txId,
-        acceptedAt: data.acceptedAt
+        acceptedAt: String(result.entry.acceptedAt)
       };
     } catch (e) {
       return null;
@@ -220,9 +301,9 @@ export class KaspaJsonRpcClient implements KaspaRpcClient {
     }
   }
 
-  async submitTransaction(rawTx: any): Promise<{ transactionId: string }> {
-    const result = await this.callRpc("submitTransactionRequest", { transaction: rawTx });
-    return { transactionId: (result as any).transactionId };
+  async submitTransaction(rawTx: unknown): Promise<{ transactionId: string }> {
+    const result = await this.callRpc("submitTransactionRequest", { transaction: rawTx }) as { transactionId: string };
+    return { transactionId: result.transactionId };
   }
 
   async getServerInfo(): Promise<ServerInfo> {
@@ -262,8 +343,21 @@ export class KaspaJsonRpcClient implements KaspaRpcClient {
         this.onFailure(e);
         lastErr = e;
 
+<<<<<<< Updated upstream
         // Increment total retries count for health reporting
         if (attempt < this.retry.maxRetries && (e instanceof RpcError ? e.isRetriable : true)) {
+=======
+        const isRetriable = e instanceof RpcError ? e.isRetriable : true;
+        coreEvents.emit({
+          kind: "rpc.error",
+          endpoint: this.url,
+          error: e.message,
+          retriable: isRetriable
+        });
+
+        // Increment total retries count for health reporting
+        if (attempt < this.retry.maxRetries && isRetriable) {
+>>>>>>> Stashed changes
            this.retriesCount++;
         }
 

@@ -105,3 +105,5 @@ export function formatSompi(amountSompi: bigint): string {
 
   return `${sign}${whole}.${fractional.toString().padStart(8, "0")} KAS`;
 }
+
+export * from "./events.js";

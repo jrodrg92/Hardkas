@@ -6,6 +6,7 @@ import {
   ARTIFACT_SCHEMAS,
   ARTIFACT_VERSION
 } from "@hardkas/artifacts";
+import { coreEvents } from "@hardkas/core";
 import { 
   resolveNetworkTarget, 
   HardkasConfig 
@@ -63,6 +64,12 @@ export async function runTxSend(input: TxSendRunnerInput): Promise<TxSendRunnerR
       from: signedArtifact.from.input || signedArtifact.from.address,
       to: signedArtifact.to.input || signedArtifact.to.address,
       amountSompi: BigInt(signedArtifact.amountSompi),
+    });
+
+    coreEvents.emit({
+      kind: "workflow.submitted",
+      txId: simResult.receipt.txId,
+      endpoint: "simulated://local"
     });
 
     events.push({ type: "phase.completed", phase: "send", timestamp: Date.now() });
@@ -127,6 +134,14 @@ export async function runTxSend(input: TxSendRunnerInput): Promise<TxSendRunnerR
 
   const client = new JsonWrpcKaspaClient({ rpcUrl });
   try {
+    const txId = (broadcastable.rawTransaction as any)?.id || "unknown";
+    
+    coreEvents.emit({
+      kind: "workflow.submitted",
+      txId,
+      endpoint: rpcUrl
+    });
+
     const result = await client.submitTransaction(broadcastable.rawTransaction);
     
     const receipt: TxReceiptArtifact = {

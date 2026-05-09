@@ -192,4 +192,33 @@ export function registerTxCommands(program: Command) {
       const { runTxVerify } = await import("../runners/tx-verify-runner.js");
       await runTxVerify({ path, ...options });
     });
+<<<<<<< Updated upstream
+=======
+
+  tx.command("trace <txId>")
+    .description("Reconstruct the full operational trace of a transaction")
+    .action(async (txId: string) => {
+      try {
+        const { QueryEngine, correlate } = await import("@hardkas/query");
+        const { loadHardkasConfig } = await import("@hardkas/config");
+        const { printCorrelationBundle } = await import("./query/ui-helpers.js");
+        const { UI } = await import("../ui.js");
+        
+        const loaded = await loadHardkasConfig();
+        const engine = new QueryEngine({ artifactDir: loaded.cwd });
+        
+        UI.info(`Tracing transaction ${txId}...`);
+        const result = await correlate(txId, engine, {
+          include: ["lineage", "dag", "rpc", "replay"],
+          cwd: loaded.cwd,
+          explain: "full"
+        });
+        
+        printCorrelationBundle(result);
+      } catch (e) {
+        handleError(e);
+        process.exitCode = 1;
+      }
+    });
+>>>>>>> Stashed changes
 }

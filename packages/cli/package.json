@@ -29,10 +29,14 @@
     "@hardkas/localnet": "workspace:*",
     "@hardkas/node-orchestrator": "workspace:*",
     "@hardkas/node-runner": "workspace:*",
+    "@hardkas/query": "workspace:*",
+    "@hardkas/query-store": "workspace:0.2.0-alpha",
+    "@hardkas/sdk": "workspace:*",
     "@hardkas/simulator": "workspace:*",
     "@hardkas/tx-builder": "workspace:*",
     "commander": "^12.1.0",
     "enquirer": "^2.4.1",
+    "picocolors": "^1.1.1",
     "zod": "^3.23.8"
   },
   "devDependencies": {

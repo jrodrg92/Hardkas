@@ -5,6 +5,7 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
+<<<<<<< Updated upstream
     ".": "./dist/index.js"
   },
   "scripts": {
@@ -38,4 +39,30 @@
     "LICENSE",
     "README.md"
   ]
+=======
+    ".": "./dist/index.js",
+    "./*": "./dist/*.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@hardkas/core": "workspace:*",
+    "@hardkas/artifacts": "workspace:*",
+    "@hardkas/kaspa-rpc": "workspace:*",
+    "@hardkas/query-store": "workspace:*",
+    "picocolors": "^1.1.1"
+  },
+  "devDependencies": {
+    "tsup": "^8.3.5",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.4"
+  }
+>>>>>>> Stashed changes
 }

@@ -1,6 +1,6 @@
 {
-  "name": "@hardkas/kaspa-rpc",
-  "version": "0.1.0",
+  "name": "@hardkas/query-store",
+  "version": "0.2.0-alpha",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -8,34 +8,33 @@
     ".": "./dist/index.js"
   },
   "scripts": {
-    "build": "tsup src/index.ts --format esm --dts --clean",
-    "test": "vitest run",
+    "build": "tsc",
+    "test": "node --import tsx --test test/*.test.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint ."
   },
   "dependencies": {
+    "@hardkas/artifacts": "workspace:*",
     "@hardkas/core": "workspace:*",
-    "@hardkas/query": "workspace:0.2.0-alpha",
-    "@hardkas/tx-builder": "workspace:*",
-    "ws": "^8.18.0"
+    "@hardkas/query": "workspace:*"
   },
   "devDependencies": {
-    "@types/ws": "^8.5.13",
     "tsup": "^8.3.5",
     "typescript": "^5.7.2",
-    "vitest": "^2.1.8"
+    "vitest": "^2.1.8",
+    "@types/node": "^22.10.0"
   },
   "license": "MIT",
   "author": "Javier Rodriguez",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/jrodrg92/Hardkas.git",
-    "directory": "packages/kaspa-rpc"
+    "directory": "packages/query-store"
   },
   "bugs": {
     "url": "https://github.com/jrodrg92/Hardkas/issues"
   },
-  "homepage": "https://github.com/jrodrg92/Hardkas/tree/main/packages/kaspa-rpc#readme",
+  "homepage": "https://github.com/jrodrg92/Hardkas/tree/main/packages/query-store#readme",
   "files": [
     "dist",
     "LICENSE",

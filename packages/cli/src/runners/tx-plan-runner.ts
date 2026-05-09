@@ -12,6 +12,7 @@ import {
   createTxPlanArtifact, 
   TxPlanArtifact 
 } from "@hardkas/artifacts";
+import { coreEvents } from "@hardkas/core";
 import { 
   resolveNetworkTarget, 
   HardkasConfig 
@@ -132,6 +133,14 @@ export async function runTxPlan(input: TxPlanRunnerInput): Promise<TxPlanArtifac
     to: { input: to, address: toAddress },
     amountSompi,
     plan
+  });
+
+  coreEvents.emit({
+    kind: "workflow.plan.created",
+    planId: artifact.planId,
+    planHash: artifact.contentHash || "unknown",
+    network: artifact.networkId,
+    mode: artifact.mode
   });
 
   return artifact;

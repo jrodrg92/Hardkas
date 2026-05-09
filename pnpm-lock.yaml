@@ -256,6 +256,15 @@ importers:
       '@hardkas/query':
         specifier: workspace:*
         version: link:../query
+<<<<<<< Updated upstream
+=======
+      '@hardkas/query-store':
+        specifier: workspace:0.2.0-alpha
+        version: link:../query-store
+      '@hardkas/sdk':
+        specifier: workspace:*
+        version: link:../sdk
+>>>>>>> Stashed changes
       '@hardkas/simulator':
         specifier: workspace:*
         version: link:../simulator
@@ -268,6 +277,9 @@ importers:
       enquirer:
         specifier: ^2.4.1
         version: 2.4.1
+      picocolors:
+        specifier: ^1.1.1
+        version: 1.1.1
       zod:
         specifier: ^3.23.8
         version: 3.25.76
@@ -328,6 +340,9 @@ importers:
       '@hardkas/core':
         specifier: workspace:*
         version: link:../core
+      '@hardkas/query':
+        specifier: workspace:0.2.0-alpha
+        version: link:../query
       '@hardkas/tx-builder':
         specifier: workspace:*
         version: link:../tx-builder
@@ -375,6 +390,9 @@ importers:
       '@hardkas/core':
         specifier: workspace:*
         version: link:../core
+      '@hardkas/query':
+        specifier: workspace:0.2.0-alpha
+        version: link:../query
       '@hardkas/tx-builder':
         specifier: workspace:*
         version: link:../tx-builder
@@ -432,11 +450,51 @@ importers:
       '@hardkas/core':
         specifier: workspace:*
         version: link:../core
+<<<<<<< Updated upstream
+=======
+      '@hardkas/kaspa-rpc':
+        specifier: workspace:*
+        version: link:../kaspa-rpc
+      '@hardkas/query-store':
+        specifier: workspace:*
+        version: link:../query-store
+      picocolors:
+        specifier: ^1.1.1
+        version: 1.1.1
+>>>>>>> Stashed changes
     devDependencies:
       tsup:
         specifier: ^8.3.5
         version: 8.5.1(jiti@2.7.0)(postcss@8.5.14)(tsx@4.21.0)(typescript@5.9.3)
       typescript:
+<<<<<<< Updated upstream
+=======
+        specifier: ^5.6.3
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.4
+        version: 2.1.9(@types/node@22.19.17)
+
+  packages/query-store:
+    dependencies:
+      '@hardkas/artifacts':
+        specifier: workspace:*
+        version: link:../artifacts
+      '@hardkas/core':
+        specifier: workspace:*
+        version: link:../core
+      '@hardkas/query':
+        specifier: workspace:*
+        version: link:../query
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.19.17
+      tsup:
+        specifier: ^8.3.5
+        version: 8.5.1(jiti@2.7.0)(postcss@8.5.14)(tsx@4.21.0)(typescript@5.9.3)
+      typescript:
+>>>>>>> Stashed changes
         specifier: ^5.7.2
         version: 5.9.3
       vitest:
@@ -466,6 +524,9 @@ importers:
       '@hardkas/localnet':
         specifier: workspace:*
         version: link:../localnet
+      '@hardkas/query':
+        specifier: workspace:*
+        version: link:../query
       '@hardkas/simulator':
         specifier: workspace:*
         version: link:../simulator

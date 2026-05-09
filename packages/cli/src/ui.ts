@@ -1,59 +1,60 @@
+import pc from "picocolors";
 import { formatSompi } from "@hardkas/core";
 
 export const UI = {
   header(text: string) {
-    console.log(`\n=== ${text} ===`);
+    console.log(pc.bold(pc.magenta(`\n  ═══ ${text} ═══`)));
   },
   
   divider() {
-    console.log("--------------------------------------------------");
+    console.log(pc.dim("  " + "─".repeat(50)));
   },
 
   info(text: string) {
-    console.log(`  ${text}`);
+    console.log(`  ${pc.blue("ℹ")} ${text}`);
   },
 
   success(text: string) {
-    console.log(`  \x1b[32m✔\x1b[0m ${text}`);
+    console.log(`  ${pc.green("✔")} ${text}`);
   },
 
   box(title: string, subtitle?: string) {
-    console.log("\x1b[35m╔══════════════════════════════╗\x1b[0m");
-    console.log(`\x1b[35m║         \x1b[1m${title.padEnd(7)}\x1b[0m\x1b[35m              ║\x1b[0m`);
+    const width = 40;
+    console.log(pc.magenta(`  ╔${"═".repeat(width - 2)}╗`));
+    console.log(pc.magenta(`  ║${pc.bold(pc.white(title.padStart((width - 2 + title.length) / 2).padEnd(width - 2)))}║`));
     if (subtitle) {
-      const padding = Math.max(0, Math.floor((26 - subtitle.length) / 2));
-      console.log(`\x1b[35m║${"".padEnd(padding + 2)}\x1b[3m${subtitle}\x1b[0m${"".padEnd(28 - padding - 2 - subtitle.length)}║\x1b[0m`);
+      console.log(pc.magenta(`  ║${pc.italic(pc.dim(subtitle.padStart((width - 2 + subtitle.length) / 2).padEnd(width - 2)))}║`));
     }
-    console.log("\x1b[35m╚══════════════════════════════╝\x1b[0m");
+    console.log(pc.magenta(`  ╚${"═".repeat(width - 2)}╝`));
     console.log("");
   },
 
   warning(text: string) {
-    console.log(`\n⚠️  WARNING:`);
-    console.log(`   ${text}`);
+    console.log(pc.yellow(`\n  ⚠️  WARNING:`));
+    console.log(pc.yellow(`     ${text}`));
   },
 
   error(msg: string, suggestion?: string) {
-    console.error(`\n❌ Error:`);
-    console.error(`   ${msg}`);
+    console.error(pc.red(`\n  ✗ Error:`));
+    console.error(pc.red(`    ${msg}`));
     if (suggestion) {
-      console.error(`\n💡 Suggestion:`);
-      console.error(`   ${suggestion}`);
+      console.error(pc.cyan(`\n  💡 Suggestion:`));
+      console.error(pc.cyan(`    ${suggestion}`));
     }
   },
 
   field(label: string, value: string | number | boolean | undefined | null) {
-    const val = value === undefined || value === null ? "none" : String(value);
-    console.log(`  ${label.padEnd(14)} ${val}`);
+    const val = value === undefined || value === null ? pc.dim("none") : String(value);
+    console.log(`  ${pc.dim(label.padEnd(16))} ${pc.white(val)}`);
   },
 
   kas(label: string, sompi: bigint | string) {
-    this.field(label, formatSompi(BigInt(sompi)));
+    this.field(label, pc.cyan(formatSompi(BigInt(sompi))));
   },
 
   footer(hint?: string) {
     if (hint) {
-      console.log(`\nHint: ${hint}`);
+      console.log(pc.dim(`\n  Hint: ${hint}`));
     }
     console.log("");
   }

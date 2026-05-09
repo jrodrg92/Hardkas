@@ -2,14 +2,14 @@ import type { NetworkId } from "@hardkas/core";
 import { WebSocket } from "ws";
 
 export interface KaspaNodeInfo {
-  serverVersion?: string;
-  isSynced?: boolean;
-  isUtxoIndexed?: boolean;
-  p2pId?: string;
-  mempoolSize?: number;
-  virtualDaaScore?: bigint;
-  networkId?: string;
-  raw?: unknown;
+  serverVersion?: string | undefined;
+  isSynced?: boolean | undefined;
+  isUtxoIndexed?: boolean | undefined;
+  p2pId?: string | undefined;
+  mempoolSize?: number | undefined;
+  virtualDaaScore?: bigint | undefined;
+  networkId?: string | undefined;
+  raw?: unknown | undefined;
 }
 
 export interface KaspaRpcHealth {
@@ -69,7 +69,7 @@ export interface ServerInfo {
 
 export interface MempoolEntry {
   readonly txId: string;
-  readonly acceptedAt?: string;
+  readonly acceptedAt?: string | undefined;
 }
 
 export interface KaspaSubmitTransactionResult {
@@ -285,7 +285,6 @@ export class JsonWrpcKaspaClient implements KaspaRpcClient {
               const msg = err.message || (typeof err === "string" ? err : JSON.stringify(err));
               reject(new Error(msg));
             } else {
-              // Some wRPC implementations return data in 'params' instead of 'result'
               resolve(response.result !== undefined ? response.result : response.params);
             }
           }
@@ -310,10 +309,8 @@ export class JsonWrpcKaspaClient implements KaspaRpcClient {
   }
 
   private async connect(): Promise<WebSocket> {
-    // For debugging/fixing timeouts, let's try always creating a new connection
-    if (this.socket) {
-      this.socket.close();
-      this.socket = null;
+    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+      return this.socket;
     }
 
     return new Promise((resolve, reject) => {
@@ -365,7 +362,6 @@ export function mapKaspaNodeInfo(result: any): KaspaNodeInfo {
 export function mapKaspaAddressBalance(result: any, address: string): KaspaAddressBalance {
   if (!result) return { address, balanceSompi: 0n, raw: result };
   
-  // Handle array response from getBalancesByAddresses
   let entry = result;
   if (Array.isArray(result)) {
     entry = result.find((e: any) => (e.address || e.addressString || e.address_string) === address) || result[0];
@@ -398,19 +394,7 @@ export function mapKaspaRpcUtxos(result: any, address: string): KaspaRpcUtxo[] {
     entries = result.entries || result.utxos || result;
   }
   
-  if (!Array.isArray(entries)) {
-    if (typeof entries === "object" && entries !== null) {
-       const keys = Object.keys(entries);
-       const firstKey = keys[0];
-       if (keys.length === 1 && firstKey && Array.isArray(entries[firstKey])) {
-         entries = entries[firstKey];
-       } else {
-         return [];
-       }
-    } else {
-      return [];
-    }
-  }
+  if (!Array.isArray(entries)) return [];
 
   return (entries as any[]).map((entry: any) => {
     const utxoEntry = entry.utxoEntry || entry.utxo_entry || entry.utxo || entry;
