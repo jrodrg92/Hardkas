@@ -7,7 +7,8 @@ import {
   txOutputFromArtifact,
   validateTxPlanArtifact,
   HARDKAS_VERSION,
-  ARTIFACT_SCHEMAS
+  ARTIFACT_SCHEMAS,
+  ARTIFACT_VERSION
 } from "../src/index.js";
 import { Utxo, TxOutput } from "@hardkas/tx-builder";
 
@@ -58,7 +59,7 @@ describe("Real Transaction Artifacts", () => {
     const validArtifact: any = {
       schema: ARTIFACT_SCHEMAS.TX_PLAN,
       hardkasVersion: HARDKAS_VERSION,
-      version: "2.0.0",
+      version: ARTIFACT_VERSION,
       createdAt: new Date().toISOString(),
       networkId: "simnet",
       mode: "real",

@@ -10,10 +10,10 @@ export interface HardkasArtifactBase {
   createdAt: string;
 }
 
-export interface BaseArtifactV2<T extends ArtifactType> {
-  schema: `hardkas.${T}.v2`;
+export interface BaseArtifact<T extends ArtifactType> {
+  schema: `hardkas.${T}`;
   hardkasVersion: string;
-  version: "2.0.0";
+  version: "1.0.0-alpha";
   networkId: NetworkId;
   mode: ExecutionMode;
   createdAt: string;
@@ -171,10 +171,10 @@ export interface TxTraceArtifactV1 extends HardkasArtifactBase {
 
 // --- V2 Artifact Interfaces ---
 
-export interface TxPlanArtifactV2 extends BaseArtifactV2<"txPlan"> {
+export interface TxPlanArtifact extends BaseArtifact<"txPlan"> {
   planId: string;
-  from: { address: string; accountName?: string | undefined };
-  to: { address: string; accountName?: string | undefined };
+  from: { address: string; accountName?: string | undefined; input?: string | undefined };
+  to: { address: string; accountName?: string | undefined; input?: string | undefined };
   amountSompi: string;
   estimatedFeeSompi: string;
   estimatedMass: string;
@@ -192,12 +192,12 @@ export interface TxPlanArtifactV2 extends BaseArtifactV2<"txPlan"> {
   } | undefined;
 }
 
-export interface SignedTxArtifactV2 extends BaseArtifactV2<"signedTx"> {
+export interface SignedTxArtifact extends BaseArtifact<"signedTx"> {
   status: "signed";
   signedId: string;
   sourcePlanId: string;
-  from: { address: string };
-  to: { address: string };
+  from: { address: string; accountName?: string | undefined; input?: string | undefined };
+  to: { address: string; accountName?: string | undefined; input?: string | undefined };
   amountSompi: string;
   signedTransaction: {
     format: string;
@@ -207,7 +207,7 @@ export interface SignedTxArtifactV2 extends BaseArtifactV2<"signedTx"> {
   metadata?: any | undefined;
 }
 
-export interface TxReceiptArtifactV2 extends BaseArtifactV2<"txReceipt"> {
+export interface TxReceiptArtifact extends BaseArtifact<"txReceipt"> {
   txId: string;
   status: "pending" | "submitted" | "accepted" | "confirmed" | "failed";
   from: { address: string };
@@ -216,9 +216,17 @@ export interface TxReceiptArtifactV2 extends BaseArtifactV2<"txReceipt"> {
   feeSompi: string;
   mass?: string | undefined;
   daaScore?: string | undefined;
+  submittedAt?: string | undefined;
+  confirmedAt?: string | undefined;
+  preStateHash?: string | undefined;
+  postStateHash?: string | undefined;
+  tracePath?: string | undefined;
+  rpcUrl?: string | undefined;
+  sourceSignedId?: string | undefined;
+  metadata?: any | undefined;
 }
 
-export interface SnapshotArtifactV2 extends BaseArtifactV2<"snapshot"> {
+export interface SnapshotArtifact extends BaseArtifact<"snapshot"> {
   name?: string | undefined;
   daaScore: string;
   accounts: Array<{ name: string; address: string }>;

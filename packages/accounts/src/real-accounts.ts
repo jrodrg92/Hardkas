@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { HardkasArtifactBase, HARDKAS_VERSION, ARTIFACT_SCHEMAS } from "@hardkas/artifacts";
+import { HardkasArtifactBase, HARDKAS_VERSION, ARTIFACT_SCHEMAS, ARTIFACT_VERSION } from "@hardkas/artifacts";
 
 export interface RealAccountStore extends HardkasArtifactBase {
   readonly schema: "hardkas.realAccountStore.v1";
@@ -26,7 +26,7 @@ export function createEmptyRealAccountStore(): RealAccountStore {
   return {
     schema: ARTIFACT_SCHEMAS.REAL_ACCOUNT_STORE,
     hardkasVersion: HARDKAS_VERSION,
-    version: "2.0.0",
+    version: ARTIFACT_VERSION,
     createdAt: new Date().toISOString(),
     networkId: "simnet",
     mode: "node",

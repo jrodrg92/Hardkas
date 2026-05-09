@@ -6,10 +6,12 @@ export interface ResolveNetworkTargetOptions {
   network?: string;
 }
 
+import { NetworkId } from "@hardkas/core";
+
 export function resolveNetworkTarget(
   options: ResolveNetworkTargetOptions
 ): {
-  name: string;
+  name: NetworkId;
   target: HardkasNetworkTarget;
 } {
   const { config, network } = options;
@@ -27,7 +29,7 @@ export function resolveNetworkTarget(
   }
 
   return {
-    name,
+    name: name as NetworkId,
     target
   };
 }

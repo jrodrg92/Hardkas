@@ -1,4 +1,4 @@
-import { HardkasArtifactBase, SnapshotV2 } from "@hardkas/artifacts";
+import { HardkasArtifactBase, Snapshot } from "@hardkas/artifacts";
 import { NetworkId, ExecutionMode } from "@hardkas/core";
 
 export interface LocalnetAccount {
@@ -22,7 +22,7 @@ export interface LocalnetState extends HardkasArtifactBase {
   daaScore: string;
   accounts: LocalnetAccount[];
   utxos: LocalnetUtxo[];
-  snapshots?: SnapshotV2[];
+  snapshots?: Snapshot[];
   dag?: SimulatedDag;
 }
 

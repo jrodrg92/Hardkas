@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { 
   verifyArtifactIntegrity, 
   calculateContentHash,
-  ARTIFACT_V2_VERSION
+  ARTIFACT_VERSION
 } from "../src/index.js";
 import fs from "node:fs";
 import path from "node:path";
@@ -20,20 +20,20 @@ describe("Artifact Integrity Hardening (P1.1)", () => {
   });
 
   const createValidArtifact = () => ({
-    schema: "hardkas.txPlan.v2",
-    hardkasVersion: "0.2.0",
-    version: ARTIFACT_V2_VERSION,
+    schema: "hardkas.txPlan",
+    hardkasVersion: "0.2.0-alpha",
+    version: ARTIFACT_VERSION,
     createdAt: new Date().toISOString(),
     networkId: "simnet",
     mode: "simulated",
     planId: "test-123",
-    from: { address: "kaspa:alice" },
-    to: { address: "kaspa:bob" },
+    from: { address: "kaspasim:alice" },
+    to: { address: "kaspasim:bob" },
     amountSompi: "1000",
     estimatedFeeSompi: "1",
     estimatedMass: "100",
     inputs: [],
-    outputs: [{ address: "kaspa:bob", amountSompi: "1000" }]
+    outputs: [{ address: "kaspasim:bob", amountSompi: "1000" }]
   });
 
   it("should verify a valid artifact object", async () => {

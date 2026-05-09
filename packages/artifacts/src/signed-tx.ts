@@ -1,15 +1,15 @@
-import { TxPlanV2, TxReceiptV2, SignedTxV2, ARTIFACT_V2_VERSION } from "./schemas.js";
+import { TxPlan, TxReceipt, SignedTx, ARTIFACT_VERSION } from "./schemas.js";
 import { calculateContentHash } from "./canonical.js";
 import { HARDKAS_VERSION } from "./constants.js";
 
 /**
- * Creates a v2 simulated signed transaction artifact.
+ * Creates a canonical simulated signed transaction artifact.
  */
-export function createSimulatedSignedTxArtifact(plan: TxPlanV2, payload: string): SignedTxV2 {
-  const artifact: SignedTxV2 = {
-    schema: "hardkas.signedTx.v2",
+export function createSimulatedSignedTxArtifact(plan: TxPlan, payload: string): SignedTx {
+  const artifact: SignedTx = {
+    schema: "hardkas.signedTx",
     hardkasVersion: HARDKAS_VERSION,
-    version: ARTIFACT_V2_VERSION,
+    version: ARTIFACT_VERSION,
     createdAt: new Date().toISOString(),
     status: "signed",
     signedId: `signed-${Date.now()}`,
@@ -31,21 +31,21 @@ export function createSimulatedSignedTxArtifact(plan: TxPlanV2, payload: string)
 }
 
 /**
- * Creates a v2 simulated receipt.
+ * Creates a canonical simulated receipt.
  */
 export function createSimulatedTxReceipt(
-  plan: TxPlanV2, 
+  plan: TxPlan, 
   txId: string, 
   extra?: { 
     spentUtxoIds?: string[], 
     createdUtxoIds?: string[], 
     daaScore?: string 
   }
-): TxReceiptV2 {
-  const artifact: TxReceiptV2 = {
-    schema: "hardkas.txReceipt.v2",
+): TxReceipt {
+  const artifact: TxReceipt = {
+    schema: "hardkas.txReceipt",
     hardkasVersion: HARDKAS_VERSION,
-    version: ARTIFACT_V2_VERSION,
+    version: ARTIFACT_VERSION,
     createdAt: new Date().toISOString(),
     txId,
     status: "accepted",

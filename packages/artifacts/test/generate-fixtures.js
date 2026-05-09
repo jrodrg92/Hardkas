@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { calculateContentHash } from "./packages/artifacts/src/canonical.js";
+import { calculateContentHash } from "../src/canonical.js";
 
 const fixturesDir = "packages/artifacts/test/fixtures";
 
@@ -22,17 +22,19 @@ function writeFixture(dir, name, artifact) {
 }
 
 const rootHash = writeFixture("valid", "snapshot.valid.json", {
-  schema: "hardkas.snapshot.v2",
+  schema: "hardkas.snapshot",
   hardkasVersion: "0.2.0-alpha",
-  version: "2.0.0",
+  version: "1.0.0-alpha",
+  networkId: "simnet",
+  mode: "simulated",
   createdAt: new Date().toISOString(),
   daaScore: "1000",
   accounts: [],
   utxos: [],
   lineage: {
-    artifactId: "pending",
-    lineageId: "flow-1",
-    rootArtifactId: "pending"
+    artifactId: "0".repeat(64),
+    lineageId: "a".repeat(64),
+    rootArtifactId: "0".repeat(64)
   }
 });
 
@@ -43,25 +45,25 @@ snapshot.lineage.artifactId = rootHash;
 fs.writeFileSync(path.join(fixturesDir, "valid", "snapshot.valid.json"), JSON.stringify(snapshot, null, 2));
 
 const planHash = writeFixture("valid", "tx-plan.valid.json", {
-  schema: "hardkas.txPlan.v2",
+  schema: "hardkas.txPlan",
   hardkasVersion: "0.2.0-alpha",
-  version: "2.0.0",
+  version: "1.0.0-alpha",
   createdAt: new Date().toISOString(),
   networkId: "simnet",
   mode: "simulated",
-  planId: "p1",
-  from: { address: "kaspa:123" },
-  to: { address: "kaspa:456" },
+  planId: "b".repeat(64),
+  from: { address: "kaspasim:123" },
+  to: { address: "kaspasim:456" },
   amountSompi: "1000000",
-  estimatedFeeSompi: "1000",
-  estimatedMass: "1000",
+  estimatedFeeSompi: "250",
+  estimatedMass: "250",
   inputs: [],
   outputs: [
-    { address: "kaspa:456", amountSompi: "1000000" }
+    { address: "kaspasim:456", amountSompi: "1000000" }
   ],
   lineage: {
-    artifactId: "pending",
-    lineageId: "flow-1",
+    artifactId: "0".repeat(64),
+    lineageId: "a".repeat(64),
     parentArtifactId: rootHash,
     rootArtifactId: rootHash,
     sequence: 1
@@ -69,22 +71,22 @@ const planHash = writeFixture("valid", "tx-plan.valid.json", {
 });
 
 writeFixture("valid", "signed-tx.valid.json", {
-  schema: "hardkas.signedTx.v2",
+  schema: "hardkas.signedTx",
   hardkasVersion: "0.2.0-alpha",
-  version: "2.0.0",
+  version: "1.0.0-alpha",
   createdAt: new Date().toISOString(),
   status: "signed",
-  signedId: "s1",
-  sourcePlanId: "p1",
+  signedId: "c".repeat(64),
+  sourcePlanId: "b".repeat(64),
   networkId: "simnet",
   mode: "simulated",
-  from: { address: "kaspa:123" },
-  to: { address: "kaspa:456" },
+  from: { address: "kaspasim:123" },
+  to: { address: "kaspasim:456" },
   amountSompi: "1000000",
   signedTransaction: { format: "hex", payload: "00" },
   lineage: {
-    artifactId: "pending",
-    lineageId: "flow-1",
+    artifactId: "0".repeat(64),
+    lineageId: "a".repeat(64),
     parentArtifactId: planHash,
     rootArtifactId: rootHash,
     sequence: 2
@@ -92,3 +94,15 @@ writeFixture("valid", "signed-tx.valid.json", {
 });
 
 console.log("Valid fixtures generated.");
+
+// Also generate golden fixtures (used by determinism tests and CI)
+const goldenDir = path.join(fixturesDir, "golden");
+if (!fs.existsSync(goldenDir)) fs.mkdirSync(goldenDir, { recursive: true });
+
+for (const file of ["snapshot.valid.json", "tx-plan.valid.json", "signed-tx.valid.json"]) {
+  const src = path.join(fixturesDir, "valid", file);
+  const dest = path.join(goldenDir, file);
+  fs.copyFileSync(src, dest);
+}
+
+console.log("Golden fixtures synced from valid.");

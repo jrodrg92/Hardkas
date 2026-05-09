@@ -1,12 +1,25 @@
+import { createHash } from "node:crypto";
 import { buildPaymentPlan } from "@hardkas/tx-builder";
 import type { LocalnetState, LocalnetUtxo, SimulationResult } from "./types.js";
 import { resolveAccountAddressFromState } from "./state.js";
 import { getSpendableUtxos } from "./balance.js";
 import { 
   createTxPlanArtifact, 
-  createSimulatedTxReceipt
+  createSimulatedTxReceipt,
+  calculateContentHash
 } from "@hardkas/artifacts";
 import { calculateStateHash } from "./snapshot.js";
+
+/**
+ * Generates a deterministic simulated transaction ID from plan and state.
+ * Ensures replay invariants: same plan + same state = same txId.
+ */
+function generateDeterministicTxId(planArtifact: any, preStateHash: string, daaScore: string): string {
+  const planHash = planArtifact.contentHash || calculateContentHash(planArtifact);
+  const input = `${planHash}:${preStateHash}:${daaScore}`;
+  const hash = createHash("sha256").update(input).digest("hex").slice(0, 32);
+  return `simtx_${hash}`;
+}
 
 export interface SimulatedPaymentInput {
   readonly from: string;
@@ -96,7 +109,7 @@ export function applySimulatedPayment(
 
     // 6. State Transition
     const nextDaaScore = (BigInt(state.daaScore) + 1n).toString();
-    const txId = `simtx_${nextDaaScore}_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+    const txId = generateDeterministicTxId(planArtifact, preStateHash, nextDaaScore);
     
     // Mark inputs as spent
     const nextUtxos: LocalnetUtxo[] = state.utxos.map(u => {
@@ -178,7 +191,7 @@ export function applySimulatedPayment(
     // 7. Atomic Rollback (return original state)
     const txId = "failed-" + Date.now();
     const receipt = {
-      schema: "hardkas.txReceipt.v2",
+      schema: "hardkas.txReceipt",
       status: "failed",
       mode: "simulated",
       txId,
@@ -218,7 +231,7 @@ export function applySimulatedPlan(
     }
 
     const nextDaaScore = (BigInt(state.daaScore) + 1n).toString();
-    const txId = options?.txId || `simtx_replay_${nextDaaScore}_${Date.now()}`;
+    const txId = options?.txId || generateDeterministicTxId(planArtifact, preStateHash, nextDaaScore);
 
     const nextUtxos: LocalnetUtxo[] = state.utxos.map(u => {
       if (spentUtxoIds.includes(u.id)) {
@@ -283,7 +296,7 @@ export function applySimulatedPlan(
 
   } catch (error: any) {
     const receipt = {
-      schema: "hardkas.txReceipt.v2",
+      schema: "hardkas.txReceipt",
       status: "failed",
       mode: "simulated",
       txId: "failed-replay",

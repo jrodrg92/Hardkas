@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { createTxPlanArtifact } from "../src/tx-plan.js";
-import { parseKasToSompi } from "@hardkas/core";
+import { ARTIFACT_VERSION } from "../src/schemas.js";
 
-describe("TxPlanArtifact v2", () => {
+describe("TxPlanArtifact", () => {
   it("should create a valid artifact from a plan", () => {
     const plan: any = {
       inputs: [{
@@ -26,8 +26,8 @@ describe("TxPlanArtifact v2", () => {
       plan
     });
 
-    expect(artifact.schema).toBe("hardkas.txPlan.v2");
-    expect(artifact.version).toBe("2.0.0");
+    expect(artifact.schema).toBe("hardkas.txPlan");
+    expect(artifact.version).toBe(ARTIFACT_VERSION);
     expect(artifact.amountSompi).toBe("500");
     expect(artifact.inputs).toHaveLength(1);
     expect(artifact.inputs[0].amountSompi).toBe("1000");

@@ -20,5 +20,21 @@
     "tsup": "^8.3.5",
     "typescript": "^5.6.3",
     "vitest": "^2.1.4"
-  }
+  },
+  "license": "MIT",
+  "author": "Javier Rodriguez",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jrodrg92/Hardkas.git",
+    "directory": "packages/l2"
+  },
+  "bugs": {
+    "url": "https://github.com/jrodrg92/Hardkas/issues"
+  },
+  "homepage": "https://github.com/jrodrg92/Hardkas/tree/main/packages/l2#readme",
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ]
 }

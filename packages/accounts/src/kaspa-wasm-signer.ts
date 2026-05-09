@@ -1,6 +1,6 @@
 import { 
   TxPlanArtifact, 
-  hashTxPlanArtifact
+  calculateContentHash
 } from "@hardkas/artifacts";
 import { 
   HardkasKaspaPrivateKeyAccount, 
@@ -104,7 +104,7 @@ export class KaspaWasmPrivateKeySigner implements HardkasTxPlanSigner {
         txId: signedTx.id,
         signature: {
           // We use the txid as the signature identifier in the artifact
-          value: signedTx.id || hashTxPlanArtifact(plan)
+          value: signedTx.id || calculateContentHash(plan)
         }
       };
 

@@ -1,5 +1,5 @@
 import { TxPlan, TxOutput } from "./index.js";
-import { estimateTransactionMassV2 } from "./mass.js";
+import { estimateTransactionMass } from "./mass.js";
 
 export type SemanticVerificationSeverity = "info" | "warning" | "error" | "critical";
 
@@ -78,7 +78,7 @@ export function verifyTxPlanSemantics(
   }
 
   // 3. Mass & Fee Consistency
-  const massResult = estimateTransactionMassV2({
+  const massResult = estimateTransactionMass({
     inputCount: plan.inputs.length,
     outputs: plan.outputs,
     hasChange: !!plan.change

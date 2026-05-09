@@ -1,7 +1,7 @@
 {
-  "schema": "hardkas.txPlan.v2",
+  "schema": "hardkas.txPlan",
   "hardkasVersion": "0.2.0-alpha",
-  "version": "2.0.0",
+  "version": "1.0.0-alpha",
   "createdAt": "2026-05-08T22:21:40Z",
   "networkId": "simnet",
   "mode": "simulated",
@@ -18,3 +18,4 @@
     { "address": "kaspa:456", "amountSompi": "1000000" }
   ]
 }
+

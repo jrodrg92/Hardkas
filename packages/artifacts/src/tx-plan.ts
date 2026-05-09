@@ -1,5 +1,5 @@
-import { TxPlan } from "@hardkas/tx-builder";
-import { TxPlanV2, ARTIFACT_V2_VERSION } from "./schemas.js";
+import { TxPlan as TxPlanType } from "@hardkas/tx-builder";
+import { TxPlan, ARTIFACT_VERSION } from "./schemas.js";
 import { NetworkId, ExecutionMode } from "@hardkas/core";
 import { calculateContentHash } from "./canonical.js";
 import { HARDKAS_VERSION } from "./constants.js";
@@ -18,18 +18,18 @@ export interface CreateTxPlanArtifactOptions {
     address: string;
   };
   amountSompi: bigint;
-  plan: TxPlan;
+  plan: TxPlanType;
   rpcUrl?: string;
 }
 
 /**
- * Creates a v2 TxPlan artifact from a TxBuilder plan.
+ * Creates a canonical TxPlan artifact from a TxBuilder plan.
  */
-export function createTxPlanArtifact(options: CreateTxPlanArtifactOptions): TxPlanV2 {
+export function createTxPlanArtifact(options: CreateTxPlanArtifactOptions): TxPlan {
   const artifact: any = {
-    schema: "hardkas.txPlan.v2",
+    schema: "hardkas.txPlan",
     hardkasVersion: HARDKAS_VERSION,
-    version: ARTIFACT_V2_VERSION,
+    version: ARTIFACT_VERSION,
     createdAt: new Date().toISOString(),
     networkId: options.networkId,
     mode: options.mode,
@@ -68,5 +68,5 @@ export function createTxPlanArtifact(options: CreateTxPlanArtifactOptions): TxPl
   }
 
   artifact.contentHash = calculateContentHash(artifact);
-  return artifact as TxPlanV2;
+  return artifact as TxPlan;
 }

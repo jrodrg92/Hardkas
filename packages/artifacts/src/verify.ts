@@ -1,12 +1,12 @@
 import fs from "node:fs";
 import { calculateContentHash } from "./canonical.js";
 import { 
-  SnapshotSchemaV2, 
-  TxPlanSchemaV2, 
-  TxReceiptSchemaV2, 
-  TxTraceSchemaV2,
-  SignedTxSchemaV2,
-  ARTIFACT_V2_VERSION
+  SnapshotSchema, 
+  TxPlanSchema, 
+  TxReceiptSchema, 
+  TxTraceSchema,
+  SignedTxSchema,
+  ARTIFACT_VERSION
 } from "./schemas.js";
 
 export type VerificationSeverity = "info" | "warning" | "error" | "critical";
@@ -82,7 +82,7 @@ export async function verifyArtifactIntegrity(artifactOrPath: any): Promise<Arti
     }
 
     // Version Compatibility (reject if major version is different)
-    const [currentMajor] = ARTIFACT_V2_VERSION.split(".");
+    const [currentMajor] = ARTIFACT_VERSION.split(".");
     const [artifactMajor] = artifact.version.split(".");
     if (currentMajor !== artifactMajor) {
       addError("INCOMPATIBLE_VERSION", `Incompatible version: current system is v${currentMajor}, artifact is v${artifactMajor}`);
@@ -102,11 +102,11 @@ export async function verifyArtifactIntegrity(artifactOrPath: any): Promise<Arti
     // 4. Zod Schema Validation
     let schema;
     switch (artifact.schema) {
-      case "hardkas.snapshot.v2": schema = SnapshotSchemaV2; break;
-      case "hardkas.txPlan.v2": schema = TxPlanSchemaV2; break;
-      case "hardkas.txReceipt.v2": schema = TxReceiptSchemaV2; break;
-      case "hardkas.txTrace.v2": schema = TxTraceSchemaV2; break;
-      case "hardkas.signedTx.v2": schema = SignedTxSchemaV2; break;
+      case "hardkas.snapshot": schema = SnapshotSchema; break;
+      case "hardkas.txPlan": schema = TxPlanSchema; break;
+      case "hardkas.txReceipt": schema = TxReceiptSchema; break;
+      case "hardkas.txTrace": schema = TxTraceSchema; break;
+      case "hardkas.signedTx": schema = SignedTxSchema; break;
     }
 
     if (schema) {
@@ -199,7 +199,7 @@ export function verifyArtifactSemantics(artifact: any, options: { strict?: boole
   }
 
   // 3. Mode Integrity
-  if (artifact.schema === "hardkas.signedTx.v2" && artifact.mode === "simulated") {
+  if (artifact.schema === "hardkas.signedTx" && artifact.mode === "simulated") {
     // A simulated artifact should not have real signatures (placeholder check)
     if (artifact.signedTransaction?.format === "hex") {
        // This is just a conceptual rail for now

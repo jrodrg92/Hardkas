@@ -277,7 +277,6 @@ export class JsonWrpcKaspaClient implements KaspaRpcClient {
       const onMessage = (data: any) => {
         try {
           const raw = data.toString();
-          console.log(`[RPC DEBUG] Received: ${raw}`);
           const response = JSON.parse(raw);
           if (String(response.id) === String(id)) {
             cleanup();

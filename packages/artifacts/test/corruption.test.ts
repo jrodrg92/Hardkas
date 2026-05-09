@@ -84,11 +84,11 @@ describe("Corruption Corpus (Fase 4 Hardening)", () => {
 
   it("should reject missing lineage in strict mode", () => {
     const artifact = { 
-      schema: "hardkas.txPlan.v2", 
+      schema: "hardkas.txPlan", 
       mode: "real", 
       networkId: "mainnet",
       hardkasVersion: "0.2.0-alpha",
-      version: "2.0.0",
+      version: "1.0.0-alpha",
       createdAt: new Date().toISOString(),
       amountSompi: "1000"
     };

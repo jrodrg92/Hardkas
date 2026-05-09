@@ -23,6 +23,7 @@ export * from "@hardkas/kaspa-rpc";
 export * from "@hardkas/accounts";
 export * from "@hardkas/tx-builder";
 export * from "@hardkas/artifacts";
+export type { TxPlan } from "@hardkas/tx-builder";
 
 export interface HardkasOptions {
   cwd?: string;

@@ -1,5 +1,5 @@
 export type Sompi = bigint;
-import { estimateTransactionMassV2 } from "./mass.js";
+import { estimateTransactionMass } from "./mass.js";
 export * from "./mass.js";
 export * from "./verify.js";
 
@@ -70,7 +70,7 @@ export function buildPaymentPlan(request: TxBuildRequest): TxPlan {
     if (selectedAmount < target) continue;
 
     // Estimate mass with change output assumed
-    const result = estimateTransactionMassV2({
+    const result = estimateTransactionMass({
       inputCount: selected.length,
       outputs: request.outputs,
       payloadBytes: request.payloadBytes ?? 0,
@@ -89,7 +89,7 @@ export function buildPaymentPlan(request: TxBuildRequest): TxPlan {
       let finalFee = estimatedFeeSompi;
 
       if (!hasActualChange) {
-        const noChangeResult = estimateTransactionMassV2({
+        const noChangeResult = estimateTransactionMass({
           inputCount: selected.length,
           outputs: request.outputs,
           payloadBytes: request.payloadBytes ?? 0,
@@ -126,7 +126,7 @@ export function estimateMass(input: {
   readonly outputCount: number;
   readonly payloadBytes: number;
 }): bigint {
-  return estimateTransactionMassV2({
+  return estimateTransactionMass({
     inputCount: input.inputCount,
     outputs: Array(input.outputCount - 1).fill({ address: "" }),
     payloadBytes: input.payloadBytes,

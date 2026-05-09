@@ -1,6 +1,6 @@
 import { 
-  TxPlanV2, 
-  TxReceiptV2, 
+  TxPlan, 
+  TxReceipt, 
   calculateContentHash 
 } from "@hardkas/artifacts";
 import { applySimulatedPlan } from "./transactions.js";
@@ -8,7 +8,7 @@ import { LocalnetState, ReplayVerificationReport } from "./types.js";
 import { StoredSimulatedTxTrace } from "./traces.js";
 
 export interface SimulatedReplaySummary {
-  receipt: TxReceiptV2;
+  receipt: TxReceipt;
   trace: StoredSimulatedTxTrace;
   summary: {
     spentCount: number;
@@ -25,8 +25,8 @@ export interface SimulatedReplaySummary {
  */
 export function verifyReplay(
   state: LocalnetState,
-  originalPlan: TxPlanV2,
-  originalReceipt: TxReceiptV2
+  originalPlan: TxPlan,
+  originalReceipt: TxReceipt
 ): ReplayVerificationReport {
   const errors: string[] = [];
   

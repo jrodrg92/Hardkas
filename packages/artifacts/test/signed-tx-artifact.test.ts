@@ -5,14 +5,15 @@ import {
   createSimulatedSignedTxArtifact, 
   validateSignedTxArtifact,
   HARDKAS_VERSION,
-  ARTIFACT_SCHEMAS
+  ARTIFACT_SCHEMAS,
+  ARTIFACT_VERSION
 } from "../src";
 
 describe("SignedTxArtifact", () => {
   const mockPlan: any = {
     schema: ARTIFACT_SCHEMAS.TX_PLAN,
     hardkasVersion: HARDKAS_VERSION,
-    version: "2.0.0",
+    version: ARTIFACT_VERSION,
     createdAt: new Date().toISOString(),
     networkId: "simnet",
     mode: "simulated",

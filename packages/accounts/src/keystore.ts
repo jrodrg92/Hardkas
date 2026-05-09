@@ -15,8 +15,12 @@ import {
  * Designed for local developer workflows.
  */
 export class KeystoreManager {
-  private static readonly VERSION = "2.0.0";
-  private static readonly TYPE = "hardkas.encryptedKeystore.v2";
+  /**
+   * Keystore container format version. Separate from ARTIFACT_VERSION.
+   * This versions the encrypted keystore envelope, not HardKAS artifacts.
+   */
+  private static readonly KEYSTORE_FORMAT_VERSION = "2.0.0";
+  private static readonly KEYSTORE_FORMAT_TYPE = "hardkas.encryptedKeystore.v2";
 
   /**
    * Creates an encrypted keystore from a payload and password.
@@ -33,6 +37,7 @@ export class KeystoreManager {
     }
   ): Promise<EncryptedKeystoreV2> {
     if (!password) throw new Error("Password cannot be empty.");
+    if (password.length < 8) throw new Error("Password must be at least 8 characters long.");
 
     const salt = crypto.randomBytes(16);
     const nonce = crypto.randomBytes(12);
@@ -65,8 +70,8 @@ export class KeystoreManager {
     derivedKey.fill(0);
 
     return {
-      version: this.VERSION,
-      type: this.TYPE,
+      version: this.KEYSTORE_FORMAT_VERSION,
+      type: this.KEYSTORE_FORMAT_TYPE,
       kdf: {
         algorithm: "argon2id",
         memory,
@@ -96,7 +101,7 @@ export class KeystoreManager {
     keystore: EncryptedKeystoreV2,
     password: string
   ): Promise<KeystoreUnlockResult> {
-    if (keystore.version !== this.VERSION) {
+    if (keystore.version !== this.KEYSTORE_FORMAT_VERSION) {
       return { success: false, error: `Unsupported keystore version: ${keystore.version}` };
     }
 
@@ -177,7 +182,7 @@ export class KeystoreManager {
     try {
       const data = await fs.promises.readFile(filePath, "utf-8");
       const keystore = JSON.parse(data);
-      if (keystore.type !== this.TYPE) {
+      if (keystore.type !== this.KEYSTORE_FORMAT_TYPE) {
         throw new Error(`Invalid keystore type: ${keystore.type}`);
       }
       return keystore as EncryptedKeystoreV2;

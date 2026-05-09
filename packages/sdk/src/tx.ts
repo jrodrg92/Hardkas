@@ -13,7 +13,7 @@ import {
   getDefaultReceiptPath,
   createTxPlanArtifact,
   readTxReceiptArtifact,
-  calculateArtifactHash
+  calculateContentHash
 } from "@hardkas/artifacts";
 import { HardkasAccount, signTxPlanArtifact } from "@hardkas/accounts";
 import { parseKasToSompi } from "@hardkas/core";
@@ -113,9 +113,9 @@ export class HardkasTx {
     if (!txId) throw new Error("Broadcast failed: RPC returned no transaction ID.");
 
     const receipt: any = {
-      schema: "hardkas.txReceipt.v2",
+      schema: "hardkas.txReceipt",
       hardkasVersion: HARDKAS_VERSION,
-      version: "2.0.0",
+      version: "1.0.0-alpha",
       networkId: signed.networkId,
       mode: signed.mode,
       status: "accepted",
@@ -131,7 +131,7 @@ export class HardkasTx {
       feeSompi: String((signed as any).estimatedFeeSompi || "0")
     };
 
-    receipt.contentHash = calculateArtifactHash(receipt);
+    receipt.contentHash = calculateContentHash(receipt);
 
     // Auto-save receipt
     const receiptPath = getDefaultReceiptPath(txId, this.sdk.config.cwd);

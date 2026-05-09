@@ -34,7 +34,7 @@ describe("CLI Smoke Tests", () => {
   });
 
   it("should explain an artifact (mocked file)", () => {
-    const fixturePath = path.resolve(process.cwd(), "packages/artifacts/test/fixtures/golden/tx-plan.valid.json");
+    const fixturePath = path.resolve(__dirname, "../../../packages/artifacts/test/fixtures/golden/tx-plan.valid.json");
     const result = runHardkas(`artifact explain "${fixturePath}"`);
     expect(result.ok).toBe(true);
     expect(result.stdout).toContain("Operational Audit");
@@ -42,15 +42,15 @@ describe("CLI Smoke Tests", () => {
   });
 
   it("should verify golden fixtures in strict mode", () => {
-    const fixtureDir = path.resolve(process.cwd(), "packages/artifacts/test/fixtures/golden");
+    const fixtureDir = path.resolve(__dirname, "../../../packages/artifacts/test/fixtures/golden");
     const result = runHardkas(`artifact verify "${fixtureDir}" --recursive --strict`);
     expect(result.ok).toBe(true);
     expect(result.stdout).toContain("Audit Complete");
   });
 
   it("should fail to verify corrupted fixtures in strict mode", () => {
-    const fixtureDir = path.resolve(__dirname, "../../artifacts/test/fixtures/corrupted");
-    const result = runHardkas(`artifact verify ${fixtureDir} --recursive --strict`);
+    const fixtureDir = path.resolve(__dirname, "../../../packages/artifacts/test/fixtures/corrupted");
+    const result = runHardkas(`artifact verify "${fixtureDir}" --recursive --strict`);
     expect(result.ok).toBe(false);
     expect(result.status).not.toBe(0);
   });

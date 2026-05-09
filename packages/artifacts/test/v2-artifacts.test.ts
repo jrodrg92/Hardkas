@@ -3,14 +3,15 @@ import {
   canonicalStringify, 
   calculateContentHash, 
   verifyArtifact,
-  migrateV1ToV2,
-  sortUtxosByOutpoint
+  migrateToCanonical,
+  sortUtxosByOutpoint,
+  ARTIFACT_VERSION
 } from "../src/index.js";
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 
-describe("Artifacts v2 - Determinism and Verification", () => {
+describe("Artifacts - Determinism and Verification", () => {
   it("should produce the same hash for same object with different key order", () => {
     const obj1 = { a: 1, b: 2, c: { d: 3, e: 4 } };
     const obj2 = { c: { e: 4, d: 3 }, b: 2, a: 1 };
@@ -20,6 +21,14 @@ describe("Artifacts v2 - Determinism and Verification", () => {
 
     expect(hash1).toBe(hash2);
     expect(canonicalStringify(obj1)).toBe(canonicalStringify(obj2));
+  });
+
+  it("should produce the same hash/string when undefined fields are present vs absent", () => {
+    const withoutUndefined = { a: 1 };
+    const withUndefined = { a: 1, b: undefined };
+
+    expect(canonicalStringify(withoutUndefined)).toBe(canonicalStringify(withUndefined));
+    expect(calculateContentHash(withoutUndefined)).toBe(calculateContentHash(withUndefined));
   });
 
   it("should exclude contentHash from canonical stringify", () => {
@@ -52,14 +61,14 @@ describe("Artifacts v2 - Determinism and Verification", () => {
     expect(sorted[2].id).toBe("tx2:0");
   });
 
-  it("should verify a valid v2 artifact", async () => {
+  it("should verify a valid canonical artifact", async () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "hardkas-test-"));
     const artifactPath = path.join(tempDir, "test.json");
 
     const artifact: any = {
-      schema: "hardkas.txPlan.v2",
-      hardkasVersion: "0.1.0",
-      version: "2.0.0",
+      schema: "hardkas.txPlan",
+      hardkasVersion: "0.2.0-alpha",
+      version: ARTIFACT_VERSION,
       createdAt: new Date().toISOString(),
       networkId: "simnet",
       mode: "simulated",
@@ -88,9 +97,9 @@ describe("Artifacts v2 - Determinism and Verification", () => {
     const artifactPath = path.join(tempDir, "test.json");
 
     const artifact: any = {
-      schema: "hardkas.txPlan.v2",
-      hardkasVersion: "0.2.0",
-      version: "2.0.0",
+      schema: "hardkas.txPlan",
+      hardkasVersion: "0.2.0-alpha",
+      version: ARTIFACT_VERSION,
       createdAt: new Date().toISOString(),
       networkId: "simnet",
       mode: "simulated",
@@ -114,19 +123,19 @@ describe("Artifacts v2 - Determinism and Verification", () => {
     fs.rmSync(tempDir, { recursive: true });
   });
 
-  it("should migrate v1 to v2 correctly", () => {
+  it("should migrate v1 to canonical correctly", () => {
     const v1: any = {
       schema: "hardkas.txPlan.v1",
       planId: "p1",
       selectedUtxos: [{ outpoint: { transactionId: "t1", index: 0 }, amountSompi: "10" }]
     };
 
-    const v2 = migrateV1ToV2(v1);
-    expect(v2.version).toBe("2.0.0");
-    expect(v2.schema).toBe("hardkas.txPlan.v2");
-    expect(v2.inputs).toBeDefined();
-    expect(v2.hardkasVersion).toBeDefined();
-    expect(v2.createdAt).toBeDefined();
-    expect(v2.contentHash).toBeDefined();
+    const canonical = migrateToCanonical(v1);
+    expect(canonical.version).toBe(ARTIFACT_VERSION);
+    expect(canonical.schema).toBe("hardkas.txPlan");
+    expect(canonical.inputs).toBeDefined();
+    expect(canonical.hardkasVersion).toBeDefined();
+    expect(canonical.createdAt).toBeDefined();
+    expect(canonical.contentHash).toBeDefined();
   });
 });

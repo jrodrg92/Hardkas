@@ -1,6 +1,16 @@
 {
   "name": "hardkas-monorepo",
   "private": true,
+  "license": "MIT",
+  "author": "Javier Rodriguez",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jrodrg92/Hardkas.git"
+  },
+  "homepage": "https://github.com/jrodrg92/Hardkas#readme",
+  "bugs": {
+    "url": "https://github.com/jrodrg92/Hardkas/issues"
+  },
   "packageManager": "pnpm@9.15.4",
   "scripts": {
     "build": "turbo build",

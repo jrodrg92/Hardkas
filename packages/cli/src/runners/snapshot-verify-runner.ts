@@ -1,5 +1,5 @@
 import { UI } from "../ui.js";
-import { loadOrCreateLocalnetState, verifySnapshotV2 } from "@hardkas/localnet";
+import { loadOrCreateLocalnetState, verifySnapshot } from "@hardkas/localnet";
 
 export interface SnapshotVerifyOptions {
   idOrName: string;
@@ -20,7 +20,7 @@ export async function runSnapshotVerify(options: SnapshotVerifyOptions) {
 
     UI.header(`Snapshot Verification: ${snapshot.name || snapshot.contentHash}`);
     
-    const result = verifySnapshotV2(snapshot);
+    const result = verifySnapshot(snapshot);
 
     if (result.ok) {
       UI.success("Snapshot Integrity Verified");

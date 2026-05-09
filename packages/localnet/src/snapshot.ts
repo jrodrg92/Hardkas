@@ -1,6 +1,6 @@
 import { 
   HARDKAS_VERSION, 
-  ARTIFACT_V2_VERSION,
+  ARTIFACT_VERSION,
   calculateContentHash,
   sortUtxosByOutpoint
 } from "@hardkas/artifacts";
@@ -37,7 +37,7 @@ export function calculateStateHash(state: LocalnetState): string {
 }
 
 /**
- * Creates a v2 deterministic snapshot.
+ * Creates a canonical deterministic snapshot.
  */
 export function createLocalnetSnapshot(
   state: LocalnetState,
@@ -48,9 +48,9 @@ export function createLocalnetSnapshot(
   const stateHash = calculateStateHash(state);
 
   const snapshot: any = {
-    schema: "hardkas.snapshot.v2",
+    schema: "hardkas.snapshot",
     hardkasVersion: HARDKAS_VERSION,
-    version: ARTIFACT_V2_VERSION,
+    version: ARTIFACT_VERSION,
     createdAt: new Date().toISOString(),
     name,
     daaScore: state.daaScore,
@@ -72,7 +72,7 @@ export function createLocalnetSnapshot(
 /**
  * Verifies the integrity of a snapshot.
  */
-export function verifySnapshotV2(snapshot: any): SnapshotVerificationResult {
+export function verifySnapshot(snapshot: any): SnapshotVerificationResult {
   const errors: string[] = [];
   
   // 1. Content Hash Verification
@@ -127,7 +127,7 @@ export function restoreLocalnetSnapshot(
   }
 
   // 1. Verify before applying
-  const verification = verifySnapshotV2(snapshot);
+  const verification = verifySnapshot(snapshot);
   if (!verification.ok) {
     throw new Error(`Corrupted snapshot: ${verification.errors.join(", ")}`);
   }

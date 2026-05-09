@@ -1,9 +1,9 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { 
-  TxPlanV2,
-  SignedTxV2,
-  TxReceiptV2
+  TxPlan,
+  SignedTx,
+  TxReceipt
 } from "./schemas.js";
 import { verifyArtifact } from "./verify.js";
 
@@ -41,29 +41,29 @@ export async function readArtifact(filePath: string): Promise<any> {
   }
 }
 
-export async function readTxPlanArtifact(filePath: string): Promise<TxPlanV2> {
+export async function readTxPlanArtifact(filePath: string): Promise<TxPlan> {
   const result = await verifyArtifact(filePath);
   if (!result.ok) {
     throw new Error(`Invalid TxPlan artifact: ${result.errors.join(", ")}`);
   }
   const data = await readArtifact(filePath);
-  return data as TxPlanV2;
+  return data as TxPlan;
 }
 
-export async function readSignedTxArtifact(filePath: string): Promise<SignedTxV2> {
+export async function readSignedTxArtifact(filePath: string): Promise<SignedTx> {
   const result = await verifyArtifact(filePath);
   if (!result.ok) {
     throw new Error(`Invalid SignedTx artifact: ${result.errors.join(", ")}`);
   }
   const data = await readArtifact(filePath);
-  return data as SignedTxV2;
+  return data as SignedTx;
 }
 
-export async function readTxReceiptArtifact(filePath: string): Promise<TxReceiptV2> {
+export async function readTxReceiptArtifact(filePath: string): Promise<TxReceipt> {
   const result = await verifyArtifact(filePath);
   if (!result.ok) {
     throw new Error(`Invalid TxReceipt artifact: ${result.errors.join(", ")}`);
   }
   const data = await readArtifact(filePath);
-  return data as TxReceiptV2;
+  return data as TxReceipt;
 }

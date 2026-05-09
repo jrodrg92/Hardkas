@@ -1,12 +1,12 @@
 import { 
-  estimateTransactionMassV2, 
+  estimateTransactionMass, 
   estimateFeeFromMass,
   MassEstimateResult
 } from "@hardkas/tx-builder";
 import { 
-  TxPlanV2, 
-  SignedTxV2, 
-  TxReceiptV2 
+  TxPlan, 
+  SignedTx, 
+  TxReceipt 
 } from "./schemas.js";
 
 export interface FeeAuditResult {
@@ -23,10 +23,10 @@ export interface FeeAuditResult {
 /**
  * Recomputes mass for a transaction artifact.
  */
-export function recomputeMass(artifact: TxPlanV2 | SignedTxV2 | TxReceiptV2): bigint {
-  if (artifact.schema === "hardkas.txPlan.v2") {
-    const plan = artifact as TxPlanV2;
-    const result = estimateTransactionMassV2({
+export function recomputeMass(artifact: TxPlan | SignedTx | TxReceipt): bigint {
+  if (artifact.schema === "hardkas.txPlan") {
+    const plan = artifact as TxPlan;
+    const result = estimateTransactionMass({
       inputCount: (plan.inputs || []).length,
       outputs: plan.outputs || [],
       hasChange: !!plan.change,
@@ -35,8 +35,8 @@ export function recomputeMass(artifact: TxPlanV2 | SignedTxV2 | TxReceiptV2): bi
     return result.mass;
   }
   
-  if (artifact.schema === "hardkas.txReceipt.v2") {
-    const receipt = artifact as TxReceiptV2;
+  if (artifact.schema === "hardkas.txReceipt") {
+    const receipt = artifact as TxReceipt;
     // For receipt, we check if we have enough info to recompute
     // Receipt artifacts usually store mass, but we can re-verify if inputs/outputs are present
     // In V2 receipts, we might need to store more metadata to recompute exactly
@@ -58,15 +58,15 @@ export function verifyFeeSemantics(artifact: any): FeeAuditResult {
   let outputTotal = 0n;
   let feeRate = 1n; // Default
 
-  if (artifact.schema === "hardkas.txPlan.v2") {
-    const plan = artifact as TxPlanV2;
+  if (artifact.schema === "hardkas.txPlan") {
+    const plan = artifact as TxPlan;
     artifactMass = BigInt(plan.estimatedMass || 0);
     artifactFee = BigInt(plan.estimatedFeeSompi || 0);
     inputTotal = (plan.inputs || []).reduce((sum, i) => sum + BigInt(i.amountSompi || 0), 0n);
     outputTotal = (plan.outputs || []).reduce((sum, o) => sum + BigInt(o.amountSompi || 0), 0n);
     if (plan.change) outputTotal += BigInt(plan.change.amountSompi || 0);
-  } else if (artifact.schema === "hardkas.txReceipt.v2") {
-    const receipt = artifact as TxReceiptV2;
+  } else if (artifact.schema === "hardkas.txReceipt") {
+    const receipt = artifact as TxReceipt;
     artifactMass = BigInt(receipt.mass || 0);
     artifactFee = BigInt(receipt.feeSompi);
     outputTotal = BigInt(receipt.amountSompi);
@@ -99,8 +99,8 @@ export function verifyFeeSemantics(artifact: any): FeeAuditResult {
   }
 
   // 5. Dust Check
-  if (artifact.schema === "hardkas.txPlan.v2") {
-    const plan = artifact as TxPlanV2;
+  if (artifact.schema === "hardkas.txPlan") {
+    const plan = artifact as TxPlan;
     (plan.outputs || []).forEach((o, i) => {
       if (BigInt(o.amountSompi || 0) < 600n) { // Kaspa standard dust threshold ~600 sompi
         issues.push(`Dust output detected at index ${i}: ${o.amountSompi} sompi`);

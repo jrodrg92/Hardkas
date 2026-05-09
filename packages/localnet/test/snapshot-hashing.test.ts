@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { 
   createInitialLocalnetState, 
   createLocalnetSnapshot,
-  verifySnapshotV2,
+  verifySnapshot,
   restoreLocalnetSnapshot,
   calculateStateHash,
   calculateUtxoSetHash,
@@ -48,7 +48,7 @@ describe("Snapshot Hashing", () => {
     const stateWithSnapshot = createLocalnetSnapshot(state, "test");
     const snapshot = stateWithSnapshot.snapshots![0];
 
-    const result = verifySnapshotV2(snapshot);
+    const result = verifySnapshot(snapshot);
     expect(result.ok).toBe(true);
   });
 
@@ -59,7 +59,7 @@ describe("Snapshot Hashing", () => {
 
     snapshot.daaScore = "99999"; // Tamper
     
-    const result = verifySnapshotV2(snapshot);
+    const result = verifySnapshot(snapshot);
     expect(result.ok).toBe(false);
     expect(result.errors[0]).toContain("Content hash mismatch");
   });
@@ -77,9 +77,9 @@ describe("Snapshot Hashing", () => {
     delete temp.contentHash;
     snapshot.contentHash = calculateContentHash(temp);
 
-    const result = verifySnapshotV2(snapshot);
+    const result = verifySnapshot(snapshot);
     expect(result.ok).toBe(false);
-    expect(result.errors.some(e => e.includes("Accounts hash mismatch") || e.includes("State hash mismatch"))).toBe(true);
+    expect(result.errors.some((e: string) => e.includes("Accounts hash mismatch") || e.includes("State hash mismatch"))).toBe(true);
   });
 
   it("should fail restoration of corrupted snapshot without mutating state", () => {

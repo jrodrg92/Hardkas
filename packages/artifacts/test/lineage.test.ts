@@ -7,7 +7,7 @@ describe("Artifact Lineage (Fase 2 Hardening)", () => {
   const flowId = "5e001eec361ca9a8098fb0266419bee20116585c03746ecc8d1e0ec1cc567f13";
 
   const rootArtifact = {
-    schema: "hardkas.snapshot.v2",
+    schema: "hardkas.snapshot",
     contentHash: rootHash,
     networkId: "simnet",
     mode: "simulated",
@@ -20,7 +20,7 @@ describe("Artifact Lineage (Fase 2 Hardening)", () => {
   };
 
   const planArtifact = {
-    schema: "hardkas.txPlan.v2",
+    schema: "hardkas.txPlan",
     contentHash: planHash,
     networkId: "simnet",
     mode: "simulated",
@@ -91,11 +91,11 @@ describe("Artifact Lineage (Fase 2 Hardening)", () => {
 
   it("should fail on invalid transition (e.g. receipt -> plan)", () => {
     const receipt = {
-      schema: "hardkas.txReceipt.v2",
+      schema: "hardkas.txReceipt",
       lineage: { artifactId: rootHash, lineageId: flowId, rootArtifactId: rootHash }
     };
     const plan = {
-      schema: "hardkas.txPlan.v2",
+      schema: "hardkas.txPlan",
       lineage: { artifactId: planHash, lineageId: flowId, rootArtifactId: rootHash }
     };
     // receipt cannot be parent of plan
@@ -105,7 +105,7 @@ describe("Artifact Lineage (Fase 2 Hardening)", () => {
   });
 
   it("should warn on missing lineage (orphan) but not fail in normal mode", () => {
-    const orphan = { schema: "hardkas.snapshot.v2" };
+    const orphan = { schema: "hardkas.snapshot" };
     const result = verifyLineage(orphan);
     expect(result.ok).toBe(true);
     expect(result.issues.some(i => i.code === "MISSING_LINEAGE" && i.severity === "warning")).toBe(true);

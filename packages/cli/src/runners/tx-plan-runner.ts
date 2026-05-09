@@ -125,7 +125,7 @@ export async function runTxPlan(input: TxPlanRunnerInput): Promise<TxPlanArtifac
   });
 
   const artifact = createTxPlanArtifact({
-    networkId: resolvedNetwork,
+    networkId: resolvedNetwork as any,
     mode: mode === "simulated" ? "simulated" : "real",
     ...(rpcUrl ? { rpcUrl } : {}),
     from: { input: from, address: fromAddress },

@@ -1,5 +1,5 @@
 import { SOMPI_PER_KAS, NetworkId, ExecutionMode } from "@hardkas/core";
-import { HardkasArtifactBase, SnapshotV2, HARDKAS_VERSION, ARTIFACT_SCHEMAS } from "@hardkas/artifacts";
+import { HardkasArtifactBase, Snapshot, HARDKAS_VERSION, ARTIFACT_SCHEMAS } from "@hardkas/artifacts";
 import { createDeterministicAccounts } from "./accounts";
 import type { LocalnetState } from "./types";
 
@@ -22,7 +22,7 @@ export function createInitialLocalnetState(
   return {
     schema: ARTIFACT_SCHEMAS.LOCALNET_STATE,
     hardkasVersion: HARDKAS_VERSION,
-    version: "2.0.0",
+    version: "1.0.0-alpha",
     createdAt: new Date().toISOString(),
     mode: "simulated" as ExecutionMode,
     networkId: "simnet" as NetworkId,

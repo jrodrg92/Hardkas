@@ -30,7 +30,7 @@ describe("Real Account Queries (Balance & UTXOs)", () => {
   const mockStore: localnet.RealAccountStore = {
     schema: artifacts.ARTIFACT_SCHEMAS.REAL_ACCOUNT_STORE,
     hardkasVersion: artifacts.HARDKAS_VERSION,
-    version: "2.0.0",
+    version: artifacts.ARTIFACT_VERSION,
     createdAt: new Date().toISOString(),
     networkId: "simnet",
     mode: "node",

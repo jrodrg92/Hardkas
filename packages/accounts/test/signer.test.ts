@@ -5,9 +5,9 @@ import { HardkasAccount } from "../src/types.js";
 
 describe("signTxPlanArtifact", () => {
   const mockSimulatedPlan: any = {
-    schema: "hardkas.txPlan.v2",
-    version: "2.0.0",
-    hardkasVersion: "0.2.0",
+    schema: "hardkas.txPlan",
+    version: "1.0.0-alpha",
+    hardkasVersion: "0.2.0-alpha",
     createdAt: new Date().toISOString(),
     networkId: "simnet",
     mode: "simulated",

@@ -2,7 +2,7 @@ import {
   TxPlanArtifact, 
   SignedTxArtifact,
   createSimulatedSignedTxArtifact,
-  calculateArtifactHash,
+  calculateContentHash,
   HARDKAS_VERSION,
   ARTIFACT_SCHEMAS
 } from "@hardkas/artifacts";
@@ -57,8 +57,8 @@ export async function signTxPlanArtifact(input: {
   const { planArtifact, account } = input;
 
   // Security guardrails
-  // In v2, status might be missing if schema is used as the state marker
-  if (planArtifact.schema === "hardkas.txPlan.v2") {
+  // In alpha, status might be missing if schema is used as the state marker
+  if (planArtifact.schema === "hardkas.txPlan") {
     // Valid for signing
   } else if ((planArtifact as any).status !== "built" && (planArtifact as any).status !== "unsigned") {
     throw new Error(`Cannot sign artifact with status: ${(planArtifact as any).status}`);
@@ -105,9 +105,9 @@ export async function signTxPlanArtifact(input: {
     });
 
     const artifact: any = {
-      schema: "hardkas.signedTx.v2",
+      schema: "hardkas.signedTx",
       hardkasVersion: HARDKAS_VERSION,
-      version: "2.0.0",
+      version: "1.0.0-alpha",
       status: "signed",
       createdAt: new Date().toISOString(),
       signedId: `signed_${planArtifact.planId}_${Date.now().toString(36)}`,
@@ -124,7 +124,7 @@ export async function signTxPlanArtifact(input: {
       }
     };
 
-    artifact.contentHash = calculateArtifactHash(artifact);
+    artifact.contentHash = calculateContentHash(artifact);
     return artifact;
   }
 

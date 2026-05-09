@@ -1,32 +1,32 @@
 import { calculateContentHash } from "./canonical.js";
-import { ARTIFACT_V2_VERSION } from "./schemas.js";
+import { ARTIFACT_VERSION } from "./schemas.js";
 import { sortUtxosByOutpoint } from "./verify.js";
 import { HARDKAS_VERSION } from "./constants.js";
 
 /**
- * Migrates a v1 artifact to v2 by updating the schema, version, 
+ * Migrates a v1 artifact to canonical format by updating the schema, version, 
  * and calculating the contentHash.
  */
-export function migrateV1ToV2(v1Artifact: any): any {
-  if (v1Artifact.version === ARTIFACT_V2_VERSION) {
-    return v1Artifact; // Already v2
+export function migrateToCanonical(v1Artifact: any): any {
+  if (v1Artifact.version === ARTIFACT_VERSION) {
+    return v1Artifact; // Already canonical
   }
 
   const v2Artifact = { ...v1Artifact };
   
   // 1. Update Schema & Version
   if (v1Artifact.schema) {
-    v2Artifact.schema = v1Artifact.schema.replace(".v1", ".v2");
+    v2Artifact.schema = v1Artifact.schema.replace(".v1", "");
   }
-  v2Artifact.version = ARTIFACT_V2_VERSION;
+  v2Artifact.version = ARTIFACT_VERSION;
 
   // 2. Schema specific adjustments
-  if (v2Artifact.schema === "hardkas.txPlan.v2" && v1Artifact.selectedUtxos) {
+  if (v2Artifact.schema === "hardkas.txPlan" && v1Artifact.selectedUtxos) {
     v2Artifact.inputs = v1Artifact.selectedUtxos;
     delete v2Artifact.selectedUtxos;
   }
 
-  if (v2Artifact.schema === "hardkas.snapshot.v2" && v1Artifact.utxos) {
+  if (v2Artifact.schema === "hardkas.snapshot" && v1Artifact.utxos) {
      v2Artifact.utxos = sortUtxosByOutpoint(v1Artifact.utxos);
   }
 

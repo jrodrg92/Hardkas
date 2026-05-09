@@ -3,7 +3,8 @@ import { createHash } from "node:crypto";
 /**
  * Deterministically stringifies an object by sorting keys recursively.
  * Handles BigInt by converting to string.
- * Excludes 'contentHash' field during serialization.
+ * Excludes 'contentHash', 'artifactId', and 'lineage' fields during serialization.
+ * Skips keys with undefined values (matching JSON.stringify behavior).
  */
 export function canonicalStringify(obj: any): string {
   if (obj === null || typeof obj !== "object") {
@@ -18,7 +19,12 @@ export function canonicalStringify(obj: any): string {
   }
 
   const sortedKeys = Object.keys(obj)
-    .filter(key => key !== "contentHash" && key !== "artifactId" && key !== "lineage")
+    .filter(key =>
+      key !== "contentHash" &&
+      key !== "artifactId" &&
+      key !== "lineage" &&
+      obj[key] !== undefined
+    )
     .sort();
 
   const result = sortedKeys

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { kaspaNetworkIdSchema, executionModeSchema, artifactTypeSchema } from "@hardkas/core";
 
-export const ARTIFACT_V2_VERSION = "2.0.0";
+export const ARTIFACT_VERSION = "1.0.0-alpha";
 
 export const ArtifactLineageSchema = z.object({
   artifactId: z.string(),
@@ -14,7 +14,7 @@ export const ArtifactLineageSchema = z.object({
 export const BaseArtifactSchema = z.object({
   schema: z.string(),
   hardkasVersion: z.string(),
-  version: z.literal(ARTIFACT_V2_VERSION),
+  version: z.literal(ARTIFACT_VERSION),
   networkId: kaspaNetworkIdSchema,
   mode: executionModeSchema,
   contentHash: z.string().optional(),
@@ -28,8 +28,8 @@ export const AccountRefSchema = z.object({
   input: z.string().optional()
 });
 
-export const TxPlanSchemaV2 = BaseArtifactSchema.extend({
-  schema: z.literal("hardkas.txPlan.v2"),
+export const TxPlanSchema = BaseArtifactSchema.extend({
+  schema: z.literal("hardkas.txPlan"),
   networkId: kaspaNetworkIdSchema,
   mode: executionModeSchema,
   planId: z.string(),
@@ -79,8 +79,8 @@ export const LocalnetUtxoSchemaV2 = z.object({
   createdAtDaaScore: z.string()
 });
 
-export const SnapshotSchemaV2 = BaseArtifactSchema.extend({
-  schema: z.literal("hardkas.snapshot.v2"),
+export const SnapshotSchema = BaseArtifactSchema.extend({
+  schema: z.literal("hardkas.snapshot"),
   name: z.string().optional(),
   daaScore: z.string(),
   accountsHash: z.string().optional(),
@@ -93,8 +93,8 @@ export const SnapshotSchemaV2 = BaseArtifactSchema.extend({
   utxos: z.array(LocalnetUtxoSchemaV2)
 });
 
-export const TxReceiptSchemaV2 = BaseArtifactSchema.extend({
-  schema: z.literal("hardkas.txReceipt.v2"),
+export const TxReceiptSchema = BaseArtifactSchema.extend({
+  schema: z.literal("hardkas.txReceipt"),
   txId: z.string(),
   status: z.enum(["pending", "submitted", "accepted", "confirmed", "failed"]),
   mode: executionModeSchema,
@@ -119,8 +119,8 @@ export const TxReceiptSchemaV2 = BaseArtifactSchema.extend({
   metadata: z.any().optional()
 });
 
-export const SignedTxSchemaV2 = BaseArtifactSchema.extend({
-  schema: z.literal("hardkas.signedTx.v2"),
+export const SignedTxSchema = BaseArtifactSchema.extend({
+  schema: z.literal("hardkas.signedTx"),
   status: z.literal("signed"),
   signedId: z.string(),
   sourcePlanId: z.string(),
@@ -137,8 +137,8 @@ export const SignedTxSchemaV2 = BaseArtifactSchema.extend({
   metadata: z.any().optional()
 });
 
-export const TxTraceSchemaV2 = BaseArtifactSchema.extend({
-  schema: z.literal("hardkas.txTrace.v2"),
+export const TxTraceSchema = BaseArtifactSchema.extend({
+  schema: z.literal("hardkas.txTrace"),
   txId: z.string(),
   networkId: kaspaNetworkIdSchema,
   mode: executionModeSchema,
@@ -151,9 +151,9 @@ export const TxTraceSchemaV2 = BaseArtifactSchema.extend({
   dagContext: DagContextSchema.optional()
 });
 
-export type TxPlanV2 = z.infer<typeof TxPlanSchemaV2>;
-export type SnapshotV2 = z.infer<typeof SnapshotSchemaV2>;
-export type TxReceiptV2 = z.infer<typeof TxReceiptSchemaV2>;
-export type SignedTxV2 = z.infer<typeof SignedTxSchemaV2>;
-export type TxTraceV2 = z.infer<typeof TxTraceSchemaV2>;
+export type TxPlan = z.infer<typeof TxPlanSchema>;
+export type Snapshot = z.infer<typeof SnapshotSchema>;
+export type TxReceipt = z.infer<typeof TxReceiptSchema>;
+export type SignedTx = z.infer<typeof SignedTxSchema>;
+export type TxTrace = z.infer<typeof TxTraceSchema>;
 export type DagContext = z.infer<typeof DagContextSchema>;

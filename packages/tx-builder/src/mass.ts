@@ -38,10 +38,10 @@ export const KASPA_MASS_CONSTANTS = {
 /**
  * Estimates the mass of a transaction based on its structure and script types.
  * 
- * Note: v0.2-alpha mass estimation is protocol-aware but still validated 
+ * Note: alpha mass estimation is protocol-aware but still validated 
  * as best-effort until parity tests with kaspad/rusty-kaspa are complete.
  */
-export function estimateTransactionMassV2(input: {
+export function estimateTransactionMass(input: {
   inputCount: number;
   outputs: readonly { address: string; scriptPublicKey?: string }[];
   payloadBytes?: number;

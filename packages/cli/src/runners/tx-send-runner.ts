@@ -3,7 +3,8 @@ import {
   SignedTxArtifact,
   TxReceiptArtifact,
   HARDKAS_VERSION,
-  ARTIFACT_SCHEMAS
+  ARTIFACT_SCHEMAS,
+  ARTIFACT_VERSION
 } from "@hardkas/artifacts";
 import { 
   resolveNetworkTarget, 
@@ -73,7 +74,7 @@ export async function runTxSend(input: TxSendRunnerInput): Promise<TxSendRunnerR
     const receipt: TxReceiptArtifact = {
       schema: ARTIFACT_SCHEMAS.TX_RECEIPT,
       hardkasVersion: HARDKAS_VERSION,
-      version: "2.0.0",
+      version: ARTIFACT_VERSION,
       networkId: resolvedName,
       mode: "simulated",
       createdAt: new Date().toISOString(),
@@ -93,7 +94,7 @@ export async function runTxSend(input: TxSendRunnerInput): Promise<TxSendRunnerR
     const tracePath = await saveSimulatedTrace({
       schema: ARTIFACT_SCHEMAS.TX_TRACE,
       hardkasVersion: HARDKAS_VERSION,
-      version: "2.0.0",
+      version: ARTIFACT_VERSION,
       createdAt: receipt.createdAt,
       txId: receipt.txId,
       mode: "simulated",
@@ -107,7 +108,7 @@ export async function runTxSend(input: TxSendRunnerInput): Promise<TxSendRunnerR
     return {
       accepted: true,
       txId: receipt.txId,
-      rpcUrl: receipt.rpcUrl || "simulated://local",
+      rpcUrl: url || "simulated://local",
       networkName: resolvedName,
       receipt,
       receiptPath,
@@ -131,7 +132,7 @@ export async function runTxSend(input: TxSendRunnerInput): Promise<TxSendRunnerR
     const receipt: TxReceiptArtifact = {
       schema: ARTIFACT_SCHEMAS.TX_RECEIPT,
       hardkasVersion: HARDKAS_VERSION,
-      version: "2.0.0",
+      version: ARTIFACT_VERSION,
       networkId: resolvedName,
       mode: "real",
       createdAt: new Date().toISOString(),

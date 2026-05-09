@@ -1,14 +1,14 @@
 import { describe, it, expect } from "vitest";
 import { 
-  estimateTransactionMassV2, 
+  estimateTransactionMass, 
   KASPA_MASS_CONSTANTS,
   buildPaymentPlan,
   createMockUtxo
 } from "../src/index.js";
 
-describe("Mass Estimation v2", () => {
+describe("Mass Estimation", () => {
   it("should calculate mass for a single input/single output P2PK transaction", () => {
-    const result = estimateTransactionMassV2({
+    const result = estimateTransactionMass({
       inputCount: 1,
       outputs: [{ address: "kaspa:qpvkp8f..." }],
       hasChange: false
@@ -22,7 +22,7 @@ describe("Mass Estimation v2", () => {
   });
 
   it("should calculate mass with change output", () => {
-    const result = estimateTransactionMassV2({
+    const result = estimateTransactionMass({
       inputCount: 1,
       outputs: [{ address: "kaspa:qpvkp8f..." }],
       hasChange: true
@@ -36,7 +36,7 @@ describe("Mass Estimation v2", () => {
   });
 
   it("should identify non-P2PK addresses as scripts and use fallback mass", () => {
-    const result = estimateTransactionMassV2({
+    const result = estimateTransactionMass({
       inputCount: 1,
       outputs: [{ address: "kaspa:ppvkp8f..." }], // Starts with 'p' -> P2SH
       hasChange: false
@@ -56,8 +56,8 @@ describe("Mass Estimation v2", () => {
       hasChange: true
     };
 
-    const res1 = estimateTransactionMassV2(params);
-    const res2 = estimateTransactionMassV2(params);
+    const res1 = estimateTransactionMass(params);
+    const res2 = estimateTransactionMass(params);
 
     expect(res1.mass).toBe(res2.mass);
     expect(res1).toEqual(res2);
@@ -88,7 +88,7 @@ describe("Mass Estimation v2", () => {
   });
 
   it("should emit explicit best-effort warning for P2SH", () => {
-    const result = estimateTransactionMassV2({
+    const result = estimateTransactionMass({
       inputCount: 1,
       outputs: [{ address: "kaspa:ppvkp8f..." }], // P2SH
       hasChange: false

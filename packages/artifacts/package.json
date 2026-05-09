@@ -1,7 +1,18 @@
 {
   "name": "@hardkas/artifacts",
-  "version": "0.1.0",
+  "version": "0.2.0-alpha",
   "type": "module",
+  "license": "MIT",
+  "author": "Javier Rodriguez",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jrodrg92/Hardkas.git",
+    "directory": "packages/artifacts"
+  },
+  "homepage": "https://github.com/jrodrg92/Hardkas/tree/main/packages/artifacts#readme",
+  "bugs": {
+    "url": "https://github.com/jrodrg92/Hardkas/issues"
+  },
   "files": [
     "dist",
     "README.md",

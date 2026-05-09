@@ -1,6 +1,6 @@
 {
   "name": "@hardkas/sdk",
-  "version": "0.1.0",
+  "version": "0.2.0-alpha",
   "type": "module",
   "files": [
     "dist",
@@ -34,5 +34,16 @@
     "tsup": "^8.3.5",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"
-  }
+  },
+  "license": "MIT",
+  "author": "Javier Rodriguez",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jrodrg92/Hardkas.git",
+    "directory": "packages/sdk"
+  },
+  "bugs": {
+    "url": "https://github.com/jrodrg92/Hardkas/issues"
+  },
+  "homepage": "https://github.com/jrodrg92/Hardkas/tree/main/packages/sdk#readme"
 }

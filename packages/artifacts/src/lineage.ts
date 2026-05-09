@@ -87,9 +87,9 @@ export function verifyLineage(artifact: any, parent?: any): LineageValidationRes
   // 4. Transition Logic
   if (parent) {
     const validTransitions: Record<string, string[]> = {
-      "hardkas.snapshot.v2": ["hardkas.txPlan.v2"],
-      "hardkas.txPlan.v2": ["hardkas.signedTx.v2"],
-      "hardkas.signedTx.v2": ["hardkas.txReceipt.v2"]
+      "hardkas.snapshot": ["hardkas.txPlan"],
+      "hardkas.txPlan": ["hardkas.signedTx"],
+      "hardkas.signedTx": ["hardkas.txReceipt"]
     };
 
     const allowed = validTransitions[parent.schema] || [];

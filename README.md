@@ -3,8 +3,8 @@
 **HardKAS** is a Kaspa-native developer operating environment and infrastructure-grade simulation toolkit. It provides a local-first, deterministic environment for planning, verifying, and debugging transactions and protocol-level integrations on the Kaspa BlockDAG.
 
 > [!IMPORTANT]
-> **Status: v0.2-alpha / Active Development**
-> HardKAS is currently in early alpha. Features, APIs, and artifact formats are subject to evolution.
+> **Status: 1.0.0-alpha / Active Development**
+> HardKAS is currently in active alpha development. Features, APIs, and artifact formats are subject to evolution.
 
 > [!CAUTION]
 > **Not Production Custody Software.**
@@ -14,7 +14,7 @@
 
 ## Project Status
 
-HardKAS is currently in active alpha development (v0.2-alpha).
+HardKAS is currently in active alpha development (1.0.0-alpha).
 
 The architecture is stabilizing, but users should be aware:
 - **APIs may change**: Commands and SDK interfaces are not yet finalized.
@@ -70,7 +70,7 @@ HardKAS maintains strict boundaries between different architectural layers:
 ## Current Capabilities
 
 ### Stable (Alpha)
-- **Deterministic Artifacts**: V2 schemas for Plans, SignedTx, and Receipts.
+- **Deterministic Artifacts**: Canonical schemas for Plans, SignedTx, and Receipts.
 - **Replay Invariants**: Reproducible simulated transaction outcomes.
 - **Snapshot Hashing**: Verifiable state snapshots for localnet persistence.
 - **Semantic Verification**: Deep auditing of fee correctness and lineage.
@@ -104,9 +104,11 @@ HardKAS maintains strict boundaries between different architectural layers:
 
 ---
 
-## Installation & Usage
+## Quickstart
 
-### Pre-release Source Install
+Clone, build, and run your first verified transaction in under 5 minutes.
+
+### 1. Install
 
 ```bash
 git clone https://github.com/jrodrg92/Hardkas.git
@@ -115,14 +117,70 @@ pnpm install
 pnpm build
 ```
 
-### Run Locally
+### 2. Initialize a project
 
 ```bash
-pnpm cli --help
+pnpm hardkas init my-kaspa-project
+cd my-kaspa-project
 ```
+
+### 3. Plan a simulated transaction
+
+```bash
+pnpm hardkas tx plan --from alice --to bob --amount 10 --network simnet
+```
+
+This creates a deterministic `TxPlan` artifact in `.hardkas/artifacts/`.
+
+### 4. Sign the transaction
+
+```bash
+pnpm hardkas tx sign .hardkas/artifacts/tx-plan-latest.json
+```
+
+### 5. Send (simulated)
+
+```bash
+pnpm hardkas tx send .hardkas/artifacts/signed-tx-latest.json
+```
+
+### 6. Verify the full artifact chain
+
+```bash
+pnpm hardkas artifact verify .hardkas/artifacts/ --recursive --strict
+```
+
+If all artifacts pass, you've completed a deterministic, auditable transaction lifecycle — entirely local.
+
+### Run examples
+
+```bash
+pnpm example:ci              # CI workflow demo
+pnpm example:dag-reorg        # DAG reorg simulation
+pnpm hardkas example list     # See all available examples
+```
+
+### CLI Reference
+
+```bash
+pnpm hardkas --help           # All command groups
+pnpm hardkas tx --help        # Transaction commands
+pnpm hardkas artifact --help  # Artifact verification
+pnpm hardkas rpc --help       # RPC diagnostics
+```
+
 
 ---
 
-## License
+HardKAS is released under the **MIT License**. See the [LICENSE](LICENSE) file for the full text.
 
-MIT - See [LICENSE](LICENSE) for details.
+### Alpha Disclaimer
+
+The project is provided as developer infrastructure tooling in active alpha development **WITHOUT WARRANTY** of any kind, express or implied. 
+
+- **Developer Tooling**: HardKAS is intended for local-first simulation and developer workflows.
+- **Not for Production Custody**: It is NOT production-grade custody software.
+- **Key Handling**: Users are solely responsible for the handling and security of their mainnet private keys. 
+- **Encrypted Keystore**: The local encrypted keystore is designed for developer convenience in simulation environments, not for high-value asset protection.
+
+By using HardKAS, you acknowledge that you understand the risks associated with alpha-stage infrastructure tooling.

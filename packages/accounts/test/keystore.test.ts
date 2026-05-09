@@ -16,6 +16,7 @@ describe("KeystoreManager", () => {
       network: "devnet"
     });
 
+    // Keystore format version (separate from ARTIFACT_VERSION)
     expect(keystore.version).toBe("2.0.0");
     expect(keystore.metadata.label).toBe("test-account");
     expect(keystore.encryptedPayload).not.toBe(JSON.stringify(mockPayload));

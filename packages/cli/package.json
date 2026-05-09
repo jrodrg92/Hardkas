@@ -1,6 +1,6 @@
 {
   "name": "@hardkas/cli",
-  "version": "0.1.0",
+  "version": "0.2.0-alpha",
   "type": "module",
   "files": [
     "dist",
@@ -24,6 +24,7 @@
     "@hardkas/config": "workspace:*",
     "@hardkas/core": "workspace:*",
     "@hardkas/kaspa-rpc": "workspace:*",
+    "@hardkas/query": "workspace:*",
     "@hardkas/l2": "workspace:*",
     "@hardkas/localnet": "workspace:*",
     "@hardkas/node-orchestrator": "workspace:*",
@@ -39,5 +40,16 @@
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"
-  }
+  },
+  "license": "MIT",
+  "author": "Javier Rodriguez",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jrodrg92/Hardkas.git",
+    "directory": "packages/cli"
+  },
+  "bugs": {
+    "url": "https://github.com/jrodrg92/Hardkas/issues"
+  },
+  "homepage": "https://github.com/jrodrg92/Hardkas/tree/main/packages/cli#readme"
 }
