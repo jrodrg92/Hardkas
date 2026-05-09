@@ -19,6 +19,7 @@ export function createSimulatedSignedTxArtifact(plan: TxPlanV2, payload: string)
     from: { address: plan.from.address },
     to: { address: plan.to.address },
     amountSompi: plan.amountSompi,
+    txId: `simulated-${plan.planId}-${Date.now()}`,
     signedTransaction: {
       format: "simulated",
       payload

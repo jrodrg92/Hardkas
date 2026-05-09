@@ -1,4 +1,4 @@
-import { formatSompi } from "@hardkas/core";
+import { formatSompi, ExecutionMode } from "@hardkas/core";
 import { verifyArtifactIntegrity, verifyArtifactSemantics, ArtifactVerificationResult } from "./verify.js";
 import { verifyFeeSemantics, FeeAuditResult } from "./feeVerify.js";
 import { verifyLineage, LineageValidationResult } from "./lineage.js";
@@ -8,7 +8,7 @@ export interface ArtifactExplanation {
     type: string;
     version: string;
     network: string;
-    mode: "simulated" | "real";
+    mode: ExecutionMode;
     createdAt: string;
     status: "valid" | "invalid" | "legacy" | "corrupted";
   };

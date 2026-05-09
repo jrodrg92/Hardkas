@@ -1,0 +1,17 @@
+{
+  "schema": "hardkas.snapshot.v2",
+  "hardkasVersion": "0.2.0-alpha",
+  "version": "2.0.0",
+  "networkId": "simnet-1",
+  "mode": "simulated",
+  "createdAt": "2026-05-08T22:21:40Z",
+  "daaScore": "1000",
+  "accounts": [],
+  "utxos": [],
+  "lineage": {
+    "lineageId": "5e001eec361ca9a8098fb0266419bee20116585c03746ecc8d1e0ec1cc567f13",
+    "rootArtifactId": "f5a64460e7a7cee2f57ffab65e5aa02c8c67703e2a67ad35a2a5a7953bb6dbf7",
+    "artifactId": "f5a64460e7a7cee2f57ffab65e5aa02c8c67703e2a67ad35a2a5a7953bb6dbf7"
+  },
+  "contentHash": "f5a64460e7a7cee2f57ffab65e5aa02c8c67703e2a67ad35a2a5a7953bb6dbf7"
+}

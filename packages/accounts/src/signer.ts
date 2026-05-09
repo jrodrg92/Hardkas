@@ -76,7 +76,7 @@ export async function signTxPlanArtifact(input: {
   }
 
   // Block mainnet by default for safety
-  if ((planArtifact.networkId === "mainnet" || planArtifact.networkId === "kaspa") && !input.allowMainnet) {
+  if (planArtifact.networkId === "mainnet" && !input.allowMainnet) {
      throw new Error("Mainnet signing is disabled by default. Use --allow-mainnet-signing only if you understand the risks.");
   }
 
@@ -111,8 +111,9 @@ export async function signTxPlanArtifact(input: {
       status: "signed",
       createdAt: new Date().toISOString(),
       signedId: `signed_${planArtifact.planId}_${Date.now().toString(36)}`,
+      txId: result.txId || "", // Ensure txId is present
       sourcePlanId: planArtifact.planId,
-      networkId: planArtifact.networkId,
+      networkId: planArtifact.networkId as any,
       mode: planArtifact.mode,
       from: { address: planArtifact.from.address },
       to: { address: planArtifact.to.address },

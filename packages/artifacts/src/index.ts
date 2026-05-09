@@ -16,9 +16,14 @@ export * from "./igra-io.js";
 export * from "./feeVerify.js";
 export * from "./lineage.js";
 
-// Compatibility exports for v1 dependents
+// Compatibility exports for v2 primary types
 export { calculateContentHash as hashTxPlanArtifact } from "./canonical.js";
 export { calculateContentHash as calculateArtifactHash } from "./canonical.js";
-export type { TxPlanV2 as TxPlanArtifact, DagContext } from "./schemas.js";
-export type { SignedTxV2 as SignedTxArtifact } from "./schemas.js";
-export type { TxReceiptV2 as TxReceiptArtifact } from "./schemas.js";
+
+export type { 
+  TxPlanArtifactV2 as TxPlanArtifact,
+  SignedTxArtifactV2 as SignedTxArtifact,
+  TxReceiptArtifactV2 as TxReceiptArtifact,
+  SnapshotArtifactV2 as SnapshotArtifact,
+  DagContext 
+} from "./types.js";

@@ -1,12 +1,30 @@
-import { HardkasArtifactSchema, HardkasArtifactMode } from "./constants.js";
+import { HardkasArtifactSchema } from "./constants.js";
+import { NetworkId, ExecutionMode, ArtifactType } from "@hardkas/core";
 
 export interface HardkasArtifactBase {
   schema: HardkasArtifactSchema;
   hardkasVersion: string;
   version: string;
   networkId: string;
-  mode: HardkasArtifactMode;
+  mode: string;
   createdAt: string;
+}
+
+export interface BaseArtifactV2<T extends ArtifactType> {
+  schema: `hardkas.${T}.v2`;
+  hardkasVersion: string;
+  version: "2.0.0";
+  networkId: NetworkId;
+  mode: ExecutionMode;
+  createdAt: string;
+  contentHash?: string | undefined;
+  lineage?: {
+    artifactId: string;
+    lineageId: string;
+    parentArtifactId?: string | undefined;
+    rootArtifactId: string;
+    sequence?: number | undefined;
+  } | undefined;
 }
 
 export interface DagContext {
@@ -148,6 +166,68 @@ export interface TxTraceArtifactV1 extends HardkasArtifactBase {
     status: string;
     timestamp: string;
     details?: any;
+  }>;
+}
+
+// --- V2 Artifact Interfaces ---
+
+export interface TxPlanArtifactV2 extends BaseArtifactV2<"txPlan"> {
+  planId: string;
+  from: { address: string; accountName?: string | undefined };
+  to: { address: string; accountName?: string | undefined };
+  amountSompi: string;
+  estimatedFeeSompi: string;
+  estimatedMass: string;
+  inputs: Array<{
+    outpoint: { transactionId: string; index: number };
+    amountSompi: string;
+  }>;
+  outputs: Array<{
+    address: string;
+    amountSompi: string;
+  }>;
+  change?: {
+    address: string;
+    amountSompi: string;
+  } | undefined;
+}
+
+export interface SignedTxArtifactV2 extends BaseArtifactV2<"signedTx"> {
+  status: "signed";
+  signedId: string;
+  sourcePlanId: string;
+  from: { address: string };
+  to: { address: string };
+  amountSompi: string;
+  signedTransaction: {
+    format: string;
+    payload: string;
+  };
+  txId?: string | undefined;
+  metadata?: any | undefined;
+}
+
+export interface TxReceiptArtifactV2 extends BaseArtifactV2<"txReceipt"> {
+  txId: string;
+  status: "pending" | "submitted" | "accepted" | "confirmed" | "failed";
+  from: { address: string };
+  to: { address: string };
+  amountSompi: string;
+  feeSompi: string;
+  mass?: string | undefined;
+  daaScore?: string | undefined;
+}
+
+export interface SnapshotArtifactV2 extends BaseArtifactV2<"snapshot"> {
+  name?: string | undefined;
+  daaScore: string;
+  accounts: Array<{ name: string; address: string }>;
+  utxos: Array<{
+    id: string;
+    address: string;
+    amountSompi: string;
+    spent: boolean;
+    createdAtDaaScore: string;
   }>;
 }
 

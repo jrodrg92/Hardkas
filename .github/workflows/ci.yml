@@ -51,8 +51,28 @@ jobs:
       - name: Test
         run: pnpm test
 
-      - name: Verify Artifact Fixtures
-        run: pnpm artifact:fixtures
+      - name: Verify Artifact Golden Fixtures
+        run: pnpm hardkas artifact verify packages/artifacts/test/fixtures/golden --recursive --strict
 
       - name: Verify Artifact Corruption Rejection
-        run: pnpm artifact:corruption
+        run: |
+          if pnpm hardkas artifact verify packages/artifacts/test/fixtures/corrupted --recursive --strict; then
+            echo "Error: Corruption fixtures should have failed verification"
+            exit 1
+          else
+            echo "Correctly rejected corrupted fixtures"
+          fi
+
+      - name: Run CI Workflow Example
+        run: pnpm example:ci
+
+      - name: Run DAG Reorg Simulation Example
+        run: pnpm example:dag-reorg
+
+      - name: Verify Package Pack Integrity
+        run: |
+          pnpm --filter @hardkas/cli pack
+          pnpm --filter @hardkas/sdk pack
+          pnpm --filter @hardkas/artifacts pack
+          pnpm --filter @hardkas/tx-builder pack
+          pnpm --filter @hardkas/accounts pack

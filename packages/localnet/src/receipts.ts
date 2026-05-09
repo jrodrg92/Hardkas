@@ -2,14 +2,15 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { existsSync } from "node:fs";
 import { HardkasArtifactBase, HARDKAS_VERSION, ARTIFACT_SCHEMAS } from "@hardkas/artifacts";
+import { NetworkId, ExecutionMode } from "@hardkas/core";
 
 export interface StoredSimulatedTxReceipt extends HardkasArtifactBase {
   schema: typeof ARTIFACT_SCHEMAS.TX_RECEIPT;
   version: "2.0.0";
   txId: string;
   status: "confirmed" | "failed";
-  mode: "simulated";
-  networkId: string;
+  mode: ExecutionMode;
+  networkId: NetworkId;
   from: { address: string };
   to: { address: string };
   amountSompi: string;

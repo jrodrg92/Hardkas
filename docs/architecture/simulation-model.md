@@ -1,6 +1,6 @@
 # HardKAS Simulation Model
 
-HardKAS utilizes a **high-fidelity light-simulation model** for local development. It is designed to provide a productive, low-latency environment for developers while maintaining operational consistency with the Kaspa BlockDAG.
+HardKAS utilizes a **deterministic light-model simulation** for local development. It is an infrastructure-grade toolkit designed to provide a productive, low-latency environment for developers while maintaining operational consistency with the observable behaviors of the Kaspa BlockDAG.
 
 ## Core Architecture
 
@@ -28,8 +28,8 @@ HardKAS v0.2-alpha introduces a **Light BlockDAG Simulation** to model basic DAG
 
 | Feature | HardKAS Simulated | Real Kaspa Node |
 |---------|-------------------|-----------------|
-| **Confirmation** | Instant (Simulated) | Variable (DAA dependent) |
-| **Consensus** | Deterministic (Simplified) | Full GHOSTDAG / PoW |
+| **Confirmation** | Instant (Simulated) | DAA/Consensus-driven |
+| **Consensus** | Deterministic Light-Model | Full GHOSTDAG / PoW |
 | **Mining** | None (Virtual) | Real PoW (k-heavyhash) |
 | **Networking** | Local-only | Peer-to-peer (P2P) |
 | **Finality** | Immediate (Simulated) | Probabilistic / Blue Score |

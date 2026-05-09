@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { existsSync } from "node:fs";
 import { HardkasArtifactBase, HARDKAS_VERSION, ARTIFACT_SCHEMAS } from "@hardkas/artifacts";
+import { NetworkId, ExecutionMode } from "@hardkas/core";
 
 export type StoredTraceEvent =
   | {
@@ -29,8 +30,8 @@ export type StoredTraceEvent =
 export interface StoredSimulatedTxTrace extends HardkasArtifactBase {
   readonly schema: typeof ARTIFACT_SCHEMAS.TX_TRACE;
   readonly txId: string;
-  readonly mode: "simulated";
-  readonly networkId: string;
+  readonly mode: ExecutionMode;
+  readonly networkId: NetworkId;
   readonly events: readonly StoredTraceEvent[];
   readonly receiptPath?: string | undefined;
 }

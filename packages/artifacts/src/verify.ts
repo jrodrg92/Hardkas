@@ -206,6 +206,42 @@ export function verifyArtifactSemantics(artifact: any, options: { strict?: boole
     }
   }
 
+  // 4. Advanced Lineage/Network Internal Checks
+  if (artifact.lineage) {
+    const { artifactId, parentArtifactId, rootArtifactId } = artifact.lineage;
+    
+    if (artifactId === parentArtifactId) {
+      addIssue({
+        code: "LINEAGE_INCONSISTENCY",
+        severity: "error",
+        message: "Artifact cannot be its own parent."
+      });
+    }
+
+    if (!parentArtifactId && artifactId !== rootArtifactId) {
+       addIssue({
+         code: "LINEAGE_INCONSISTENCY",
+         severity: "error",
+         message: "Root artifactId must match artifactId when no parent exists."
+       });
+    }
+  }
+
+  // 5. Network vs Address prefix check
+  if (artifact.networkId && (artifact.from?.address || artifact.to?.address)) {
+    const addr = artifact.from?.address || artifact.to?.address;
+    const expectedPrefix = artifact.networkId === "mainnet" ? "kaspa:" : 
+                           artifact.networkId === "testnet" ? "kaspatest:" : "kaspasim:";
+    
+    if (!addr.startsWith(expectedPrefix)) {
+       addIssue({
+         code: "LINEAGE_INCONSISTENCY",
+         severity: "error",
+         message: `Network/Address mismatch: network is ${artifact.networkId} but address is ${addr}`
+       });
+    }
+  }
+
   return result;
 }
 

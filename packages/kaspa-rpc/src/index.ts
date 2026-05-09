@@ -1,4 +1,4 @@
-import type { KaspaNetworkId } from "@hardkas/core";
+import type { NetworkId } from "@hardkas/core";
 import { WebSocket } from "ws";
 
 export interface KaspaNodeInfo {
@@ -56,13 +56,13 @@ export interface JsonWrpcKaspaClientOptions {
 }
 
 export interface BlockDagInfo {
-  readonly networkId: KaspaNetworkId;
+  readonly networkId: NetworkId;
   readonly virtualDaaScore?: bigint;
   readonly tipHashes?: readonly string[];
 }
 
 export interface ServerInfo {
-  readonly networkId: KaspaNetworkId;
+  readonly networkId: NetworkId;
   readonly serverVersion?: string;
   readonly isSynced?: boolean;
 }
@@ -195,7 +195,7 @@ export class JsonWrpcKaspaClient implements KaspaRpcClient {
   async getBlockDagInfo(): Promise<BlockDagInfo> {
     const info = await this.getInfo();
     const result: any = {
-      networkId: (info.networkId as KaspaNetworkId) || "unknown",
+      networkId: (info.networkId as NetworkId) || "unknown",
       tipHashes: []
     };
     if (info.virtualDaaScore !== undefined) {
@@ -207,7 +207,7 @@ export class JsonWrpcKaspaClient implements KaspaRpcClient {
   async getServerInfo(): Promise<ServerInfo> {
     const info = await this.getInfo();
     const result: any = {
-      networkId: (info.networkId as KaspaNetworkId) || "unknown"
+      networkId: (info.networkId as NetworkId) || "unknown"
     };
     if (info.serverVersion !== undefined) result.serverVersion = info.serverVersion;
     if (info.isSynced !== undefined) result.isSynced = info.isSynced;
@@ -445,7 +445,7 @@ export function mapKaspaSubmitTransactionResult(result: any): KaspaSubmitTransac
 export class MockKaspaRpcClient implements KaspaRpcClient {
   private utxosByAddress = new Map<string, KaspaRpcUtxo[]>();
 
-  constructor(private readonly networkId: KaspaNetworkId = "simnet") {}
+  constructor(private readonly networkId: NetworkId = "simnet") {}
 
   async getInfo(): Promise<KaspaNodeInfo> {
     return { networkId: this.networkId, serverVersion: "mock", isSynced: true, virtualDaaScore: 0n, raw: {} };

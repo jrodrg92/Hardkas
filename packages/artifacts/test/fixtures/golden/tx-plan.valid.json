@@ -1,0 +1,46 @@
+{
+  "schema": "hardkas.txPlan.v2",
+  "hardkasVersion": "0.2.0-alpha",
+  "version": "2.0.0",
+  "createdAt": "2026-05-08T22:21:40Z",
+  "networkId": "simnet-1",
+  "mode": "simulated",
+  "planId": "p1",
+  "from": {
+    "address": "kaspasim:alice"
+  },
+  "to": {
+    "address": "kaspasim:bob"
+  },
+  "amountSompi": "1000000",
+  "estimatedFeeSompi": "450",
+  "estimatedMass": "450",
+  "inputs": [
+    {
+      "outpoint": {
+        "transactionId": "0000000000000000000000000000000000000000000000000000000000000001",
+        "index": 0
+      },
+      "amountSompi": "2000000",
+      "address": "kaspasim:alice"
+    }
+  ],
+  "outputs": [
+    {
+      "address": "kaspasim:bob",
+      "amountSompi": "1000000"
+    }
+  ],
+  "change": {
+    "address": "kaspasim:alice",
+    "amountSompi": "999550"
+  },
+  "lineage": {
+    "lineageId": "5e001eec361ca9a8098fb0266419bee20116585c03746ecc8d1e0ec1cc567f13",
+    "parentArtifactId": "f5a64460e7a7cee2f57ffab65e5aa02c8c67703e2a67ad35a2a5a7953bb6dbf7",
+    "rootArtifactId": "f5a64460e7a7cee2f57ffab65e5aa02c8c67703e2a67ad35a2a5a7953bb6dbf7",
+    "sequence": 1,
+    "artifactId": "6720e13a3892cbd48bc0258bb84b5828874d4c03536bc3f2db26761939bd96bd"
+  },
+  "contentHash": "6720e13a3892cbd48bc0258bb84b5828874d4c03536bc3f2db26761939bd96bd"
+}

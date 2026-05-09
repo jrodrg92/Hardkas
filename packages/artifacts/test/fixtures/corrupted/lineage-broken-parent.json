@@ -26,7 +26,7 @@
   "lineage": {
     "artifactId": "a785221b19cc3f58e7c74ec1a39a8f0b78b2479a12f6609f38b5f7cdcb287c41",
     "lineageId": "flow-1",
-    "parentArtifactId": "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+    "parentArtifactId": "a785221b19cc3f58e7c74ec1a39a8f0b78b2479a12f6609f38b5f7cdcb287c41",
     "rootArtifactId": "a4bf569a1559b4d1832552b588e8c92c7d95081ab11feb08ad2de7bc0f451665"
   }
 }

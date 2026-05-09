@@ -8,10 +8,33 @@ export const kaspaNetworkIdSchema = z.enum([
   "testnet-11",
   "testnet-12",
   "simnet",
+  "simnet-1",
   "devnet"
 ]);
 
-export type KaspaNetworkId = z.infer<typeof kaspaNetworkIdSchema>;
+export type NetworkId = z.infer<typeof kaspaNetworkIdSchema>;
+
+export const executionModeSchema = z.enum([
+  "simulated",
+  "real",
+  "readonly"
+]);
+
+export type ExecutionMode = z.infer<typeof executionModeSchema>;
+
+export const artifactTypeSchema = z.enum([
+  "txPlan",
+  "signedTx",
+  "txReceipt",
+  "txTrace",
+  "snapshot"
+]);
+
+export type ArtifactType = z.infer<typeof artifactTypeSchema>;
+
+export const NetworkIdSchema = kaspaNetworkIdSchema;
+export const ExecutionModeSchema = executionModeSchema;
+export const ArtifactTypeSchema = artifactTypeSchema;
 
 export const hardkasConfigSchema = z.object({
   project: z.object({

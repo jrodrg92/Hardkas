@@ -2,6 +2,11 @@
   "name": "@hardkas/artifacts",
   "version": "0.1.0",
   "type": "module",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "exports": {
     ".": "./dist/index.js"
   },
@@ -15,7 +20,7 @@
   "dependencies": {
     "@hardkas/core": "workspace:*",
     "@hardkas/tx-builder": "workspace:*",
-    "zod": "^4.4.3"
+    "zod": "^3.24.1"
   },
   "devDependencies": {
     "tsup": "^8.3.5",

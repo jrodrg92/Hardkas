@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { kaspaNetworkIdSchema, executionModeSchema, artifactTypeSchema } from "@hardkas/core";
 
 export const ARTIFACT_V2_VERSION = "2.0.0";
 
@@ -14,6 +15,8 @@ export const BaseArtifactSchema = z.object({
   schema: z.string(),
   hardkasVersion: z.string(),
   version: z.literal(ARTIFACT_V2_VERSION),
+  networkId: kaspaNetworkIdSchema,
+  mode: executionModeSchema,
   contentHash: z.string().optional(),
   createdAt: z.string().datetime(),
   lineage: ArtifactLineageSchema.optional()
@@ -27,8 +30,8 @@ export const AccountRefSchema = z.object({
 
 export const TxPlanSchemaV2 = BaseArtifactSchema.extend({
   schema: z.literal("hardkas.txPlan.v2"),
-  networkId: z.string(),
-  mode: z.enum(["real", "simulated"]),
+  networkId: kaspaNetworkIdSchema,
+  mode: executionModeSchema,
   planId: z.string(),
   from: AccountRefSchema,
   to: AccountRefSchema,
@@ -94,8 +97,8 @@ export const TxReceiptSchemaV2 = BaseArtifactSchema.extend({
   schema: z.literal("hardkas.txReceipt.v2"),
   txId: z.string(),
   status: z.enum(["pending", "submitted", "accepted", "confirmed", "failed"]),
-  mode: z.enum(["real", "simulated", "node", "rpc"]),
-  networkId: z.string(),
+  mode: executionModeSchema,
+  networkId: kaspaNetworkIdSchema,
   from: AccountRefSchema,
   to: AccountRefSchema,
   amountSompi: z.string(),
@@ -121,8 +124,8 @@ export const SignedTxSchemaV2 = BaseArtifactSchema.extend({
   status: z.literal("signed"),
   signedId: z.string(),
   sourcePlanId: z.string(),
-  networkId: z.string(),
-  mode: z.enum(["real", "simulated"]),
+  networkId: kaspaNetworkIdSchema,
+  mode: executionModeSchema,
   from: AccountRefSchema,
   to: AccountRefSchema,
   amountSompi: z.string(),
@@ -137,8 +140,8 @@ export const SignedTxSchemaV2 = BaseArtifactSchema.extend({
 export const TxTraceSchemaV2 = BaseArtifactSchema.extend({
   schema: z.literal("hardkas.txTrace.v2"),
   txId: z.string(),
-  networkId: z.string(),
-  mode: z.enum(["real", "simulated"]),
+  networkId: kaspaNetworkIdSchema,
+  mode: executionModeSchema,
   steps: z.array(z.object({
     phase: z.string(),
     status: z.string(),

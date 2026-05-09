@@ -26,8 +26,17 @@ export function verifyLineage(artifact: any, parent?: any): LineageValidationRes
     };
   }
 
+  const isHash = (s: any) => typeof s === "string" && /^[0-9a-f]{64}$/i.test(s);
+
   if (!lineage.artifactId || !lineage.lineageId || !lineage.rootArtifactId) {
     addIssue("INVALID_LINEAGE_STRUCTURE", "Lineage block is missing required fields (artifactId, lineageId, or rootArtifactId)");
+  } else {
+    if (!isHash(lineage.artifactId)) addIssue("INVALID_LINEAGE_FORMAT", "artifactId must be a 64-char hex string");
+    if (!isHash(lineage.lineageId)) addIssue("INVALID_LINEAGE_FORMAT", "lineageId must be a 64-char hex string");
+    if (!isHash(lineage.rootArtifactId)) addIssue("INVALID_LINEAGE_FORMAT", "rootArtifactId must be a 64-char hex string");
+    if (lineage.parentArtifactId && !isHash(lineage.parentArtifactId)) {
+      addIssue("INVALID_LINEAGE_FORMAT", "parentArtifactId must be a 64-char hex string");
+    }
   }
 
   // 2. Identity Verification

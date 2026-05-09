@@ -1,4 +1,4 @@
-import type { KaspaNetworkId } from "@hardkas/core";
+import type { NetworkId } from "@hardkas/core";
 
 export type WalletFeature =
   | "address:read"
@@ -10,7 +10,7 @@ export type WalletFeature =
 export interface KaspaWalletAccount {
   readonly address: string;
   readonly publicKey?: Uint8Array | undefined;
-  readonly networkId: KaspaNetworkId;
+  readonly networkId: NetworkId;
 }
 
 export interface KaspaUnsignedTransaction {
@@ -32,11 +32,11 @@ export interface KaspaWalletAdapter {
   readonly installed: boolean;
   readonly features: readonly WalletFeature[];
 
-  connect(options?: { networkId?: KaspaNetworkId | undefined } | undefined): Promise<KaspaWalletAccount>;
+  connect(options?: { networkId?: NetworkId | undefined } | undefined): Promise<KaspaWalletAccount>;
   disconnect(): Promise<void>;
 
   getAccount(): Promise<KaspaWalletAccount | null>;
-  getNetwork(): Promise<KaspaNetworkId>;
+  getNetwork(): Promise<NetworkId>;
 
   signTransaction(tx: KaspaUnsignedTransaction): Promise<KaspaSignedTransaction>;
 
@@ -46,7 +46,7 @@ export interface KaspaWalletAdapter {
 
   signMessage?(message: Uint8Array): Promise<{ signature: Uint8Array }>;
 
-  switchNetwork?(networkId: KaspaNetworkId): Promise<void>;
+  switchNetwork?(networkId: NetworkId): Promise<void>;
 
   on(
     event: "connect" | "disconnect" | "accountChanged" | "networkChanged",
@@ -69,7 +69,7 @@ export async function detectKaspaWallets(
 export async function connectKaspaWallet(options: {
   readonly adapters: readonly KaspaWalletAdapter[];
   readonly preferredWalletId?: string;
-  readonly networkId?: KaspaNetworkId;
+  readonly networkId?: NetworkId;
 }): Promise<KaspaWalletAdapter> {
   const installed = options.adapters.filter((adapter) => adapter.installed);
 

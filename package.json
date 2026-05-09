@@ -10,6 +10,7 @@
     "lint": "turbo lint",
     "format": "prettier --write .",
     "hardkas": "pnpm --filter @hardkas/cli run dev",
+    "cli": "pnpm --filter @hardkas/cli run dev",
     "check": "pnpm typecheck && pnpm build && pnpm test",
     "check:artifacts": "pnpm artifact:fixtures",
     "artifact:fixtures": "pnpm hardkas artifact verify ../artifacts/test/fixtures/valid --recursive --strict",

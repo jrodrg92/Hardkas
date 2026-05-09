@@ -133,7 +133,7 @@ export async function runTxSend(input: TxSendRunnerInput): Promise<TxSendRunnerR
       hardkasVersion: HARDKAS_VERSION,
       version: "2.0.0",
       networkId: resolvedName,
-      mode: target.kind === "kaspa-node" ? "node" : "rpc",
+      mode: "real",
       createdAt: new Date().toISOString(),
       status: result.accepted ? "submitted" : "failed",
       txId: result.transactionId || "failed",

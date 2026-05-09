@@ -8,7 +8,7 @@ import {
   BlockDagInfo,
   ServerInfo
 } from "./index.js";
-import { type KaspaNetworkId } from "@hardkas/core";
+import { type NetworkId } from "@hardkas/core";
 import { 
   RpcError, 
   RpcTimeoutError, 
@@ -163,7 +163,7 @@ export class KaspaJsonRpcClient implements KaspaRpcClient {
     const result = await this.callRpc("getBlockDagInfoRequest");
     const data = result as any;
     const dagInfo: any = {
-      networkId: data.networkId as KaspaNetworkId,
+      networkId: data.networkId as NetworkId,
       tipHashes: data.tipHashes
     };
     if (data.virtualDaaScore !== undefined) {
@@ -228,7 +228,7 @@ export class KaspaJsonRpcClient implements KaspaRpcClient {
   async getServerInfo(): Promise<ServerInfo> {
     const info = await this.getInfo();
     const result: any = {
-      networkId: info.networkId as KaspaNetworkId
+      networkId: info.networkId as NetworkId
     };
     if (info.serverVersion !== undefined) result.serverVersion = info.serverVersion;
     if (info.isSynced !== undefined) result.isSynced = info.isSynced;

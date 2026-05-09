@@ -34,8 +34,64 @@ describe("Corruption Corpus (Fase 4 Hardening)", () => {
     expect(result.issues.some(i => i.message.includes("Dust"))).toBe(true);
   });
 
+  it("should reject broken lineage parent", () => {
+    const content = fs.readFileSync(path.join(corruptedDir, "lineage-broken-parent.json"), "utf8");
+    const artifact = JSON.parse(content);
+    const result = verifyArtifactSemantics(artifact, { strict: true });
+    expect(result.ok).toBe(false);
+    expect(result.issues.some(i => i.code === "LINEAGE_INCONSISTENCY")).toBe(true);
+  });
+
+  it("should reject broken lineage root", () => {
+    const content = fs.readFileSync(path.join(corruptedDir, "lineage-broken-root.json"), "utf8");
+    const artifact = JSON.parse(content);
+    const result = verifyArtifactSemantics(artifact, { strict: true });
+    expect(result.ok).toBe(false);
+    expect(result.issues.some(i => i.code === "LINEAGE_INCONSISTENCY")).toBe(true);
+  });
+
+  it("should reject mutated signed field", async () => {
+    const fixturePath = path.join(corruptedDir, "mutated-signed-field.json");
+    const result = await verifyArtifactIntegrity(fixturePath);
+    expect(result.ok).toBe(false);
+    expect(result.issues.some(i => i.code === "HASH_MISMATCH")).toBe(true);
+  });
+
+  it("should reject network mismatch", () => {
+    const content = fs.readFileSync(path.join(corruptedDir, "network-mismatch.json"), "utf8");
+    const artifact = JSON.parse(content);
+    const result = verifyArtifactSemantics(artifact, { strict: true });
+    expect(result.ok).toBe(false);
+    expect(result.issues.some(i => i.code === "LINEAGE_INCONSISTENCY")).toBe(true);
+  });
+
+  it("should reject simulated-real contamination", () => {
+    const content = fs.readFileSync(path.join(corruptedDir, "simulated-real-contamination.json"), "utf8");
+    const artifact = JSON.parse(content);
+    const result = verifyArtifactSemantics(artifact, { strict: true });
+    expect(result.ok).toBe(false);
+    expect(result.issues.some(i => i.code === "LINEAGE_INCONSISTENCY")).toBe(true);
+  });
+
+  it("should reject stale snapshots in strict mode", () => {
+    const content = fs.readFileSync(path.join(corruptedDir, "stale-snapshot.json"), "utf8");
+    const artifact = JSON.parse(content);
+    const result = verifyArtifactSemantics(artifact, { strict: true });
+    expect(result.ok).toBe(false);
+    // Stale snapshots fail age check
+    expect(result.issues.some(i => i.code === "STALE_ARTIFACT")).toBe(true);
+  });
+
   it("should reject missing lineage in strict mode", () => {
-    const artifact = { schema: "hardkas.txPlan.v2", mode: "real", networkId: "mainnet" };
+    const artifact = { 
+      schema: "hardkas.txPlan.v2", 
+      mode: "real", 
+      networkId: "mainnet",
+      hardkasVersion: "0.2.0-alpha",
+      version: "2.0.0",
+      createdAt: new Date().toISOString(),
+      amountSompi: "1000"
+    };
     const result = verifyArtifactSemantics(artifact, { strict: true });
     expect(result.ok).toBe(false);
     expect(result.issues.some(i => i.code === "MISSING_LINEAGE")).toBe(true);

@@ -1,12 +1,13 @@
 import { TxPlan } from "@hardkas/tx-builder";
 import { TxPlanV2, ARTIFACT_V2_VERSION } from "./schemas.js";
+import { NetworkId, ExecutionMode } from "@hardkas/core";
 import { calculateContentHash } from "./canonical.js";
 import { HARDKAS_VERSION } from "./constants.js";
 import { formatSompi } from "@hardkas/core";
 
 export interface CreateTxPlanArtifactOptions {
-  networkId: string;
-  mode: "simulated" | "real";
+  networkId: NetworkId;
+  mode: ExecutionMode;
   from: {
     input: string;
     address: string;

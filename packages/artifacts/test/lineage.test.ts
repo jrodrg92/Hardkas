@@ -2,29 +2,33 @@ import { describe, it, expect } from "vitest";
 import { verifyLineage } from "../src/index.js";
 
 describe("Artifact Lineage (Fase 2 Hardening)", () => {
+  const rootHash = "a4bf569a1559b4d1832552b588e8c92c7d95081ab11feb08ad2de7bc0f451665";
+  const planHash = "9b3b51f88adaec104835d60b3275fad12ff1851eeb5b88590a9889a880a267b1";
+  const flowId = "5e001eec361ca9a8098fb0266419bee20116585c03746ecc8d1e0ec1cc567f13";
+
   const rootArtifact = {
     schema: "hardkas.snapshot.v2",
-    contentHash: "root-hash",
+    contentHash: rootHash,
     networkId: "simnet",
     mode: "simulated",
     lineage: {
-      artifactId: "root-hash",
-      lineageId: "flow-123",
-      rootArtifactId: "root-hash",
+      artifactId: rootHash,
+      lineageId: flowId,
+      rootArtifactId: rootHash,
       sequence: 0
     }
   };
 
   const planArtifact = {
     schema: "hardkas.txPlan.v2",
-    contentHash: "plan-hash",
+    contentHash: planHash,
     networkId: "simnet",
     mode: "simulated",
     lineage: {
-      artifactId: "plan-hash",
-      lineageId: "flow-123",
-      parentArtifactId: "root-hash",
-      rootArtifactId: "root-hash",
+      artifactId: planHash,
+      lineageId: flowId,
+      parentArtifactId: rootHash,
+      rootArtifactId: rootHash,
       sequence: 1
     }
   };
@@ -38,7 +42,7 @@ describe("Artifact Lineage (Fase 2 Hardening)", () => {
   it("should fail on lineageId mismatch", () => {
     const corrupted = {
       ...planArtifact,
-      lineage: { ...planArtifact.lineage, lineageId: "wrong-flow" }
+      lineage: { ...planArtifact.lineage, lineageId: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" }
     };
     const result = verifyLineage(corrupted, rootArtifact);
     expect(result.ok).toBe(false);
@@ -48,7 +52,7 @@ describe("Artifact Lineage (Fase 2 Hardening)", () => {
   it("should fail on rootId mismatch", () => {
     const corrupted = {
       ...planArtifact,
-      lineage: { ...planArtifact.lineage, rootArtifactId: "wrong-root" }
+      lineage: { ...planArtifact.lineage, rootArtifactId: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" }
     };
     const result = verifyLineage(corrupted, rootArtifact);
     expect(result.ok).toBe(false);
@@ -58,7 +62,7 @@ describe("Artifact Lineage (Fase 2 Hardening)", () => {
   it("should fail on parent hash mismatch", () => {
     const corrupted = {
       ...planArtifact,
-      lineage: { ...planArtifact.lineage, parentArtifactId: "wrong-parent-hash" }
+      lineage: { ...planArtifact.lineage, parentArtifactId: "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc" }
     };
     const result = verifyLineage(corrupted, rootArtifact);
     expect(result.ok).toBe(false);
@@ -88,11 +92,11 @@ describe("Artifact Lineage (Fase 2 Hardening)", () => {
   it("should fail on invalid transition (e.g. receipt -> plan)", () => {
     const receipt = {
       schema: "hardkas.txReceipt.v2",
-      lineage: { artifactId: "receipt-hash", lineageId: "flow", rootArtifactId: "root" }
+      lineage: { artifactId: rootHash, lineageId: flowId, rootArtifactId: rootHash }
     };
     const plan = {
       schema: "hardkas.txPlan.v2",
-      lineage: { artifactId: "plan-hash", lineageId: "flow", rootArtifactId: "root" }
+      lineage: { artifactId: planHash, lineageId: flowId, rootArtifactId: rootHash }
     };
     // receipt cannot be parent of plan
     const result = verifyLineage(plan, receipt);

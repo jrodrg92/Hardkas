@@ -9,6 +9,7 @@ import {
   SignTxPlanResult, 
   HardkasSignerKind 
 } from "./types.js";
+import { NetworkId } from "@hardkas/core";
 import { loadKaspaWasm } from "./signer-backend.js";
 
 /**
@@ -94,12 +95,13 @@ export class KaspaWasmPrivateKeySigner implements HardkasTxPlanSigner {
       const rawTx = signedTx.serialize ? signedTx.serialize() : JSON.stringify(signedTx.toRpcTransaction());
 
       return {
-        signatureKind: "kaspa",
+        signatureKind: "kaspa-private-key",
         signerAddress: account.address || privateKey.toAddress(plan.networkId).toString(),
         signedTransaction: {
           format: "hex",
           payload: rawTx
         },
+        txId: signedTx.id,
         signature: {
           // We use the txid as the signature identifier in the artifact
           value: signedTx.id || hashTxPlanArtifact(plan)
@@ -117,11 +119,11 @@ export class KaspaWasmPrivateKeySigner implements HardkasTxPlanSigner {
  * Security guard for network types.
  */
 export function assertSigningNetworkAllowed(input: {
-  network: string;
+  network: NetworkId;
   mode: string;
   allowMainnet?: boolean | undefined;
 }): void {
-  const isMainnet = input.network === "mainnet" || input.network === "kaspa";
+  const isMainnet = input.network === "mainnet";
   
   if (isMainnet && !input.allowMainnet) {
     throw new Error(

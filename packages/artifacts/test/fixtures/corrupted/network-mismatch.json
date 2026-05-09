@@ -7,10 +7,10 @@
   "mode": "real",
   "planId": "p1",
   "from": {
-    "address": "kaspa:123"
+    "address": "kaspasim:alice"
   },
   "to": {
-    "address": "kaspa:456"
+    "address": "kaspasim:bob"
   },
   "amountSompi": "1000000",
   "estimatedFeeSompi": "250",

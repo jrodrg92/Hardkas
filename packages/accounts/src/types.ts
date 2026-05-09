@@ -92,10 +92,11 @@ export interface SignTxPlanInput {
 }
 
 export interface SignTxPlanResult {
-  signatureKind: "simulated" | "kaspa";
-  signerAddress?: string;
-  signedTransaction?: {
-    format: "hex" | "json" | "simulated" | "unknown";
+  signatureKind: HardkasSignerKind;
+  signerAddress: string;
+  txId?: string;
+  signedTransaction: {
+    format: "hex" | "simulated" | "unknown";
     payload: string;
   };
   signature?: {

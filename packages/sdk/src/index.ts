@@ -1,5 +1,6 @@
 import { loadHardkasConfig as loadConfig, LoadedHardkasConfig as LoadedConfig } from "@hardkas/config";
 import { JsonWrpcKaspaClient, KaspaRpcClient } from "@hardkas/kaspa-rpc";
+import { NetworkId } from "@hardkas/core";
 import { HardkasAccounts } from "./accounts.js";
 import { HardkasTx } from "./tx.js";
 import { HardkasL2 } from "./l2.js";
@@ -11,12 +12,12 @@ export { HardkasL2 } from "./l2.js";
 // Re-export core types and utilities
 export { 
   SOMPI_PER_KAS, 
-  kaspaNetworkIdSchema, 
+  NetworkIdSchema, 
   HardkasError,
   parseKasToSompi,
   formatSompi 
 } from "@hardkas/core";
-export type { KaspaNetworkId } from "@hardkas/core";
+export type { NetworkId } from "@hardkas/core";
 
 export * from "@hardkas/kaspa-rpc";
 export * from "@hardkas/accounts";
@@ -76,7 +77,7 @@ export class Hardkas {
    */
   async checkHealth(): Promise<{
     status: "ok" | "error";
-    environment: string;
+    environment: NetworkId;
     network: string;
     rpcUrl: string;
     version: string;
@@ -85,7 +86,7 @@ export class Hardkas {
       const info = await this.rpc.getInfo();
       return {
         status: "ok",
-        environment: this.config.config.defaultNetwork || "simnet",
+        environment: (this.config.config.defaultNetwork as NetworkId) || "simnet",
         network: info.networkId || "unknown",
         rpcUrl: (this.rpc as any).rpcUrl || "unknown",
         version: "0.2.0-alpha"
@@ -93,7 +94,7 @@ export class Hardkas {
     } catch (e) {
       return {
         status: "error",
-        environment: this.config.config.defaultNetwork || "simnet",
+        environment: (this.config.config.defaultNetwork as NetworkId) || "simnet",
         network: "unknown",
         rpcUrl: (this.rpc as any).rpcUrl || "unknown",
         version: "0.2.0-alpha"
@@ -104,7 +105,7 @@ export class Hardkas {
   /**
    * Current active network name.
    */
-  get network(): string {
-    return this.config.config.defaultNetwork || "simnet";
+  get network(): NetworkId {
+    return (this.config.config.defaultNetwork as NetworkId) || "simnet";
   }
 }
