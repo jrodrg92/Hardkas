@@ -192,8 +192,6 @@ export function registerTxCommands(program: Command) {
       const { runTxVerify } = await import("../runners/tx-verify-runner.js");
       await runTxVerify({ path, ...options });
     });
-<<<<<<< Updated upstream
-=======
 
   tx.command("trace <txId>")
     .description("Reconstruct the full operational trace of a transaction")
@@ -220,5 +218,4 @@ export function registerTxCommands(program: Command) {
         process.exitCode = 1;
       }
     });
->>>>>>> Stashed changes
 }
