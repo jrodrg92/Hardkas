@@ -1,5 +1,5 @@
 import { HardkasArtifactSchema } from "./constants.js";
-import { NetworkId, ExecutionMode, ArtifactType } from "@hardkas/core";
+import { NetworkId, ExecutionMode, ArtifactType, TxId, KaspaAddress, ArtifactId, LineageId } from "@hardkas/core";
 
 export interface HardkasArtifactBase {
   schema: HardkasArtifactSchema;
@@ -19,10 +19,10 @@ export interface BaseArtifact<T extends ArtifactType> {
   createdAt: string;
   contentHash?: string | undefined;
   lineage?: {
-    artifactId: string;
-    lineageId: string;
-    parentArtifactId?: string | undefined;
-    rootArtifactId: string;
+    artifactId: ArtifactId;
+    lineageId: LineageId;
+    parentArtifactId?: ArtifactId | undefined;
+    rootArtifactId: ArtifactId;
     sequence?: number | undefined;
   } | undefined;
 }
@@ -44,10 +44,10 @@ export interface DagContext {
 
 export interface UtxoArtifact {
   readonly outpoint: {
-    readonly transactionId: string;
+    readonly transactionId: TxId;
     readonly index: number;
   };
-  readonly address: string;
+  readonly address: KaspaAddress;
   readonly amountSompi: string;
   readonly scriptPublicKey: string;
   readonly blockDaaScore?: string | undefined;
@@ -208,10 +208,10 @@ export interface SignedTxArtifact extends BaseArtifact<"signedTx"> {
 }
 
 export interface TxReceiptArtifact extends BaseArtifact<"txReceipt"> {
-  txId: string;
+  txId: TxId;
   status: "pending" | "submitted" | "accepted" | "confirmed" | "failed";
-  from: { address: string };
-  to: { address: string };
+  from: { address: KaspaAddress };
+  to: { address: KaspaAddress };
   amountSompi: string;
   feeSompi: string;
   mass?: string | undefined;
@@ -222,7 +222,7 @@ export interface TxReceiptArtifact extends BaseArtifact<"txReceipt"> {
   postStateHash?: string | undefined;
   tracePath?: string | undefined;
   rpcUrl?: string | undefined;
-  sourceSignedId?: string | undefined;
+  sourceSignedId?: ArtifactId | undefined;
   metadata?: any | undefined;
 }
 

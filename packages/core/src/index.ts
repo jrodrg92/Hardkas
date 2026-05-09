@@ -107,3 +107,4 @@ export function formatSompi(amountSompi: bigint): string {
 }
 
 export * from "./events.js";
+export * from "./branded.js";
