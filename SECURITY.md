@@ -1,6 +1,6 @@
 # Security Policy
 
-## HardKAS 1.0.0-alpha Security Posture
+## HardKAS 0.1.0 Security Posture
 
 HardKAS is a development tool designed for the Kaspa BlockDAG ecosystem. It is currently in **Alpha / Pre-release** staging.
 

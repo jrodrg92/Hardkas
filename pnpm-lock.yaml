@@ -257,7 +257,7 @@ importers:
         specifier: workspace:*
         version: link:../query
       '@hardkas/query-store':
-        specifier: workspace:0.2.0-alpha
+        specifier: workspace:*
         version: link:../query-store
       '@hardkas/sdk':
         specifier: workspace:*
@@ -385,7 +385,7 @@ importers:
         specifier: workspace:*
         version: link:../core
       '@hardkas/query':
-        specifier: workspace:0.2.0-alpha
+        specifier: workspace:*
         version: link:../query
       '@hardkas/tx-builder':
         specifier: workspace:*

@@ -1,6 +1,6 @@
 # HardKAS Simulation Model
 
-HardKAS utilizes a **deterministic light-model simulation** for local development. It is an infrastructure-grade toolkit designed to provide a productive, low-latency environment for developers while maintaining operational consistency with the observable behaviors of the Kaspa BlockDAG.
+HardKAS utilizes a **deterministic light-model simulation** for local development. It is a deterministic workflow environment designed to provide a productive, low-latency environment for developers while maintaining operational consistency with the observable behaviors of the Kaspa BlockDAG.
 
 ## Core Architecture
 

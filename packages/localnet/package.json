@@ -16,7 +16,7 @@
   "dependencies": {
     "@hardkas/artifacts": "workspace:*",
     "@hardkas/core": "workspace:*",
-    "@hardkas/query": "workspace:0.2.0-alpha",
+    "@hardkas/query": "workspace:*",
     "@hardkas/tx-builder": "workspace:*"
   },
   "devDependencies": {

@@ -1,6 +1,6 @@
 {
   "name": "@hardkas/cli",
-  "version": "0.2.0-alpha",
+  "version": "0.1.0",
   "type": "module",
   "files": [
     "dist",
@@ -29,7 +29,7 @@
     "@hardkas/localnet": "workspace:*",
     "@hardkas/node-orchestrator": "workspace:*",
     "@hardkas/node-runner": "workspace:*",
-    "@hardkas/query-store": "workspace:0.2.0-alpha",
+    "@hardkas/query-store": "workspace:*",
     "@hardkas/sdk": "workspace:*",
     "@hardkas/simulator": "workspace:*",
     "@hardkas/tx-builder": "workspace:*",

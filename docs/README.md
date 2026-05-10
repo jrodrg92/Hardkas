@@ -1,6 +1,6 @@
 # HardKAS Documentation
 
-Welcome to the HardKAS developer infrastructure documentation. HardKAS is a Kaspa-native developer operating environment designed for high-confidence simulation, deterministic replay, and professional-grade auditability.
+Welcome to the HardKAS developer infrastructure documentation. HardKAS is a Kaspa-native developer operating environment designed for high-confidence simulation, deterministic replay, and artifact-first auditability.
 
 ## 🧠 Concepts
 Understand the core principles that drive HardKAS.

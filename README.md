@@ -1,10 +1,10 @@
 # HardKAS
 
-**HardKAS** is a Kaspa-native developer operating environment and infrastructure-grade simulation toolkit. It provides a local-first, deterministic environment for planning, verifying, and debugging transactions and protocol-level integrations on the Kaspa BlockDAG.
+**HardKAS** is a Kaspa-native developer operating environment and deterministic workflow environment. It provides a local-first, deterministic environment for planning, verifying, and debugging transactions and protocol-level integrations on the Kaspa BlockDAG.
 
 > [!IMPORTANT]
-> **Status: 1.0.0-alpha / Active Development**
-> HardKAS is currently in active alpha development. Features, APIs, and artifact formats are subject to evolution.
+> **Status: 0.1.0 / Developer Preview**
+> HardKAS is currently in Developer Preview. Features, APIs, and artifact formats are subject to evolution.
 
 > [!CAUTION]
 > **Not Production Custody Software.**
@@ -14,7 +14,7 @@
 
 ## Project Status
 
-HardKAS is currently in active alpha development (1.0.0-alpha).
+HardKAS is currently in Developer Preview (0.1.0).
 
 The architecture is stabilizing, but users should be aware:
 - **APIs may change**: Commands and SDK interfaces are not yet finalized.
@@ -34,7 +34,7 @@ The architecture is stabilizing, but users should be aware:
 - **Replay/Debugging**: Enables deterministic tracing of past simulated events.
 - **Artifact Verification**: Strict auditing of transaction integrity and semantics.
 - **Localnet Orchestration**: Simplifies managing kaspad nodes and simulated states.
-- **RPC Diagnostics**: Professional-grade network and node health tools.
+- **RPC Diagnostics**: Comprehensive network and node health tools.
 - **Early L2 Integration**: Foundational support for Igra EVM integration workflows.
 
 ### HardKAS IS NOT:
@@ -99,7 +99,7 @@ HardKAS maintains strict boundaries between different architectural layers:
 - **Deterministic by Default**: Avoid ambient state; all operations should be reproducible.
 - **Explicit over Implicit**: Clear artifact boundaries and visible metadata.
 - **Replay-Safe**: All transaction logic must be audit-ready and replay-verifiable.
-- **Infrastructure-Grade**: Professional observability and diagnostic discipline.
+- **Artifact-First**: Comprehensive observability and diagnostic discipline.
 - **No Protocol Inflation**: No claims of protocol features (like L1 smart contracts) that do not exist.
 
 ---
