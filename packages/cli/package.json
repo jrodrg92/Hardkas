@@ -29,7 +29,6 @@
     "@hardkas/localnet": "workspace:*",
     "@hardkas/node-orchestrator": "workspace:*",
     "@hardkas/node-runner": "workspace:*",
-    "@hardkas/query": "workspace:*",
     "@hardkas/query-store": "workspace:0.2.0-alpha",
     "@hardkas/sdk": "workspace:*",
     "@hardkas/simulator": "workspace:*",
