@@ -50,7 +50,7 @@ export function registerArtifactQueryCommands(queryCmd: Command) {
           const { serializeQueryResult } = await import("@hardkas/query");
           console.log(serializeQueryResult(result));
         } else {
-          printArtifactList(result);
+          printArtifactList(result as any);
         }
       } catch (e) {
         handleError(e);
@@ -81,7 +81,7 @@ export function registerArtifactQueryCommands(queryCmd: Command) {
           const { serializeQueryResult } = await import("@hardkas/query");
           console.log(serializeQueryResult(result));
         } else {
-          printInspectResult(result);
+          printInspectResult(result as any);
         }
       } catch (e) {
         handleError(e);
@@ -110,7 +110,7 @@ export function registerArtifactQueryCommands(queryCmd: Command) {
           const { serializeQueryResult } = await import("@hardkas/query");
           console.log(serializeQueryResult(result));
         } else {
-          printDiffResult(result);
+          printDiffResult(result as any);
         }
       } catch (e) {
         handleError(e);
@@ -141,7 +141,7 @@ export function registerArtifactQueryCommands(queryCmd: Command) {
           const { serializeQueryResult } = await import("@hardkas/query");
           console.log(serializeQueryResult(result));
         } else {
-          printInspectResult(result); // verify returns a similar structure to inspect
+          printInspectResult(result as any); // verify returns a similar structure to inspect
         }
       } catch (e) {
         handleError(e);

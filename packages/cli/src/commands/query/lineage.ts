@@ -34,7 +34,7 @@ export function registerLineageQueryCommands(queryCmd: Command) {
           const { serializeQueryResult } = await import("@hardkas/query");
           console.log(serializeQueryResult(result));
         } else {
-          printLineageChain(result);
+          printLineageChain(result as any);
         }
       } catch (e) {
         handleError(e);
@@ -71,7 +71,7 @@ export function registerLineageQueryCommands(queryCmd: Command) {
           const { serializeQueryResult } = await import("@hardkas/query");
           console.log(serializeQueryResult(result));
         } else {
-          printTransitions(result);
+          printTransitions(result as any);
         }
       } catch (e) {
         handleError(e);
@@ -101,7 +101,7 @@ export function registerLineageQueryCommands(queryCmd: Command) {
           const { serializeQueryResult } = await import("@hardkas/query");
           console.log(serializeQueryResult(result));
         } else {
-          printOrphans(result);
+          printOrphans(result as any);
         }
       } catch (e) {
         handleError(e);

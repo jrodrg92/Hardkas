@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { Brand } from "./domain-types.js";
 
 export const SOMPI_PER_KAS = 100_000_000n;
 
@@ -12,7 +13,7 @@ export const kaspaNetworkIdSchema = z.enum([
   "devnet"
 ]);
 
-export type NetworkId = z.infer<typeof kaspaNetworkIdSchema>;
+export type NetworkId = Brand<z.infer<typeof kaspaNetworkIdSchema>, "NetworkId">;
 
 export const executionModeSchema = z.enum([
   "simulated",
@@ -107,4 +108,5 @@ export function formatSompi(amountSompi: bigint): string {
 }
 
 export * from "./events.js";
+export * from "./domain-types.js";
 export * from "./branded.js";

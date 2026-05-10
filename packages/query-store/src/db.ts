@@ -70,7 +70,21 @@ export class HardkasStore {
       const insert = this.db.prepare("INSERT INTO metadata (key, value) VALUES ('version', ?)");
       insert.run(SCHEMA_VERSION.toString());
     } else if (version !== SCHEMA_VERSION) {
-      throw new Error(`Schema version mismatch. Expected ${SCHEMA_VERSION}, got ${version}`);
+      console.warn(`Schema version mismatch (expected ${SCHEMA_VERSION}, got ${version}). Developer Preview: Recreating schema.`);
+      
+      // Developer Preview Migration: Drop and Recreate
+      this.db.exec("PRAGMA foreign_keys = OFF;");
+      this.db.exec("DROP TABLE IF EXISTS artifacts;");
+      this.db.exec("DROP TABLE IF EXISTS lineage_edges;");
+      this.db.exec("DROP TABLE IF EXISTS events;");
+      this.db.exec("DROP TABLE IF EXISTS traces;");
+      this.db.exec("DROP TABLE IF EXISTS metadata;");
+      this.db.exec("PRAGMA foreign_keys = ON;");
+      
+      // Re-initialize
+      this.db.exec(DDL);
+      const insert = this.db.prepare("INSERT INTO metadata (key, value) VALUES ('version', ?)");
+      insert.run(SCHEMA_VERSION.toString());
     }
   }
 }

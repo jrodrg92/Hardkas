@@ -21,7 +21,7 @@ export function registerDagQueryCommands(queryCmd: Command) {
         if (options.json) {
           const { serializeQueryResult } = await import("@hardkas/query");
           console.log(serializeQueryResult(result));
-        } else { printDagConflicts(result); }
+        } else { printDagConflicts(result as any); }
       } catch (e) { handleError(e); process.exitCode = 1; }
     });
 
@@ -40,7 +40,7 @@ export function registerDagQueryCommands(queryCmd: Command) {
         if (options.json) {
           const { serializeQueryResult } = await import("@hardkas/query");
           console.log(serializeQueryResult(result));
-        } else { printDagDisplaced(result); }
+        } else { printDagDisplaced(result as any); }
       } catch (e) { handleError(e); process.exitCode = 1; }
     });
 
@@ -60,7 +60,7 @@ export function registerDagQueryCommands(queryCmd: Command) {
         if (options.json) {
           const { serializeQueryResult } = await import("@hardkas/query");
           console.log(serializeQueryResult(result));
-        } else { printDagHistory(result); }
+        } else { printDagHistory(result as any); }
       } catch (e) { handleError(e); process.exitCode = 1; }
     });
 
@@ -77,7 +77,7 @@ export function registerDagQueryCommands(queryCmd: Command) {
         if (options.json) {
           const { serializeQueryResult } = await import("@hardkas/query");
           console.log(serializeQueryResult(result));
-        } else { printSinkPath(result); }
+        } else { printSinkPath(result as any); }
       } catch (e) { handleError(e); process.exitCode = 1; }
     });
 
@@ -96,7 +96,7 @@ export function registerDagQueryCommands(queryCmd: Command) {
         if (options.json) {
           const { serializeQueryResult } = await import("@hardkas/query");
           console.log(serializeQueryResult(result));
-        } else { printDagAnomalies(result); }
+        } else { printDagAnomalies(result as any); }
       } catch (e) { handleError(e); process.exitCode = 1; }
     });
 }

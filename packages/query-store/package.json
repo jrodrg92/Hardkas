@@ -15,8 +15,7 @@
   },
   "dependencies": {
     "@hardkas/artifacts": "workspace:*",
-    "@hardkas/core": "workspace:*",
-    "@hardkas/query": "workspace:*"
+    "@hardkas/core": "workspace:*"
   },
   "devDependencies": {
     "tsup": "^8.3.5",

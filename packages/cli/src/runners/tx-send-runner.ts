@@ -66,11 +66,11 @@ export async function runTxSend(input: TxSendRunnerInput): Promise<TxSendRunnerR
       amountSompi: BigInt(signedArtifact.amountSompi),
     });
 
-    coreEvents.emit({
+    coreEvents.normalizeAndEmit({
       kind: "workflow.submitted",
       txId: simResult.receipt.txId,
       endpoint: "simulated://local"
-    });
+    } as any);
 
     events.push({ type: "phase.completed", phase: "send", timestamp: Date.now() });
 
@@ -136,11 +136,11 @@ export async function runTxSend(input: TxSendRunnerInput): Promise<TxSendRunnerR
   try {
     const txId = (broadcastable.rawTransaction as any)?.id || "unknown";
     
-    coreEvents.emit({
+    coreEvents.normalizeAndEmit({
       kind: "workflow.submitted",
       txId,
       endpoint: rpcUrl
-    });
+    } as any);
 
     const result = await client.submitTransaction(broadcastable.rawTransaction);
     
@@ -152,7 +152,7 @@ export async function runTxSend(input: TxSendRunnerInput): Promise<TxSendRunnerR
       mode: "real",
       createdAt: new Date().toISOString(),
       status: result.accepted ? "submitted" : "failed",
-      txId: result.transactionId || "failed",
+      txId: (result.transactionId || "failed") as any,
       sourceSignedId: signedArtifact.signedId,
       from: { address: signedArtifact.from.address },
       to: { address: signedArtifact.to.address },

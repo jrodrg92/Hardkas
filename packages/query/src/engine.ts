@@ -9,6 +9,8 @@ import { ArtifactQueryAdapter } from "./adapters/artifact-adapter.js";
 import { LineageQueryAdapter } from "./adapters/lineage-adapter.js";
 import { ReplayQueryAdapter } from "./adapters/replay-adapter.js";
 import { DagQueryAdapter } from "./adapters/dag-adapter.js";
+import { EventsQueryAdapter } from "./adapters/events-adapter.js";
+import { TxQueryAdapter } from "./adapters/tx-adapter.js";
 import type { QueryAdapter, QueryDomain, QueryRequest, QueryResult } from "./types.js";
 
 export interface QueryEngineOptions {
@@ -25,6 +27,8 @@ export class QueryEngine {
     this.adapters.set("lineage", new LineageQueryAdapter(options.artifactDir));
     this.adapters.set("replay", new ReplayQueryAdapter(options.artifactDir));
     this.adapters.set("dag", new DagQueryAdapter(options.artifactDir));
+    this.adapters.set("events", new EventsQueryAdapter(options.artifactDir));
+    this.adapters.set("tx", new TxQueryAdapter(options.artifactDir));
   }
 
   /**

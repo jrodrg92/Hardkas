@@ -35,7 +35,7 @@ async function runDoctor() {
   UI.header("Configuration Analysis");
   try {
     const loaded = await loadHardkasConfig({ cwd: process.cwd() });
-    UI.success(`Config found: ${pc.cyan(path.basename(loaded.path))}`);
+    UI.success(`Config found: ${pc.cyan(path.basename(loaded.path || "unknown"))}`);
     UI.field("Default Network", loaded.config.defaultNetwork || "simnet");
   } catch (e: any) {
     UI.error("Configuration issues detected", e.message);
@@ -50,7 +50,7 @@ async function runDoctor() {
     const target = loaded.config.networks?.[networkId];
     
     let rpcUrl = "ws://127.0.0.1:18210"; 
-    if (target?.rpcUrl) rpcUrl = target.rpcUrl;
+    if ((target as any)?.rpcUrl) rpcUrl = (target as any).rpcUrl;
 
     UI.info(`Connecting to ${pc.cyan(rpcUrl)}...`);
     const rpc = new JsonWrpcKaspaClient({ rpcUrl });
@@ -91,7 +91,7 @@ async function runDoctor() {
   UI.header("Query Store (SQLite) Status");
   const dbPath = path.join(hardkasDir, "query.db");
   try {
-    const store = new HardkasStore({ path: dbPath });
+    const store = new HardkasStore({ dbPath });
     store.connect();
     const db = store.getDatabase();
     

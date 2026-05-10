@@ -1,3 +1,4 @@
+import type { NetworkId } from "@hardkas/core";
 import { MockKaspaRpcClient } from "@hardkas/kaspa-rpc";
 import { createDeterministicAccounts } from "@hardkas/localnet";
 import { createMockUtxo } from "@hardkas/tx-builder";
@@ -22,7 +23,7 @@ export interface HardkasTestContext {
 }
 
 export async function createHardkasTestContext(): Promise<HardkasTestContext> {
-  const rpc = new MockKaspaRpcClient("simnet");
+  const rpc = new MockKaspaRpcClient("simnet" as NetworkId);
 
   const accounts = createDeterministicAccounts({
     count: 4,

@@ -1,7 +1,7 @@
 import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert";
 import { HardkasStore } from "../src/db.js";
-import { SqliteQueryBackend } from "../src/backend.js";
+import { SqliteQueryBackend } from "../src/backend.ts";
 
 describe("SqliteQueryBackend", () => {
   let store: HardkasStore;
@@ -11,19 +11,15 @@ describe("SqliteQueryBackend", () => {
     store = new HardkasStore({ memory: true });
     store.connect();
     backend = new SqliteQueryBackend(store);
-
+    
     // Seed some data
     const db = store.getDatabase();
     db.exec(`
-      INSERT INTO artifacts (hash, schema, version, mode, network_id, created_at, path, raw_json)
-      VALUES 
-        ('h1', 'hardkas.txPlan', '1.0', 'simulated', 'simnet', '2025-01-01T00:00:00Z', 'p1.json', '{"txId":"tx1"}'),
-        ('h2', 'hardkas.signedTx', '1.0', 'live', 'mainnet', '2025-01-01T01:00:00Z', 'p2.json', '{"txId":"tx2"}');
+      INSERT INTO artifacts (artifact_id, content_hash, schema, version, kind, network_id, raw_json)
+      VALUES ('art-1', 'hash-1', 'hardkas.test', '1.0', 'txPlan', 'testnet-10', '{}');
       
-      INSERT INTO events (kind, tx_id, endpoint, created_at, raw_json)
-      VALUES
-        ('workflow.submitted', 'tx1', 'localhost', '2025-01-01T00:05:00Z', '{"foo":"bar"}'),
-        ('rpc.health', null, 'localhost', '2025-01-01T00:06:00Z', '{"score":95}');
+      INSERT INTO events (event_id, kind, domain, workflow_id, correlation_id, network_id, raw_json)
+      VALUES ('evt-1', 'workflow.started', 'workflow', 'wf-1', 'corr-1', 'testnet-10', '{"payload":{}}');
     `);
   });
 
@@ -32,38 +28,24 @@ describe("SqliteQueryBackend", () => {
   });
 
   it("should find artifacts with filters", async () => {
-    const all = await backend.findArtifacts();
-    assert.strictEqual(all.length, 2);
-
-    const sim = await backend.findArtifacts({ mode: "simulated" });
-    assert.strictEqual(sim.length, 1);
-    assert.strictEqual(sim[0].contentHash, "h1");
-
-    const mainnet = await backend.findArtifacts({ networkId: "mainnet" });
-    assert.strictEqual(mainnet.length, 1);
-    assert.strictEqual(mainnet[0].contentHash, "h2");
+    const results = await backend.findArtifacts({ schema: "hardkas.test" });
+    assert.strictEqual(results.length, 1);
+    assert.strictEqual(results[0].artifactId, "art-1");
   });
 
-  it("should get a specific artifact by hash", async () => {
-    const art = await backend.getArtifact("h1");
-    assert.ok(art);
-    assert.strictEqual(art?.schema, "hardkas.txPlan");
-    assert.strictEqual(art?.payload.txId, "tx1");
+  it("should get a specific artifact by artifactId or hash", async () => {
+    const art1 = await backend.getArtifact("art-1");
+    assert.ok(art1);
+    assert.strictEqual(art1?.contentHash, "hash-1");
 
-    const none = await backend.getArtifact("non-existent");
-    assert.strictEqual(none, null);
+    const art2 = await backend.getArtifact("hash-1");
+    assert.ok(art2);
+    assert.strictEqual(art2?.artifactId, "art-1");
   });
 
   it("should get events with filters", async () => {
-    const all = await backend.getEvents();
-    assert.strictEqual(all.length, 2);
-
-    const rpc = await backend.getEvents({ kind: "rpc.health" });
-    assert.strictEqual(rpc.length, 1);
-    assert.strictEqual(rpc[0].kind, "rpc.health");
-
-    const tx1 = await backend.getEvents({ txId: "tx1" });
-    assert.strictEqual(tx1.length, 1);
-    assert.strictEqual(tx1[0].txId, "tx1");
+    const results = await backend.getEvents({ kind: "workflow.started" });
+    assert.strictEqual(results.length, 1);
+    assert.strictEqual(results[0].workflowId, "wf-1");
   });
 });

@@ -36,7 +36,7 @@ export function verifyReplay(
   if (originalPlan.contentHash && currentPlanHash !== originalPlan.contentHash) {
     const errorMsg = `TxPlan contentHash mismatch: expected ${originalPlan.contentHash}, got ${currentPlanHash}`;
     errors.push(errorMsg);
-    coreEvents.emit({
+    coreEvents.normalizeAndEmit({
       kind: "replay.divergence",
       txId: originalReceipt.txId,
       field: "planHash",
@@ -61,7 +61,7 @@ export function verifyReplay(
   for (const check of checks) {
     if (check.expected !== check.actual) {
       errors.push(`${check.field} mismatch: expected ${check.expected}, got ${check.actual}`);
-      coreEvents.emit({
+      coreEvents.normalizeAndEmit({
         kind: "replay.divergence",
         txId: originalReceipt.txId,
         field: check.field,
@@ -72,7 +72,7 @@ export function verifyReplay(
   }
 
   if (errors.length === 0) {
-    coreEvents.emit({
+    coreEvents.normalizeAndEmit({
       kind: "replay.verified",
       txId: originalReceipt.txId
     });

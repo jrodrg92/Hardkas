@@ -11,6 +11,7 @@
  */
 import fs from "node:fs/promises";
 import path from "node:path";
+import type { TxId } from "@hardkas/core";
 import { computeQueryHash } from "../serialize.js";
 import type {
   QueryAdapter,
@@ -101,8 +102,8 @@ export class DagQueryAdapter implements QueryAdapter {
 
     const items: DagConflict[] = dag.conflictSet.map(c => ({
       outpoint: c.outpoint,
-      winnerTxId: c.winnerTxId,
-      loserTxIds: c.loserTxIds
+      winnerTxId: c.winnerTxId as TxId,
+      loserTxIds: c.loserTxIds as TxId[]
     }));
 
     items.sort((a, b) => a.outpoint.localeCompare(b.outpoint));
@@ -146,7 +147,7 @@ export class DagQueryAdapter implements QueryAdapter {
         : "Displaced by DAG reorganization";
 
       return {
-        txId,
+        txId: txId as TxId,
         reason,
         currentlyAccepted: dag.acceptedTxIds.includes(txId)
       };
@@ -191,7 +192,7 @@ export class DagQueryAdapter implements QueryAdapter {
       if (!block) continue;
       if (block.acceptedTxIds.includes(txId)) {
         entries.push({
-          txId,
+          txId: txId as TxId,
           blockId,
           accepted: dag.acceptedTxIds.includes(txId),
           displaced: dag.displacedTxIds.includes(txId),
@@ -205,7 +206,7 @@ export class DagQueryAdapter implements QueryAdapter {
       // Check if it's in displaced but not in any block (shouldn't happen)
       if (dag.displacedTxIds.includes(txId)) {
         entries.push({
-          txId,
+          txId: txId as TxId,
           blockId: "unknown",
           accepted: false,
           displaced: true,

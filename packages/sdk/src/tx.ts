@@ -16,7 +16,7 @@ import {
   calculateContentHash
 } from "@hardkas/artifacts";
 import { HardkasAccount, signTxPlanArtifact } from "@hardkas/accounts";
-import { parseKasToSompi } from "@hardkas/core";
+import { parseKasToSompi, type NetworkId } from "@hardkas/core";
 
 /**
  * HardKAS Transaction Module
@@ -65,7 +65,7 @@ export class HardkasTx {
     });
 
     return createTxPlanArtifact({
-      networkId: this.sdk.network,
+      networkId: this.sdk.network as NetworkId,
       mode: "simulated", 
       from: {
         input: fromAccount.name || fromAccount.address,
@@ -78,7 +78,7 @@ export class HardkasTx {
       },
       amountSompi,
       plan: builderPlan
-    });
+    }) as unknown as TxPlanArtifact;
   }
 
   /**

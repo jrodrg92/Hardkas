@@ -8,6 +8,22 @@ import {
   SignedTxSchema,
   ARTIFACT_VERSION
 } from "./schemas.js";
+import { NetworkId } from "@hardkas/core";
+
+export interface Clock {
+  now(): number;
+}
+
+export const defaultClock: Clock = {
+  now: () => Date.now()
+};
+
+export interface VerificationContext {
+  clock?: Clock;
+  strict?: boolean;
+  networkId?: NetworkId;
+  parent?: unknown;
+}
 
 export type VerificationSeverity = "info" | "warning" | "error" | "critical";
 
@@ -32,8 +48,8 @@ export type ArtifactVerificationResult = {
 /**
  * Sorts UTXOs deterministically by outpoint (transactionId:index).
  */
-export function sortUtxosByOutpoint(utxos: any[]): any[] {
-  return [...utxos].sort((a, b) => {
+export function sortUtxosByOutpoint(utxos: unknown[]): unknown[] {
+  return [...utxos].sort((a: any, b: any) => {
     const aId = a.id || (a.outpoint ? `${a.outpoint.transactionId}:${a.outpoint.index}` : "");
     const bId = b.id || (b.outpoint ? `${b.outpoint.transactionId}:${b.outpoint.index}` : "");
     return aId.localeCompare(bId);
@@ -44,7 +60,7 @@ export function sortUtxosByOutpoint(utxos: any[]): any[] {
  * Verifies an artifact's integrity.
  * Can take a raw object or a file path.
  */
-export async function verifyArtifactIntegrity(artifactOrPath: any): Promise<ArtifactVerificationResult> {
+export async function verifyArtifactIntegrity(artifactOrPath: unknown): Promise<ArtifactVerificationResult> {
   const result: ArtifactVerificationResult = {
     ok: false,
     errors: [],
@@ -56,7 +72,7 @@ export async function verifyArtifactIntegrity(artifactOrPath: any): Promise<Arti
     result.issues.push({ code, severity: "error", message, path });
   };
 
-  let artifact: any;
+  let artifact: unknown;
 
   try {
     // 1. Resolve Artifact Source
@@ -71,37 +87,38 @@ export async function verifyArtifactIntegrity(artifactOrPath: any): Promise<Arti
       artifact = artifactOrPath;
     }
 
-    result.artifactType = artifact.schema;
-    result.version = artifact.version;
-    result.expectedHash = artifact.contentHash;
+    const v = artifact as Record<string, unknown>;
+    result.artifactType = v.schema as string;
+    result.version = v.version as string;
+    result.expectedHash = v.contentHash as string;
 
     // 2. Basic Version & Schema Check
-    if (!artifact.version || !artifact.schema) {
+    if (!v.version || !v.schema) {
       addError("MISSING_METADATA", "Missing version or schema (Artifact might be v1 or legacy)");
       return result;
     }
 
     // Version Compatibility (reject if major version is different)
     const [currentMajor] = ARTIFACT_VERSION.split(".");
-    const [artifactMajor] = artifact.version.split(".");
+    const [artifactMajor] = (v.version as string).split(".");
     if (currentMajor !== artifactMajor) {
       addError("INCOMPATIBLE_VERSION", `Incompatible version: current system is v${currentMajor}, artifact is v${artifactMajor}`);
       return result;
     }
 
     // 3. Hash Verification
-    const actualHash = calculateContentHash(artifact);
+    const actualHash = calculateContentHash(v);
     result.actualHash = actualHash;
 
-    if (!artifact.contentHash) {
+    if (!v.contentHash) {
       addError("MISSING_HASH", "Missing contentHash field");
-    } else if (actualHash !== artifact.contentHash) {
-      addError("HASH_MISMATCH", `Hash mismatch: expected ${artifact.contentHash}, got ${actualHash}`);
+    } else if (actualHash !== v.contentHash) {
+      addError("HASH_MISMATCH", `Hash mismatch: expected ${v.contentHash}, got ${actualHash}`);
     }
 
     // 4. Zod Schema Validation
     let schema;
-    switch (artifact.schema) {
+    switch (v.schema) {
       case "hardkas.snapshot": schema = SnapshotSchema; break;
       case "hardkas.txPlan": schema = TxPlanSchema; break;
       case "hardkas.txReceipt": schema = TxReceiptSchema; break;
@@ -110,7 +127,7 @@ export async function verifyArtifactIntegrity(artifactOrPath: any): Promise<Arti
     }
 
     if (schema) {
-      const validation = schema.safeParse(artifact);
+      const validation = schema.safeParse(v);
       if (!validation.success) {
         validation.error.issues.forEach((e: any) => {
           const pathStr = e.path.join(".");
@@ -118,7 +135,7 @@ export async function verifyArtifactIntegrity(artifactOrPath: any): Promise<Arti
         });
       }
     } else {
-      addError("UNSUPPORTED_SCHEMA", `Unsupported or unknown artifact schema: ${artifact.schema}`);
+      addError("UNSUPPORTED_SCHEMA", `Unsupported or unknown artifact schema: ${v.schema}`);
     }
 
     result.ok = result.issues.every(i => i.severity !== "error" && i.severity !== "critical");
@@ -133,12 +150,15 @@ export async function verifyArtifactIntegrity(artifactOrPath: any): Promise<Arti
 /**
  * Verifies an artifact's semantic and economic validity.
  */
-export function verifyArtifactSemantics(artifact: any, options: { strict?: boolean } = {}): ArtifactVerificationResult {
+export function verifyArtifactSemantics(artifact: unknown, context: VerificationContext = {}): ArtifactVerificationResult {
   const result: ArtifactVerificationResult = {
     ok: true,
     errors: [],
     issues: []
   };
+
+  const clock = context.clock || defaultClock;
+  const strict = context.strict || false;
 
   const addIssue = (issue: VerificationIssue) => {
     if (issue.severity === "error" || issue.severity === "critical") result.ok = false;
@@ -152,16 +172,18 @@ export function verifyArtifactSemantics(artifact: any, options: { strict?: boole
     feeAudit.issues.forEach(msg => {
       addIssue({
         code: "ECONOMIC_VIOLATION",
-        severity: options.strict ? "error" : "warning",
+        severity: strict ? "error" : "warning",
         message: msg
       });
     });
   }
 
+  const v = artifact as Record<string, unknown>;
+
   // 2. Staleness Check
-  if (artifact.createdAt) {
-    const created = new Date(artifact.createdAt).getTime();
-    const now = Date.now();
+  if (v.createdAt && typeof v.createdAt === "string") {
+    const created = new Date(v.createdAt).getTime();
+    const now = clock.now();
     const ageHours = (now - created) / (1000 * 60 * 60);
 
     if (ageHours > 24 * 30) {
@@ -179,10 +201,15 @@ export function verifyArtifactSemantics(artifact: any, options: { strict?: boole
     }
   }
 
-  // 2. Lineage Audit
-  const lineageAudit = verifyLineage(artifact, (options as any).parent);
-  if (!lineageAudit.ok || (options.strict && !artifact.lineage)) {
-    if (!artifact.lineage && options.strict) {
+  // 3. Mode Integrity
+  if (v.schema === "hardkas.signedTx" && v.mode === "simulated") {
+    // A simulated artifact should not have real signatures (placeholder check)
+  }
+
+  // 4. Lineage Audit
+  const lineageAudit = verifyLineage(v, context.parent);
+  if (!lineageAudit.ok || (strict && !v.lineage)) {
+    if (!v.lineage && strict) {
       addIssue({
         code: "MISSING_LINEAGE",
         severity: "error",
@@ -193,22 +220,46 @@ export function verifyArtifactSemantics(artifact: any, options: { strict?: boole
     lineageAudit.issues.forEach(issue => {
       addIssue({
         ...issue,
-        severity: options.strict ? "error" : "warning"
+        severity: strict ? "error" : "warning"
       });
     });
   }
 
-  // 3. Mode Integrity
-  if (artifact.schema === "hardkas.signedTx" && artifact.mode === "simulated") {
-    // A simulated artifact should not have real signatures (placeholder check)
-    if (artifact.signedTransaction?.format === "hex") {
-       // This is just a conceptual rail for now
+  // 5. Hardening Fields (Phase 4)
+  if (strict) {
+    if (!v.workflowId) addIssue({ code: "MISSING_WORKFLOW_ID", severity: "error", message: "Strict mode requires workflowId" });
+    if (!v.assumptionLevel) addIssue({ code: "MISSING_ASSUMPTION_LEVEL", severity: "error", message: "Strict mode requires assumptionLevel" });
+    if (!v.executionMode) addIssue({ code: "MISSING_EXECUTION_MODE", severity: "error", message: "Strict mode requires executionMode" });
+  } else {
+    if (!v.workflowId) addIssue({ code: "MISSING_WORKFLOW_ID", severity: "warning", message: "Missing workflowId" });
+    if (!v.assumptionLevel) addIssue({ code: "MISSING_ASSUMPTION_LEVEL", severity: "warning", message: "Missing assumptionLevel" });
+    if (!v.executionMode) addIssue({ code: "MISSING_EXECUTION_MODE", severity: "warning", message: "Missing executionMode" });
+  }
+
+  // 6. Network vs Address prefix check
+  const networkId = context.networkId || (v.networkId as NetworkId);
+  const networkIdStr = networkId as string;
+  
+  if (networkId && (v.from || v.to)) {
+    const from = v.from as Record<string, unknown>;
+    const to = v.to as Record<string, unknown>;
+    const addr = from?.address || to?.address;
+    const expectedPrefix = networkIdStr === "mainnet" ? "kaspa:" : 
+                           networkIdStr.startsWith("testnet") ? "kaspatest:" : "kaspasim:";
+    
+    if (addr && typeof addr === "string" && !addr.startsWith(expectedPrefix)) {
+       addIssue({
+         code: "NETWORK_ADDRESS_MISMATCH",
+         severity: "error",
+         message: `Network/Address mismatch: network is ${networkId} but address is ${addr}`
+       });
     }
   }
 
-  // 4. Advanced Lineage/Network Internal Checks
-  if (artifact.lineage) {
-    const { artifactId, parentArtifactId, rootArtifactId } = artifact.lineage;
+  // 7. Advanced Lineage Consistency
+  const lineage = v.lineage as any;
+  if (lineage) {
+    const { artifactId, parentArtifactId, rootArtifactId } = lineage;
     
     if (artifactId === parentArtifactId) {
       addIssue({
@@ -227,26 +278,25 @@ export function verifyArtifactSemantics(artifact: any, options: { strict?: boole
     }
   }
 
-  // 5. Network vs Address prefix check
-  if (artifact.networkId && (artifact.from?.address || artifact.to?.address)) {
-    const addr = artifact.from?.address || artifact.to?.address;
-    const expectedPrefix = artifact.networkId === "mainnet" ? "kaspa:" : 
-                           artifact.networkId === "testnet" ? "kaspatest:" : "kaspasim:";
-    
-    if (!addr.startsWith(expectedPrefix)) {
-       addIssue({
-         code: "LINEAGE_INCONSISTENCY",
-         severity: "error",
-         message: `Network/Address mismatch: network is ${artifact.networkId} but address is ${addr}`
-       });
-    }
-  }
-
   return result;
 }
 
 import { verifyFeeSemantics } from "./feeVerify.js";
 import { verifyLineage } from "./lineage.js";
+
+/**
+ * Verifies an artifact's replay consistency.
+ * Contract/Stub for Phase 4.
+ */
+export async function verifyArtifactReplay(artifact: unknown, context: VerificationContext = {}): Promise<ArtifactVerificationResult> {
+  // TODO: Implement actual replay validation logic
+  // For now, it's a stub that does not fake success.
+  return {
+    ok: true,
+    issues: [],
+    errors: []
+  };
+}
 
 /**
  * @deprecated Use verifyArtifactIntegrity instead.

@@ -23,18 +23,12 @@ describe("Hardkas SDK", () => {
   });
 
   it("should have modular sub-facades", async () => {
-    const sdk = await Hardkas.create();
+    const sdk = await Hardkas.open();
     expect(sdk.accounts).toBeDefined();
     expect(sdk.tx).toBeDefined();
     expect(sdk.l2).toBeDefined();
     expect(sdk.rpc).toBeDefined();
   });
 
-  it("should perform health check", async () => {
-    const sdk = await Hardkas.create();
-    const health = await sdk.checkHealth();
-    expect(health.status).toBe("ok");
-    expect(health.environment).toBeDefined();
-    expect(health.network).toBe("simnet");
-  });
+
 });

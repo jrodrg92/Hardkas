@@ -434,6 +434,85 @@ export function registerQueryCommands(program: Command) {
         } else { printDagAnomalies(result); }
       } catch (e) { handleError(e); process.exitCode = 1; }
     });
+
+  // =========================================================================
+  // hardkas query events
+  // =========================================================================
+
+  queryCmd
+    .command("events")
+    .description("Query event log")
+    .option("--tx <txId>", "Filter events by transaction ID")
+    .option("--domain <domain>", "Filter by event domain")
+    .option("--kind <kind>", "Filter by event kind")
+    .option("--workflow <workflowId>", "Filter by workflow ID")
+    .option("--limit <n>", "Max results", "100")
+    .option("--json", "Output as deterministic JSON", false)
+    .option("--explain [level]", "Attach explain metadata (brief|full)")
+    .action(async (options) => {
+      try {
+        const { QueryEngine, createQueryRequest } = await import("@hardkas/query");
+        const engine = new QueryEngine({ artifactDir: process.cwd() });
+
+        const filters: Array<{ field: string; op: "eq"; value: string }> = [];
+        if (options.domain) filters.push({ field: "domain", op: "eq", value: options.domain });
+        if (options.kind) filters.push({ field: "kind", op: "eq", value: options.kind });
+        if (options.workflow) filters.push({ field: "workflowId", op: "eq", value: options.workflow });
+
+        const params: Record<string, string> = {};
+        if (options.tx) params["tx"] = options.tx;
+
+        const request = createQueryRequest({
+          domain: "events",
+          op: "list",
+          filters,
+          params,
+          limit: parseInt(options.limit, 10),
+          explain: options.explain === true ? "brief" : (options.explain || false)
+        });
+
+        const result = await engine.execute(request);
+
+        if (options.json) {
+          const { serializeQueryResult } = await import("@hardkas/query");
+          console.log(serializeQueryResult(result));
+        } else {
+          printEventList(result);
+        }
+      } catch (e) { handleError(e); process.exitCode = 1; }
+    });
+
+  // =========================================================================
+  // hardkas query tx
+  // =========================================================================
+
+  queryCmd
+    .command("tx <txId>")
+    .description("Aggregate all data for a transaction")
+    .option("--json", "Output as deterministic JSON", false)
+    .option("--explain [level]", "Attach explain metadata (brief|full)")
+    .action(async (txId, options) => {
+      try {
+        const { QueryEngine, createQueryRequest } = await import("@hardkas/query");
+        const engine = new QueryEngine({ artifactDir: process.cwd() });
+
+        const request = createQueryRequest({
+          domain: "tx",
+          op: "aggregate",
+          params: { txId },
+          explain: options.explain === true ? "brief" : (options.explain || false)
+        });
+
+        const result = await engine.execute(request);
+
+        if (options.json) {
+          const { serializeQueryResult } = await import("@hardkas/query");
+          console.log(serializeQueryResult(result));
+        } else {
+          printTxAggregate(result);
+        }
+      } catch (e) { handleError(e); process.exitCode = 1; }
+    });
 }
 
 // ---------------------------------------------------------------------------
@@ -651,134 +730,46 @@ function printExplainChains(chains: any[]): void {
   }
 }
 
-  console.log(`\n  Artifacts: ${result.total} found (showing ${result.items.length})\n`);
-  for (const item of result.items) {
-    const hash = item.contentHash ? item.contentHash.slice(0, 12) + "..." : "no-hash";
-    const from = item.from?.address ? ` from:${item.from.address.slice(0, 20)}` : "";
-    console.log(`  ${item.schema.padEnd(24)} ${item.networkId.padEnd(10)} ${item.mode.padEnd(12)} ${hash}${from}`);
+function printEventList(result: any): void {
+  console.log(`\n  ═══ Events: ${result.total} found (showing ${result.items.length}) ═══\n`);
+  for (const event of result.items) {
+    const txTag = event.txId ? ` tx:${event.txId.slice(0, 16)}...` : "";
+    console.log(`  ${event.timestamp.slice(0, 19).padEnd(20)} ${event.kind.padEnd(28)} ${event.domain.padEnd(12)}${txTag}`);
   }
   console.log(`\n  queryHash: ${result.queryHash.slice(0, 16)}...`);
-  console.log(`  ${result.annotations.executionMs}ms | ${result.annotations.filesScanned ?? 0} files scanned\n`);
-
-  if (result.explain) {
-    printExplainChains(result.explain);
-  }
+  console.log(`  ${result.annotations.executionMs}ms\n`);
+  if (result.explain) printExplainChains(result.explain);
 }
 
-function printInspectResult(result: any): void {
-  const item = result.items[0];
-  if (!item) { console.log("  No artifact found."); return; }
+function printTxAggregate(result: any): void {
+  const agg = result.items[0];
+  if (!agg) { console.log("  No data found for this transaction."); return; }
 
-  console.log(`\n  ═══ Artifact Inspection ═══\n`);
-  console.log(`  Schema:     ${item.item.schema}`);
-  console.log(`  Network:    ${item.item.networkId}`);
-  console.log(`  Mode:       ${item.item.mode}`);
-  console.log(`  Created:    ${item.item.createdAt}`);
-  console.log(`  Hash:       ${item.item.contentHash || "none"}`);
-  console.log(`  Integrity:  ${item.integrity.ok ? "✓ VALID" : "✗ INVALID"}`);
-  console.log(`  Lineage:    ${item.lineageStatus}`);
-  console.log(`  Staleness:  ${item.staleness.classification} (${item.staleness.ageHours}h)`);
+  console.log(`\n  ═══ Transaction: ${agg.txId} ═══\n`);
+  console.log(`  Complete: ${agg.complete ? "✓ yes" : "✗ partial"}`);
 
-  if (item.economics) {
-    console.log(`  Economics:  ${item.economics.ok ? "✓" : "✗"} mass=${item.economics.massReported} fee=${item.economics.feeReported}`);
-  }
-
-  if (item.integrity.errors.length > 0) {
-    console.log(`\n  Issues:`);
-    for (const err of item.integrity.errors) {
-      console.log(`    ✗ ${err}`);
+  if (agg.artifacts.length > 0) {
+    console.log(`\n  Artifacts (${agg.artifacts.length}):`);
+    for (const a of agg.artifacts) {
+      const hash = a.contentHash ? a.contentHash.slice(0, 12) + "..." : "no-hash";
+      console.log(`    ${a.role.padEnd(10)} ${a.schema.padEnd(24)} ${hash}`);
     }
   }
-  console.log("");
 
-  if (result.explain) {
-    printExplainChains(result.explain);
-  }
-}
-
-function printDiffResult(result: any): void {
-  const diff = result.items[0];
-  if (!diff) return;
-
-  console.log(`\n  ═══ Artifact Diff ═══\n`);
-  console.log(`  Left:  ${diff.leftSchema} (${diff.leftPath})`);
-  console.log(`  Right: ${diff.rightSchema} (${diff.rightPath})`);
-
-  if (diff.identical) {
-    console.log(`\n  ✓ Artifacts are identical.\n`);
-    return;
-  }
-
-  console.log(`\n  ${diff.entries.length} difference(s):\n`);
-  for (const entry of diff.entries) {
-    const marker = entry.kind === "added" ? "+" : entry.kind === "removed" ? "-" : "~";
-    console.log(`  ${marker} ${entry.field}: ${entry.left ?? "(absent)"} → ${entry.right ?? "(absent)"} [${entry.kind}]`);
-  }
-  console.log("");
-}
-
-function printLineageChain(result: any): void {
-  const chain = result.items[0];
-  if (!chain) return;
-
-  console.log(`\n  ═══ Lineage Chain (${chain.direction}) ═══\n`);
-  console.log(`  Anchor: ${chain.anchor}`);
-  console.log(`  Complete: ${chain.complete ? "✓ yes" : "✗ no (missing ancestors)"}`);
-  console.log(`  Nodes: ${chain.nodes.length}\n`);
-
-  for (let i = 0; i < chain.nodes.length; i++) {
-    const node = chain.nodes[i];
-    const prefix = i === chain.nodes.length - 1 ? "  └─" : "  ├─";
-    console.log(`${prefix} ${node.schema} [${node.contentHash.slice(0, 12)}...] ${node.networkId}/${node.mode}`);
-  }
-  console.log("");
-
-  if (result.explain) {
-    printExplainChains(result.explain);
-  }
-}
-
-function printTransitions(result: any): void {
-  console.log(`\n  ═══ Lineage Transitions: ${result.total} ═══\n`);
-  for (const t of result.items) {
-    const marker = t.valid ? "✓" : "✗";
-    console.log(`  ${marker} ${t.from.schema} → ${t.to.schema}  [${t.rule}]`);
-  }
-  console.log("");
-
-  if (result.explain) {
-    printExplainChains(result.explain);
-  }
-}
-
-function printOrphans(result: any): void {
-  if (result.total === 0) {
-    console.log("\n  ✓ No orphaned artifacts found.\n");
-    return;
-  }
-
-  console.log(`\n  ═══ Orphaned Artifacts: ${result.total} ═══\n`);
-  for (const o of result.items) {
-    console.log(`  ✗ ${o.node.schema} [${o.node.contentHash.slice(0, 12)}...]`);
-    console.log(`    Missing parent: ${o.missingParentId.slice(0, 16)}...`);
-    console.log(`    Reason: ${o.reason}`);
-    console.log("");
-  }
-
-  if (result.explain) {
-    printExplainChains(result.explain);
-  }
-}
-
-function printExplainChains(chains: any[]): void {
-  console.log("  ─── Explain ───\n");
-  for (const chain of chains) {
-    console.log(`  Q: ${chain.question}`);
-    for (const step of chain.steps) {
-      console.log(`    ${step.order}. ${step.assertion}`);
-      if (step.rule) console.log(`       Rule: ${step.rule}`);
+  if (agg.events.length > 0) {
+    console.log(`\n  Events (${agg.events.length}):`);
+    for (const e of agg.events) {
+      console.log(`    ${e.timestamp.slice(0, 19).padEnd(20)} ${e.kind}`);
     }
-    console.log(`  → ${chain.conclusion}`);
-    console.log(`  [model: ${chain.model}, confidence: ${chain.confidence}]\n`);
   }
+
+  if (agg.warnings.length > 0) {
+    console.log(`\n  Warnings:`);
+    for (const w of agg.warnings) {
+      console.log(`    ⚠ ${w}`);
+    }
+  }
+
+  console.log("");
+  if (result.explain) printExplainChains(result.explain);
 }

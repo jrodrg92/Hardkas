@@ -13,15 +13,13 @@
     "README.md"
   ],
   "scripts": {
-    "build": "tsup",
+    "build": "tsup src/index.ts --format esm --dts --clean",
     "dev": "tsup --watch",
     "test": "vitest run"
   },
   "dependencies": {
     "@hardkas/core": "workspace:*",
     "@hardkas/artifacts": "workspace:*",
-    "@hardkas/kaspa-rpc": "workspace:*",
-    "@hardkas/query-store": "workspace:*",
     "picocolors": "^1.1.1"
   },
   "devDependencies": {

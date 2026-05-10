@@ -25,7 +25,7 @@ export function registerReplayQueryCommands(queryCmd: Command) {
           const { serializeQueryResult } = await import("@hardkas/query");
           console.log(serializeQueryResult(result));
         } else {
-          printReplayList(result);
+          printReplayList(result as any);
         }
       } catch (e) { handleError(e); process.exitCode = 1; }
     });
@@ -46,7 +46,7 @@ export function registerReplayQueryCommands(queryCmd: Command) {
           const { serializeQueryResult } = await import("@hardkas/query");
           console.log(serializeQueryResult(result));
         } else {
-          printReplaySummary(result);
+          printReplaySummary(result as any);
         }
       } catch (e) { handleError(e); process.exitCode = 1; }
     });
@@ -71,7 +71,7 @@ export function registerReplayQueryCommands(queryCmd: Command) {
           const { serializeQueryResult } = await import("@hardkas/query");
           console.log(serializeQueryResult(result));
         } else {
-          printDivergences(result);
+          printDivergences(result as any);
         }
       } catch (e) { handleError(e); process.exitCode = 1; }
     });
@@ -96,7 +96,7 @@ export function registerReplayQueryCommands(queryCmd: Command) {
           const { serializeQueryResult } = await import("@hardkas/query");
           console.log(serializeQueryResult(result));
         } else {
-          printInvariants(result);
+          printInvariants(result as any);
         }
       } catch (e) { handleError(e); process.exitCode = 1; }
     });

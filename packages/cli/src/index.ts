@@ -17,14 +17,9 @@ import { registerQueryCommands } from "./commands/query.js";
 import { registerTestCommands } from "./commands/test.js";
 import { registerDoctorCommand } from "./commands/doctor.js";
 
-import { startEventLogging } from "@hardkas/query";
-
 const HARDKAS_VERSION = "0.2.0-alpha";
 
 async function main() {
-  // Start the fire-and-forget event bus observer for SQLite indexing
-  startEventLogging();
-
   const program = new Command();
 
   program

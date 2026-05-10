@@ -16,10 +16,7 @@ import {
   DagSinkPath, 
   DagAnomaly,
   ExplainChain,
-  ReasoningStep,
-  RpcHealthEntry,
-  RpcDegradation,
-  RpcCorrelation
+  ReasoningStep
 } from "@hardkas/query";
 
 export function printArtifactList(result: QueryResult<ArtifactQueryItem>): void {
@@ -84,6 +81,7 @@ export function printLineageChain(result: QueryResult<LineageChainResult>): void
   console.log(`  ${pc.dim("Nodes:")}    ${pc.cyan(chain.nodes.length)}\n`);
   for (let i = 0; i < chain.nodes.length; i++) {
     const node = chain.nodes[i];
+    if (!node) continue;
     const prefix = i === chain.nodes.length - 1 ? pc.dim("  └─") : pc.dim("  ├─");
     const hash = pc.dim(node.contentHash.slice(0, 12) + "...");
     console.log(`${prefix} ${pc.white(node.schema.padEnd(20))} ${hash} ${pc.blue(node.networkId)}/${pc.dim(node.mode)}`);
@@ -240,6 +238,7 @@ export function printSinkPath(result: QueryResult<DagSinkPath>): void {
   console.log(`  ${pc.dim("Sink:")} ${pc.white(sp.sink)}\n`);
   for (let i = 0; i < sp.nodes.length; i++) {
     const n = sp.nodes[i];
+    if (!n) continue;
     const prefix = i === sp.nodes.length - 1 ? pc.dim("  └─") : pc.dim("  ├─");
     const genesis = n.isGenesis ? pc.green(" [GENESIS]") : "";
     console.log(`${prefix} ${pc.white(n.blockId.slice(0, 16) + "...")} ${pc.dim("daa:")}${n.daaScore} ${pc.dim("txs:")}${n.acceptedTxCount}${genesis}`);
@@ -260,7 +259,7 @@ export function printDagAnomalies(result: QueryResult<DagAnomaly>): void {
   if (result.explain) printExplainChains(result.explain as unknown as ExplainChain[]);
 }
 
-export function printRpcHealthTimeline(result: QueryResult<RpcHealthEntry>): void {
+export function printRpcHealthTimeline(result: QueryResult<any>): void {
   console.log(pc.bold(pc.magenta(`\n  ═══ RPC Health Timeline: ${pc.cyan(result.total)} events ═══\n`)));
   for (const e of result.items) {
     const state = e.state === "up" ? pc.green(e.state) : pc.red(e.state);
@@ -272,7 +271,7 @@ export function printRpcHealthTimeline(result: QueryResult<RpcHealthEntry>): voi
   console.log("");
 }
 
-export function printRpcDegradations(result: QueryResult<RpcDegradation>): void {
+export function printRpcDegradations(result: QueryResult<any>): void {
   if (result.total === 0) { 
     console.log(pc.green("\n  ✓ No RPC degradations detected in the queried window.\n")); 
     return; 
@@ -286,7 +285,7 @@ export function printRpcDegradations(result: QueryResult<RpcDegradation>): void 
   }
 }
 
-export function printRpcCorrelation(result: QueryResult<RpcCorrelation>): void {
+export function printRpcCorrelation(result: QueryResult<any>): void {
   const c = result.items[0];
   if (!c) return;
   console.log(pc.bold(pc.magenta(`\n  ═══ RPC Submission Correlation: ${pc.white(c.txId.slice(0, 16) + "...")} ═══\n`)));

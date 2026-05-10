@@ -9,6 +9,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { calculateContentHash } from "@hardkas/artifacts";
+import type { TxId } from "@hardkas/core";
 import { computeQueryHash } from "../serialize.js";
 import { evaluateFilters } from "../filter.js";
 import type {
@@ -293,7 +294,7 @@ export class ReplayQueryAdapter implements QueryAdapter {
     }
 
     const result: ReplayInvariantsResult = {
-      txId,
+      txId: txId as TxId,
       planIntegrity,
       receiptReproducible,
       stateTransitionValid,

@@ -428,7 +428,7 @@ export function mapKaspaSubmitTransactionResult(result: any): KaspaSubmitTransac
 export class MockKaspaRpcClient implements KaspaRpcClient {
   private utxosByAddress = new Map<string, KaspaRpcUtxo[]>();
 
-  constructor(private readonly networkId: NetworkId = "simnet") {}
+  constructor(private readonly networkId: NetworkId = "simnet" as NetworkId) {}
 
   async getInfo(): Promise<KaspaNodeInfo> {
     return { networkId: this.networkId, serverVersion: "mock", isSynced: true, virtualDaaScore: 0n, raw: {} };

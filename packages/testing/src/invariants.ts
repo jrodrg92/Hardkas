@@ -30,6 +30,7 @@ export const Invariants = {
     for (let i = 1; i < sorted.length; i++) {
       const prev = sorted[i - 1];
       const curr = sorted[i];
+      if (!prev || !curr) continue;
       
       if (curr.lineage?.parentArtifactId !== prev.lineage?.artifactId) {
         return false;
@@ -45,7 +46,7 @@ export const Invariants = {
    * Guarantee: Every emission to the event bus MUST have a timestamp.
    */
   verifyEventCompliance(event: CoreEvent): boolean {
-    return !!(event as any).ts;
+    return !!event.timestamp;
   }
 };
 
@@ -63,7 +64,8 @@ export class InvariantWatcher {
       }
       
       if (event.kind === "integrity.hash_mismatch") {
-        this.violations.push(`Hash mismatch detected: ${event.artifactId}`);
+        const payload = event.payload as any;
+        this.violations.push(`Hash mismatch detected: ${payload.artifactId || event.artifactId}`);
       }
     });
   }

@@ -1,29 +1,47 @@
 import { HardkasArtifactSchema } from "./constants.js";
-import { NetworkId, ExecutionMode, ArtifactType, TxId, KaspaAddress, ArtifactId, LineageId } from "@hardkas/core";
+import { 
+  NetworkId, 
+  ExecutionMode, 
+  ArtifactType, 
+  TxId, 
+  KaspaAddress, 
+  ArtifactId, 
+  LineageId,
+  ContentHash,
+  EventSequence,
+  WorkflowId
+} from "@hardkas/core";
+
+export type AssumptionLevel = "dev" | "trusted" | "network-observed";
 
 export interface HardkasArtifactBase {
   schema: HardkasArtifactSchema;
   hardkasVersion: string;
   version: string;
-  networkId: string;
-  mode: string;
+  networkId: NetworkId;
+  mode: ExecutionMode;
   createdAt: string;
 }
 
 export interface BaseArtifact<T extends ArtifactType> {
   schema: `hardkas.${T}`;
   hardkasVersion: string;
-  version: "1.0.0-alpha";
+  version: string; // usually "1.0.0-alpha" or "1.0.0"
   networkId: NetworkId;
   mode: ExecutionMode;
   createdAt: string;
-  contentHash?: string | undefined;
+  
+  contentHash?: ContentHash | undefined;
+  workflowId?: WorkflowId | undefined;
+  assumptionLevel?: AssumptionLevel | undefined;
+  executionMode?: ExecutionMode | undefined; // Align with mode or specify deeper
+  
   lineage?: {
     artifactId: ArtifactId;
     lineageId: LineageId;
     parentArtifactId?: ArtifactId | undefined;
     rootArtifactId: ArtifactId;
-    sequence?: number | undefined;
+    sequence?: EventSequence | number | undefined;
   } | undefined;
 }
 
@@ -128,8 +146,8 @@ export interface TxReceiptArtifactV1 extends HardkasArtifactBase {
   readonly schema: "hardkas.txReceipt.v1";
   readonly status: "submitted" | "accepted" | "confirmed" | "finalized" | "failed";
   
-  readonly txId: string;
-  readonly sourceSignedId?: string | undefined;
+  readonly txId: TxId;
+  readonly sourceSignedId?: ArtifactId | undefined;
   readonly sourceSignedPath?: string | undefined;
   
   readonly from: {
@@ -160,7 +178,7 @@ export interface TxReceiptArtifactV1 extends HardkasArtifactBase {
 
 export interface TxTraceArtifactV1 extends HardkasArtifactBase {
   readonly schema: "hardkas.txTrace.v1";
-  readonly txId: string;
+  readonly txId: TxId;
   readonly steps: Array<{
     phase: string;
     status: string;
@@ -194,16 +212,16 @@ export interface TxPlanArtifact extends BaseArtifact<"txPlan"> {
 
 export interface SignedTxArtifact extends BaseArtifact<"signedTx"> {
   status: "signed";
-  signedId: string;
+  signedId: ArtifactId;
   sourcePlanId: string;
-  from: { address: string; accountName?: string | undefined; input?: string | undefined };
-  to: { address: string; accountName?: string | undefined; input?: string | undefined };
+  from: { address: KaspaAddress; accountName?: string | undefined; input?: string | undefined };
+  to: { address: KaspaAddress; accountName?: string | undefined; input?: string | undefined };
   amountSompi: string;
   signedTransaction: {
     format: string;
     payload: string;
   };
-  txId?: string | undefined;
+  txId?: TxId | undefined;
   metadata?: any | undefined;
 }
 

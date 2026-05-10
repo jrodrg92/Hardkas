@@ -337,9 +337,6 @@ importers:
       '@hardkas/core':
         specifier: workspace:*
         version: link:../core
-      '@hardkas/query':
-        specifier: workspace:0.2.0-alpha
-        version: link:../query
       '@hardkas/tx-builder':
         specifier: workspace:*
         version: link:../tx-builder
@@ -447,12 +444,6 @@ importers:
       '@hardkas/core':
         specifier: workspace:*
         version: link:../core
-      '@hardkas/kaspa-rpc':
-        specifier: workspace:*
-        version: link:../kaspa-rpc
-      '@hardkas/query-store':
-        specifier: workspace:*
-        version: link:../query-store
       picocolors:
         specifier: ^1.1.1
         version: 1.1.1
@@ -475,9 +466,6 @@ importers:
       '@hardkas/core':
         specifier: workspace:*
         version: link:../core
-      '@hardkas/query':
-        specifier: workspace:*
-        version: link:../query
     devDependencies:
       '@types/node':
         specifier: ^22.10.0
@@ -556,6 +544,9 @@ importers:
 
   packages/testing:
     dependencies:
+      '@hardkas/artifacts':
+        specifier: workspace:*
+        version: link:../artifacts
       '@hardkas/core':
         specifier: workspace:*
         version: link:../core

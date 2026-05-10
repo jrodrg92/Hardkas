@@ -4,13 +4,22 @@
  * All query operations are deterministic pure functions over immutable artifact data.
  * Non-deterministic metadata (timestamps, execution time) is isolated in `annotations`.
  */
+import { 
+  ArtifactId, 
+  TxId, 
+  KaspaAddress, 
+  LineageId, 
+  NetworkId, 
+  ContentHash,
+  DaaScore
+} from "@hardkas/core";
 
 // ---------------------------------------------------------------------------
 // Query Domains & Operations
 // ---------------------------------------------------------------------------
 
 /** Query domains available. */
-export type QueryDomain = "artifacts" | "lineage" | "replay" | "dag";
+export type QueryDomain = "artifacts" | "lineage" | "replay" | "dag" | "events" | "tx";
 
 /** Operations supported by the artifact adapter. */
 export type ArtifactOp = "list" | "inspect" | "diff" | "verify";
@@ -23,6 +32,12 @@ export type ReplayOp = "list" | "summary" | "divergences" | "invariants";
 
 /** Operations supported by the DAG adapter. */
 export type DagOp = "conflicts" | "displaced" | "history" | "sink-path" | "anomalies";
+
+/** Operations supported by the events adapter. */
+export type EventsOp = "list" | "summary";
+
+/** Operations supported by the transaction aggregator. */
+export type TxOp = "aggregate";
 
 // ---------------------------------------------------------------------------
 // Filter Model
@@ -122,19 +137,19 @@ export interface ArtifactQueryItem {
   readonly filePath: string;
   readonly schema: string;
   readonly version: string;
-  readonly networkId: string;
+  readonly networkId: NetworkId;
   readonly mode: string;
   readonly createdAt: string;
-  readonly contentHash?: string | undefined;
-  readonly from?: { readonly address: string } | undefined;
-  readonly to?: { readonly address: string } | undefined;
+  readonly contentHash?: ContentHash | undefined;
+  readonly from?: { readonly address: KaspaAddress } | undefined;
+  readonly to?: { readonly address: KaspaAddress } | undefined;
   readonly amountSompi?: string | undefined;
   readonly status?: string | undefined;
   readonly lineage?: {
-    readonly artifactId: string;
-    readonly parentArtifactId?: string | undefined;
-    readonly rootArtifactId: string;
-    readonly lineageId: string;
+    readonly artifactId: ArtifactId;
+    readonly parentArtifactId?: ArtifactId | undefined;
+    readonly rootArtifactId: ArtifactId;
+    readonly lineageId: LineageId;
     readonly sequence?: number | undefined;
   } | undefined;
 }
@@ -192,15 +207,15 @@ export interface ArtifactDiffResult {
 // ---------------------------------------------------------------------------
 
 export interface LineageNode {
-  readonly contentHash: string;
+  readonly contentHash: ContentHash;
   readonly schema: string;
-  readonly artifactId: string;
-  readonly parentArtifactId?: string | undefined;
-  readonly rootArtifactId: string;
-  readonly lineageId: string;
+  readonly artifactId: ArtifactId;
+  readonly parentArtifactId?: ArtifactId | undefined;
+  readonly rootArtifactId: ArtifactId;
+  readonly lineageId: LineageId;
   readonly sequence?: number | undefined;
   readonly filePath: string;
-  readonly networkId: string;
+  readonly networkId: NetworkId;
   readonly mode: string;
   readonly createdAt: string;
 }
@@ -247,12 +262,12 @@ export interface ReplayDivergence {
 }
 
 export interface ReplaySummaryResult {
-  readonly txId: string;
+  readonly txId: TxId;
   readonly status: string;
   readonly mode: string;
-  readonly networkId: string;
-  readonly from: string;
-  readonly to: string;
+  readonly networkId: NetworkId;
+  readonly from: KaspaAddress;
+  readonly to: KaspaAddress;
   readonly amountSompi: string;
   readonly feeSompi: string;
   readonly daaScore: string;
@@ -265,7 +280,7 @@ export interface ReplaySummaryResult {
 }
 
 export interface ReplayInvariantsResult {
-  readonly txId: string;
+  readonly txId: TxId;
   readonly planIntegrity: boolean;
   readonly receiptReproducible: boolean;
   readonly stateTransitionValid: boolean;
@@ -279,18 +294,18 @@ export interface ReplayInvariantsResult {
 
 export interface DagConflict {
   readonly outpoint: string;
-  readonly winnerTxId: string;
-  readonly loserTxIds: readonly string[];
+  readonly winnerTxId: TxId;
+  readonly loserTxIds: readonly TxId[];
 }
 
 export interface DagDisplacement {
-  readonly txId: string;
+  readonly txId: TxId;
   readonly reason: string;
   readonly currentlyAccepted: boolean;
 }
 
 export interface DagTxHistory {
-  readonly txId: string;
+  readonly txId: TxId;
   readonly blockId: string;
   readonly accepted: boolean;
   readonly displaced: boolean;

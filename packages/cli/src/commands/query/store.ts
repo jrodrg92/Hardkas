@@ -62,7 +62,7 @@ export function registerStoreQueryCommands(queryCmd: Command) {
           }
         } else {
           const info = stmt.run();
-          UI.success(`Query executed. Changes: ${pc.bold(info.changes)}`);
+          UI.success(`Query executed. Changes: ${pc.bold(info.changes.toString())}`);
         }
         
         store.disconnect();

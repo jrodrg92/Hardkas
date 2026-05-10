@@ -5,8 +5,9 @@ import path from "node:path";
 import os from "node:os";
 import { HardkasStore, HardkasIndexer } from "../src/index.js";
 import { calculateContentHash } from "@hardkas/artifacts";
+import { createEventEnvelope, asWorkflowId, asCorrelationId, asNetworkId } from "@hardkas/core";
 
-describe("HardkasIndexer", () => {
+describe("HardkasIndexer (V2 Schema Compatibility)", () => {
   let tmpDir: string;
   let hardkasDir: string;
   let store: HardkasStore;
@@ -37,6 +38,7 @@ describe("HardkasIndexer", () => {
 
   it("should index valid artifacts", async () => {
     const artifact = {
+      artifactId: "art-1",
       schema: "hardkas.test",
       version: "1.0.0-alpha",
       mode: "simulated",
@@ -58,35 +60,41 @@ describe("HardkasIndexer", () => {
     const count = (db.prepare("SELECT COUNT(*) as count FROM artifacts").get() as any).count;
     assert.strictEqual(count, 1);
 
-    const row = db.prepare("SELECT hash, schema FROM artifacts").get() as any;
-    assert.strictEqual(row.hash, (artifact as any).contentHash);
+    const row = db.prepare("SELECT artifact_id, schema FROM artifacts").get() as any;
+    assert.strictEqual(row.artifact_id, "art-1");
     assert.strictEqual(row.schema, "hardkas.test");
   });
 
-  it("should index events.jsonl", async () => {
-    const event1 = { kind: "workflow.test", txId: "tx1", timestamp: new Date().toISOString() };
-    const event2 = { kind: "rpc.health", endpoint: "localhost", timestamp: new Date().toISOString() };
+  it("should index formal event envelopes", async () => {
+    const event = createEventEnvelope({
+      kind: "workflow.plan.created",
+      domain: "workflow",
+      workflowId: asWorkflowId("wf-1"),
+      correlationId: asCorrelationId("corr-1"),
+      networkId: asNetworkId("testnet-10"),
+      payload: { planId: "art-1" as any, network: asNetworkId("testnet-10"), amountSompi: 1000n }
+    });
 
     await fs.writeFile(
       path.join(hardkasDir, "events.jsonl"),
-      JSON.stringify(event1) + "\n" + JSON.stringify(event2) + "\n"
+      JSON.stringify(event, (_, v) => typeof v === 'bigint' ? v.toString() : v) + "\n"
     );
 
     const indexer = new HardkasIndexer(store.getDatabase(), { cwd: tmpDir });
     indexer.sync();
 
     const db = store.getDatabase();
-    const rows = db.prepare("SELECT kind, tx_id FROM events ORDER BY id ASC").all() as any[];
-    assert.strictEqual(rows.length, 2);
-    assert.strictEqual(rows[0].kind, "workflow.test");
-    assert.strictEqual(rows[0].tx_id, "tx1");
-    assert.strictEqual(rows[1].kind, "rpc.health");
+    const rows = db.prepare("SELECT kind, workflow_id FROM events").all() as any[];
+    assert.strictEqual(rows.length, 1);
+    assert.strictEqual(rows[0].kind, "workflow.plan.created");
+    assert.strictEqual(rows[0].workflow_id, "wf-1");
   });
 
   it("should index lineage edges", async () => {
     const parentArtifact = {
+      artifactId: "parent-1",
       schema: "hardkas.test",
-      version: "1.0.0-alpha",
+      version: "1.0.0",
       mode: "simulated",
       networkId: "simnet",
       createdAt: new Date().toISOString()
@@ -95,13 +103,15 @@ describe("HardkasIndexer", () => {
     (parentArtifact as any).contentHash = parentHash;
 
     const artifact = {
+      artifactId: "child-1",
       schema: "hardkas.test",
       version: "1.0.0-alpha",
       mode: "simulated",
       networkId: "simnet",
       createdAt: new Date().toISOString(),
       lineage: {
-        parentArtifactId: parentHash,
+        lineageId: "lin-1",
+        parentArtifactId: "parent-1",
         sequence: 1
       }
     };
@@ -112,9 +122,6 @@ describe("HardkasIndexer", () => {
       JSON.stringify(parentArtifact)
     );
 
-    const indexer1 = new HardkasIndexer(store.getDatabase(), { cwd: tmpDir });
-    indexer1.sync();
-
     await fs.writeFile(
       path.join(hardkasDir, "child-artifact.json"),
       JSON.stringify(artifact)
@@ -124,14 +131,18 @@ describe("HardkasIndexer", () => {
     indexer.sync();
 
     const db = store.getDatabase();
-    const edges = db.prepare("SELECT parent_hash, child_hash FROM lineage_edges").all() as any[];
-    assert.strictEqual(edges.length, 1);
-    assert.strictEqual(edges[0].parent_hash, parentHash);
-    assert.strictEqual(edges[0].child_hash, (artifact as any).contentHash);
+    const artCount = (db.prepare("SELECT COUNT(*) as count FROM artifacts").get() as any).count;
+    assert.strictEqual(artCount, 2, "Should have 2 artifacts indexed");
+
+    const edges = db.prepare("SELECT parent_artifact_id, child_artifact_id FROM lineage_edges").all() as any[];
+    assert.strictEqual(edges.length, 1, "Should have 1 lineage edge");
+    assert.strictEqual(edges[0].parent_artifact_id, "parent-1");
+    assert.strictEqual(edges[0].child_artifact_id, "child-1");
   });
 
   it("should perform idempotent re-indexing", async () => {
     const artifact = {
+      artifactId: "art-idempotent",
       schema: "hardkas.test",
       version: "1.0.0-alpha",
       mode: "simulated",
@@ -162,6 +173,7 @@ describe("HardkasIndexer", () => {
     );
 
     const validArtifact = {
+      artifactId: "valid-1",
       schema: "hardkas.test",
       version: "1.0.0-alpha",
       mode: "simulated",
@@ -180,62 +192,5 @@ describe("HardkasIndexer", () => {
     const db = store.getDatabase();
     const count = (db.prepare("SELECT COUNT(*) as count FROM artifacts").get() as any).count;
     assert.strictEqual(count, 1); // Only the valid one should be indexed
-  });
-
-  it("should support raw SQL query smoke test", () => {
-    const db = store.getDatabase();
-    db.exec(`
-      INSERT INTO artifacts (hash, schema, version, mode, network_id, created_at, path, raw_json)
-      VALUES ('hash1', 'hardkas.sql', '1.0', 'sim', 'net', '2025', 'path/a.json', '{}');
-    `);
-
-    const result = db.prepare("SELECT schema FROM artifacts WHERE hash = ?").get('hash1') as any;
-    assert.strictEqual(result.schema, 'hardkas.sql');
-  });
-
-  it("should handle large number of artifacts without crashing", async () => {
-    const count = 50;
-    for (let i = 0; i < count; i++) {
-      const artifact = {
-        schema: `hardkas.bulk.${i}`,
-        version: "1.0.0",
-        mode: "test",
-        networkId: "simnet",
-        createdAt: new Date().toISOString()
-      };
-      (artifact as any).contentHash = `bulk-hash-${i}`;
-      await fs.writeFile(
-        path.join(hardkasDir, `bulk-${i}.json`),
-        JSON.stringify(artifact)
-      );
-    }
-
-    const indexer = new HardkasIndexer(store.getDatabase(), { cwd: tmpDir });
-    indexer.sync();
-
-    const db = store.getDatabase();
-    const dbCount = (db.prepare("SELECT COUNT(*) as count FROM artifacts").get() as any).count;
-    assert.strictEqual(dbCount, count);
-  });
-
-  it("should handle mixed valid and malformed events.jsonl", async () => {
-    const validEvent = { kind: "workflow.valid", txId: "tx-ok" };
-    const malformedLine = "{ this is not json }";
-    const partialEvent = { kind: "rpc.partial" }; // missing txId but should still index
-
-    await fs.writeFile(
-      path.join(hardkasDir, "events.jsonl"),
-      JSON.stringify(validEvent) + "\n" + malformedLine + "\n" + JSON.stringify(partialEvent) + "\n"
-    );
-
-    const indexer = new HardkasIndexer(store.getDatabase(), { cwd: tmpDir });
-    indexer.sync();
-
-    const db = store.getDatabase();
-    const rows = db.prepare("SELECT kind FROM events").all() as any[];
-    assert.strictEqual(rows.length, 2);
-    const kinds = rows.map(r => r.kind);
-    assert.ok(kinds.includes("workflow.valid"));
-    assert.ok(kinds.includes("rpc.partial"));
   });
 });

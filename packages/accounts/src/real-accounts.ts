@@ -1,11 +1,13 @@
 import fs from "node:fs";
 import path from "node:path";
+import type { NetworkId } from "@hardkas/core";
 import { HardkasArtifactBase, HARDKAS_VERSION, ARTIFACT_SCHEMAS, ARTIFACT_VERSION } from "@hardkas/artifacts";
 
 export interface RealAccountStore extends HardkasArtifactBase {
   readonly schema: "hardkas.realAccountStore.v1";
-  readonly networkId: string; // usually "simnet" or "testnet-10"
-  readonly mode: "node" | "rpc";
+  readonly networkId: NetworkId; // usually "simnet" or "testnet-10"
+  readonly mode: "real";
+  readonly connectionMode?: "node" | "rpc";
   readonly warning: string;
   readonly accounts: readonly RealDevAccount[];
 }
@@ -28,8 +30,9 @@ export function createEmptyRealAccountStore(): RealAccountStore {
     hardkasVersion: HARDKAS_VERSION,
     version: ARTIFACT_VERSION,
     createdAt: new Date().toISOString(),
-    networkId: "simnet",
-    mode: "node",
+    networkId: "simnet" as NetworkId,
+    mode: "real",
+    connectionMode: "node",
     warning: "Development keys only. Do not use on mainnet. Private keys are stored in plaintext.",
     accounts: []
   };

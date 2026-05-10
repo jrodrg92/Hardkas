@@ -133,9 +133,9 @@ export async function runTxPlan(input: TxPlanRunnerInput): Promise<TxPlanArtifac
     to: { input: to, address: toAddress },
     amountSompi,
     plan
-  });
+  }) as unknown as TxPlanArtifact;
 
-  coreEvents.emit({
+  coreEvents.normalizeAndEmit({
     kind: "workflow.plan.created",
     planId: artifact.planId,
     planHash: artifact.contentHash || "unknown",

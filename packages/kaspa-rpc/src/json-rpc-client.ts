@@ -109,7 +109,7 @@ export class KaspaJsonRpcClient implements KaspaRpcClient {
         circuitOpen: this.circuitState === CircuitState.OPEN
       });
 
-      coreEvents.emit({
+      coreEvents.normalizeAndEmit({
         kind: "rpc.health",
         endpoint: this.url,
         state: resilience.state,
@@ -142,7 +142,7 @@ export class KaspaJsonRpcClient implements KaspaRpcClient {
         circuitOpen: this.circuitState === CircuitState.OPEN
       });
 
-      coreEvents.emit({
+      coreEvents.normalizeAndEmit({
         kind: "rpc.health",
         endpoint: this.url,
         state: resilience.state,
@@ -184,11 +184,11 @@ export class KaspaJsonRpcClient implements KaspaRpcClient {
       tipHashes: string[];
       virtualDaaScore?: string | number;
     };
-    const dagInfo: BlockDagInfo = {
+    const dagInfo = {
       networkId: data.networkId as NetworkId,
       tipHashes: data.tipHashes,
-      virtualDaaScore: data.virtualDaaScore !== undefined ? BigInt(data.virtualDaaScore) : undefined
-    };
+      ...(data.virtualDaaScore !== undefined ? { virtualDaaScore: BigInt(data.virtualDaaScore) } : {})
+    } satisfies BlockDagInfo;
     return dagInfo;
   }
 
@@ -286,7 +286,7 @@ export class KaspaJsonRpcClient implements KaspaRpcClient {
         lastErr = e;
 
         const isRetriable = e instanceof RpcError ? e.isRetriable : true;
-        coreEvents.emit({
+        coreEvents.normalizeAndEmit({
           kind: "rpc.error",
           endpoint: this.url,
           error: e.message,

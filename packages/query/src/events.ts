@@ -13,12 +13,9 @@ import path from "node:path";
 
 import { 
   coreEvents, 
-  type CoreEvent, 
-  type CoreEventKind 
+  type EventEnvelope as ObsEvent,
+  type EventKind as ObsEventKind
 } from "@hardkas/core";
-
-export type ObsEventKind = CoreEventKind;
-export type ObsEvent = CoreEvent;
 
 // Specific event interfaces are now in @hardkas/core
 
@@ -35,12 +32,7 @@ export function getEventsPath(cwd: string = process.cwd()): string {
  * Fire-and-forget: errors are silently swallowed.
  * Events are NOT correctness-critical — they are observability only.
  */
-export function emitEvent(event: Omit<ObsEvent, "ts">, options?: { cwd?: string }): void {
-  const fullEvent = {
-    ts: new Date().toISOString(),
-    ...event
-  } as ObsEvent;
-
+export function emitEvent(event: ObsEvent, options?: { cwd?: string }): void {
   const filePath = getEventsPath(options?.cwd);
   const dir = path.dirname(filePath);
 
@@ -48,7 +40,7 @@ export function emitEvent(event: Omit<ObsEvent, "ts">, options?: { cwd?: string 
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
-    fs.appendFileSync(filePath, JSON.stringify(fullEvent) + "\n", "utf-8");
+    fs.appendFileSync(filePath, JSON.stringify(event) + "\n", "utf-8");
   } catch {
     // Fire-and-forget. Observability must not break the workflow.
   }
@@ -57,12 +49,7 @@ export function emitEvent(event: Omit<ObsEvent, "ts">, options?: { cwd?: string 
 /**
  * Async variant for contexts where fire-and-forget would lose data.
  */
-export async function emitEventAsync(event: Omit<ObsEvent, "ts">, options?: { cwd?: string }): Promise<void> {
-  const fullEvent = {
-    ts: new Date().toISOString(),
-    ...event
-  } as ObsEvent;
-
+export async function emitEventAsync(event: ObsEvent, options?: { cwd?: string }): Promise<void> {
   const filePath = getEventsPath(options?.cwd);
   const dir = path.dirname(filePath);
 
@@ -70,7 +57,7 @@ export async function emitEventAsync(event: Omit<ObsEvent, "ts">, options?: { cw
     if (!fs.existsSync(dir)) {
       await fsp.mkdir(dir, { recursive: true });
     }
-    await fsp.appendFile(filePath, JSON.stringify(fullEvent) + "\n", "utf-8");
+    await fsp.appendFile(filePath, JSON.stringify(event) + "\n", "utf-8");
   } catch {
     // Observability must not break the workflow.
   }
@@ -125,7 +112,7 @@ export async function readEvents(options?: EventReadOptions): Promise<ObsEvent[]
       const event = JSON.parse(line) as ObsEvent;
 
       // Filter by since
-      if (options?.since && event.ts < options.since) continue;
+      if (options?.since && event.timestamp < options.since) continue;
 
       // Filter by kind
       if (options?.kind) {
@@ -140,7 +127,7 @@ export async function readEvents(options?: EventReadOptions): Promise<ObsEvent[]
   }
 
   // Newest first
-  events.sort((a, b) => b.ts.localeCompare(a.ts));
+  events.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
 
   // Apply limit
   if (options?.limit && events.length > options.limit) {
@@ -171,7 +158,7 @@ export async function pruneEvents(olderThan: string, options?: { cwd?: string })
   for (const line of lines) {
     try {
       const event = JSON.parse(line) as ObsEvent;
-      if (event.ts < olderThan) {
+      if (event.timestamp < olderThan) {
         pruned++;
       } else {
         kept.push(line);

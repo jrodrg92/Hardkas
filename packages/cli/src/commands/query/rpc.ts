@@ -16,12 +16,12 @@ export function registerRpcQueryCommands(queryCmd: Command) {
         const { QueryEngine, createQueryRequest } = await import("@hardkas/query");
         const engine = new QueryEngine({ artifactDir: process.cwd() });
         const limit = parseInt(options.limit, 10) || 100;
-        const request = createQueryRequest({ domain: "rpc", op: "health-timeline", params: { since: options.since }, limit });
+        const request = createQueryRequest({ domain: "rpc" as any, op: "health-timeline", params: { since: options.since }, limit });
         const result = await engine.execute(request);
         if (options.json) {
           const { serializeQueryResult } = await import("@hardkas/query");
           console.log(serializeQueryResult(result));
-        } else { printRpcHealthTimeline(result); }
+        } else { printRpcHealthTimeline(result as any); }
       } catch (e) { handleError(e); process.exitCode = 1; }
     });
 
@@ -36,12 +36,12 @@ export function registerRpcQueryCommands(queryCmd: Command) {
         const { QueryEngine, createQueryRequest } = await import("@hardkas/query");
         const engine = new QueryEngine({ artifactDir: process.cwd() });
         const limit = parseInt(options.limit, 10) || 100;
-        const request = createQueryRequest({ domain: "rpc", op: "degradations", params: { since: options.since }, limit });
+        const request = createQueryRequest({ domain: "rpc" as any, op: "degradations", params: { since: options.since }, limit });
         const result = await engine.execute(request);
         if (options.json) {
           const { serializeQueryResult } = await import("@hardkas/query");
           console.log(serializeQueryResult(result));
-        } else { printRpcDegradations(result); }
+        } else { printRpcDegradations(result as any); }
       } catch (e) { handleError(e); process.exitCode = 1; }
     });
 
@@ -55,12 +55,12 @@ export function registerRpcQueryCommands(queryCmd: Command) {
         const { QueryEngine, createQueryRequest } = await import("@hardkas/query");
         const engine = new QueryEngine({ artifactDir: process.cwd() });
         const explain = options.explain === true ? "brief" as const : (options.explain || false);
-        const request = createQueryRequest({ domain: "rpc", op: "correlate", params: { txId }, explain });
+        const request = createQueryRequest({ domain: "rpc" as any, op: "correlate", params: { txId }, explain });
         const result = await engine.execute(request);
         if (options.json) {
           const { serializeQueryResult } = await import("@hardkas/query");
           console.log(serializeQueryResult(result));
-        } else { printRpcCorrelation(result); }
+        } else { printRpcCorrelation(result as any); }
       } catch (e) { handleError(e); process.exitCode = 1; }
     });
 }
